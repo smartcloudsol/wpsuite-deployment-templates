@@ -91,6 +91,655 @@ Parameters:
     Type: "String"
     Default: "/signin"
     Description: "Sign-in path used by Static Site Guardian."
+  CognitoAppName:
+    Type: "String"
+    Default: "wpsuite-cognito"
+    Description: "Application name for the WP Suite Cognito nested stack."
+  CognitoPostLoginRedirectUrl:
+    Type: "String"
+    Default: "https://example.com/signin"
+    Description: "OAuth callback URL for the Cognito app client."
+  CognitoRegisteredGroupName:
+    Type: "String"
+    Default: "registered"
+    Description: "Default Cognito group assigned to confirmed users."
+  CognitoAdminGroupName:
+    Type: "String"
+    Default: "admin"
+    Description: "Cognito administrator group name."
+  CognitoCreateIdentityPool:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create a Cognito Identity Pool in the Cognito nested stack."
+  CognitoEnableCustomEmailSender:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable the Cognito custom email sender Lambda."
+  CognitoEnableRecaptcha:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable reCAPTCHA in Cognito pre sign-up."
+  RecaptchaMode:
+    Type: "String"
+    Default: "enterprise"
+    AllowedValues:
+      - "enterprise"
+      - "classic"
+    Description: "Shared reCAPTCHA mode used by selected WP Suite nested stacks."
+  RecaptchaProjectId:
+    Type: "String"
+    Default: ""
+    Description: "Google Cloud project ID for reCAPTCHA Enterprise."
+  RecaptchaSiteKey:
+    Type: "String"
+    Default: ""
+    Description: "Public reCAPTCHA site key expected by frontend clients."
+  RecaptchaSecretKey:
+    Type: "String"
+    Default: ""
+    Description: "Shared reCAPTCHA secret key used by selected WP Suite nested stacks."
+    NoEcho: true
+  RecaptchaScoreThreshold:
+    Type: "Number"
+    Default: 0.5
+    Description: "Minimum accepted reCAPTCHA score from 0.0 to 1.0."
+  RecaptchaChatTtlSeconds:
+    Type: "Number"
+    Default: 120
+    Description: "AI Kit chat reCAPTCHA verification cache TTL in seconds."
+  AiKitAppName:
+    Type: "String"
+    Default: "wpsuite-ai-kit"
+    Description: "Application name for the WP Suite AI Kit nested stack."
+  AiKitEnvironment:
+    Type: "String"
+    Default: "prod"
+    Description: "Deployment environment for the WP Suite AI Kit nested stack."
+  AiKitAdminApiAuthMode:
+    Type: "String"
+    Default: "IAM"
+    Description: "AI Kit admin API authorization mode."
+  AiKitAdminCognitoAuthScopes:
+    Type: "String"
+    Default: ""
+    Description: "Optional OAuth scopes required for AI Kit admin Cognito authorization."
+  AiKitFrontendApiAuthMode:
+    Type: "String"
+    Default: "NONE"
+    Description: "AI Kit frontend API authorization mode."
+  AiKitFrontendCognitoAuthScopes:
+    Type: "String"
+    Default: ""
+    Description: "Optional OAuth scopes required for AI Kit frontend Cognito authorization."
+  AiKitFrontendModelId:
+    Type: "String"
+    Default: "amazon.nova-lite-v1:0"
+    Description: "Bedrock model ID used by AI Kit frontend endpoints."
+  AiKitModelId:
+    Type: "String"
+    Default: "amazon.nova-lite-v1:0"
+    Description: "Bedrock model ID used by AI Kit admin/backend endpoints."
+  AiKitKnowledgeBaseId:
+    Type: "String"
+    Default: ""
+    Description: "Existing Bedrock Knowledge Base ID for AI Kit, or empty to create one."
+  AiKitEnableChatbotBackend:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable AI Kit chatbot frontend endpoint."
+  AiKitEnableSummarizerBackend:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable AI Kit summarizer frontend endpoint."
+  AiKitEnableLanguageAIBackend:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable AI Kit language assistant frontend endpoints."
+  AiKitEnableRecaptcha:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable reCAPTCHA for AI Kit frontend APIs."
+  AiKitEnableWAF:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable AWS WAF for AI Kit APIs."
+  FlowAppName:
+    Type: "String"
+    Default: "wpsuite-flow"
+    Description: "Application name for the WP Suite Flow nested stack."
+  FlowEnvironment:
+    Type: "String"
+    Default: "prod"
+    Description: "Deployment environment for the WP Suite Flow nested stack."
+  FlowFrontendApiAuthMode:
+    Type: "String"
+    Default: "NONE"
+    Description: "Flow frontend API authorization mode."
+  FlowAdminApiAuthMode:
+    Type: "String"
+    Default: "COGNITO"
+    Description: "Flow admin API authorization mode."
+  FlowAdminCognitoAuthScopes:
+    Type: "String"
+    Default: ""
+    Description: "Optional OAuth scopes required for Flow admin Cognito authorization."
+  FlowPayloadBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Existing S3 bucket for Flow payload uploads, or empty to create one."
+  FlowTemplatesBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Existing S3 bucket for Flow templates, or empty to create one."
+  FlowFromEmail:
+    Type: "String"
+    Default: ""
+    Description: "SES-verified sender email address for Flow outbound email actions."
+  FlowEnableRecaptcha:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable reCAPTCHA for Flow public form submissions."
+  FlowEnableWAF:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable AWS WAF for Flow APIs."
+  FlowEnableKmsForSecrets:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create a dedicated KMS key for Flow SSM-stored secrets."
+  FlowDataRetentionDays:
+    Type: "Number"
+    Default: 30
+    Description: "Number of days to retain Flow submission data."
+  StaticGuardianAppName:
+    Type: "String"
+    Default: "wpsuite-site-guardian"
+    Description: "Application name for the Static Site Guardian nested stack."
+  StaticGuardianS3BucketName:
+    Type: "String"
+    Default: ""
+    Description: "Existing/static S3 bucket name for Static Site Guardian, or empty to generate one."
+  StaticGuardianS3WWWRoot:
+    Type: "String"
+    Default: "wwwroot"
+    Description: "S3 web root prefix for Static Site Guardian."
+  StaticGuardianCreateDNSRecords:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create Route 53 records for Static Site Guardian."
+  StaticGuardianManageSigningKeys:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create and manage CloudFront signing keys for Static Site Guardian."
+  CognitoUserPoolName:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter UserPoolName."
+    NoEcho: false
+  CognitoLoginMechanisms:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter LoginMechanisms."
+    NoEcho: false
+  CognitoOAuthScopes:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter OAuthScopes."
+    NoEcho: false
+  CognitoRequireEmailAttribute:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter RequireEmailAttribute."
+    NoEcho: false
+  CognitoRequireGivenNameAttribute:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter RequireGivenNameAttribute."
+    NoEcho: false
+  CognitoRequireFamilyNameAttribute:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter RequireFamilyNameAttribute."
+    NoEcho: false
+  CognitoRequirePhoneNumberAttribute:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter RequirePhoneNumberAttribute."
+    NoEcho: false
+  CognitoEnablePreSignUp:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter EnablePreSignUp."
+    NoEcho: false
+  CognitoEnablePreTokenGeneration:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter EnablePreTokenGeneration."
+    NoEcho: false
+  CognitoEnablePostConfirmation:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter EnablePostConfirmation."
+    NoEcho: false
+  CognitoMfaMode:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter MfaMode."
+    NoEcho: false
+  CognitoDeviceTrackingMode:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter DeviceTrackingMode."
+    NoEcho: false
+  CognitoVerifyAttributeChanges:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter VerifyAttributeChanges."
+    NoEcho: false
+  CognitoVerifyAttributeChangesMode:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter VerifyAttributeChangesMode."
+    NoEcho: false
+  CognitoEnableSoftwareTokenMfa:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter EnableSoftwareTokenMfa."
+    NoEcho: false
+  CognitoEnableEmailOtpMfa:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter EnableEmailOtpMfa."
+    NoEcho: false
+  CognitoEnableSmsMfa:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter EnableSmsMfa."
+    NoEcho: false
+  CognitoCreateCustomDomain:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter CreateCustomDomain."
+    NoEcho: false
+  CognitoRegisterRoute53Alias:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter RegisterRoute53Alias."
+    NoEcho: false
+  CognitoUserPoolCustomDomainSubdomain:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter UserPoolCustomDomainSubdomain."
+    NoEcho: false
+  CognitoUserPoolCustomDomainCertArn:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter UserPoolCustomDomainCertArn."
+    NoEcho: false
+  CognitoAutoCreateSesIdentity:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter AutoCreateSesIdentity."
+    NoEcho: false
+  CognitoDeleteSesIdentityOnStackDelete:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter DeleteSesIdentityOnStackDelete."
+    NoEcho: false
+  CognitoEmailTemplateBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter EmailTemplateBucketName."
+    NoEcho: false
+  CognitoSesIdentity:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter SesIdentity."
+    NoEcho: false
+  CognitoEmailFromAddress:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter EmailFromAddress."
+    NoEcho: false
+  CognitoCallbackBaseUrl:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter CallbackBaseUrl."
+    NoEcho: false
+  CognitoKmsKeyId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter KmsKeyId."
+    NoEcho: false
+  AiKitDocsBucketName:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter DocsBucketName."
+    NoEcho: false
+  AiKitInclusionPrefix:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter InclusionPrefix."
+    NoEcho: false
+  AiKitTempAssetsPrefix:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter TempAssetsPrefix."
+    NoEcho: false
+  AiKitConfigPrefix:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter ConfigPrefix."
+    NoEcho: false
+  AiKitFlowAttachmentBucketName:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter FlowAttachmentBucketName."
+    NoEcho: false
+  AiKitFlowAttachmentPrefix:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter FlowAttachmentPrefix."
+    NoEcho: false
+  AiKitAgentModelId:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter AgentModelId."
+    NoEcho: false
+  AiKitAgentReasoningEffortLevel:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter AgentReasoningEffortLevel."
+    NoEcho: false
+  AiKitBedrockGuardrailId:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter BedrockGuardrailId."
+    NoEcho: false
+  AiKitBedrockGuardrailVersion:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter BedrockGuardrailVersion."
+    NoEcho: false
+  AiKitApiCustomDomainName:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter ApiCustomDomainName."
+    NoEcho: false
+  AiKitAcmCertificateArn:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter AcmCertificateArn."
+    NoEcho: false
+  AiKitCreateS3Trigger:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter CreateS3Trigger."
+    NoEcho: false
+  AiKitEnableRerank:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter EnableRerank."
+    NoEcho: false
+  AiKitStrictMetadataFiltering:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter StrictMetadataFiltering."
+    NoEcho: false
+  AiKitStrictKBGroundingForChat:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter StrictKBGroundingForChat."
+    NoEcho: false
+  AiKitEnableAgentModeForChatbot:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter EnableAgentModeForChatbot."
+    NoEcho: false
+  AiKitGuardrailsEnabled:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter GuardrailsEnabled."
+    NoEcho: false
+  AiKitEnableRoute53:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter EnableRoute53."
+    NoEcho: false
+  AiKitEnableAlerts:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter EnableAlerts."
+    NoEcho: false
+  AiKitMaxTokens:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter MaxTokens."
+    NoEcho: false
+  AiKitOverlapPercentage:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter OverlapPercentage."
+    NoEcho: false
+  AiKitSessionTTLDays:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter SessionTTLDays."
+    NoEcho: false
+  AiKitLambdaMemorySize:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter LambdaMemorySize."
+    NoEcho: false
+  AiKitLambdaTimeout:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter LambdaTimeout."
+    NoEcho: false
+  AiKitAiHandlerTimeout:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter AiHandlerTimeout."
+    NoEcho: false
+  AiKitAiAgentDispatcherTimeout:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter AiAgentDispatcherTimeout."
+    NoEcho: false
+  AiKitProductionLogLevel:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter ProductionLogLevel."
+    NoEcho: false
+  AiKitPublicAllowedIPs:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter PublicAllowedIPs."
+    NoEcho: false
+  AiKitAdminAllowedIPs:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter AdminAllowedIPs."
+    NoEcho: false
+  AiKitBlockedIPs:
+    Type: "String"
+    Default: ""
+    Description: "AiKit nested stack parameter BlockedIPs."
+    NoEcho: false
+  FlowPayloadPrefix:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter PayloadPrefix."
+    NoEcho: false
+  FlowTemplatesPrefix:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter TemplatesPrefix."
+    NoEcho: false
+  FlowDefaultWebhookSigningSecret:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter DefaultWebhookSigningSecret."
+    NoEcho: true
+  FlowApiCustomDomainName:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter ApiCustomDomainName."
+    NoEcho: false
+  FlowAcmCertificateArn:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter AcmCertificateArn."
+    NoEcho: false
+  FlowEnableRoute53:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter EnableRoute53."
+    NoEcho: false
+  FlowEnableGuardDutyMalwareProtection:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter EnableGuardDutyMalwareProtection."
+    NoEcho: false
+  FlowLogRetentionDays:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter LogRetentionDays."
+    NoEcho: false
+  FlowLambdaMemorySize:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter LambdaMemorySize."
+    NoEcho: false
+  FlowLambdaTimeout:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter LambdaTimeout."
+    NoEcho: false
+  FlowLogLevel:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter LogLevel."
+    NoEcho: false
+  FlowPublicAllowedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter PublicAllowedIPs."
+    NoEcho: false
+  FlowAdminAllowedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter AdminAllowedIPs."
+    NoEcho: false
+  FlowBlockedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Flow nested stack parameter BlockedIPs."
+    NoEcho: false
+  StaticGuardianProtectedPathGroupMap:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter ProtectedPathGroupMap."
+    NoEcho: false
+  StaticGuardianCookieExpirationDays:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter CookieExpirationDays."
+    NoEcho: false
+  StaticGuardianPublicKeyContent:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter PublicKeyContent."
+    NoEcho: false
+  StaticGuardianKmsKeyId:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter KmsKeyId."
+    NoEcho: false
+  StaticGuardianEnableDetailedLogging:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter EnableDetailedLogging."
+    NoEcho: false
+  StaticGuardianLogRetentionDays:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter LogRetentionDays."
+    NoEcho: false
+  StaticGuardianNotFoundPagePath:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter NotFoundPagePath."
+    NoEcho: false
+  StaticGuardianForbiddenPagePath:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter ForbiddenPagePath."
+    NoEcho: false
+  StaticGuardianWpsuiteAccountId:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter WpsuiteAccountId."
+    NoEcho: false
+  StaticGuardianWpsuiteSiteId:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter WpsuiteSiteId."
+    NoEcho: false
+  StaticGuardianWpsuiteSiteKey:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter WpsuiteSiteKey."
+    NoEcho: true
+  StaticGuardianWpsuiteApiBaseUrl:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter WpsuiteApiBaseUrl."
+    NoEcho: false
+  StaticGuardianLicenseRefreshScheduleExpression:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter LicenseRefreshScheduleExpression."
+    NoEcho: false
   IdentityMode:
     Type: "String"
     Default: "none"
@@ -323,6 +972,86 @@ Resources:
             - "ManifestChecksum"
         LogRetentionDays:
           Ref: "LogRetentionDays"
+        AppName:
+          Ref: "CognitoAppName"
+        PostLoginRedirectUrl:
+          Ref: "CognitoPostLoginRedirectUrl"
+        RegisteredGroupName:
+          Ref: "CognitoRegisteredGroupName"
+        AdminGroupName:
+          Ref: "CognitoAdminGroupName"
+        CreateIdentityPool:
+          Ref: "CognitoCreateIdentityPool"
+        EnableCustomEmailSender:
+          Ref: "CognitoEnableCustomEmailSender"
+        EnableRecaptcha:
+          Ref: "CognitoEnableRecaptcha"
+        RecaptchaMode:
+          Ref: "RecaptchaMode"
+        RecaptchaProjectId:
+          Ref: "RecaptchaProjectId"
+        RecaptchaSiteKey:
+          Ref: "RecaptchaSiteKey"
+        RecaptchaSecretKey:
+          Ref: "RecaptchaSecretKey"
+        RecaptchaScoreThreshold:
+          Ref: "RecaptchaScoreThreshold"
+        UserPoolName:
+          Ref: "CognitoUserPoolName"
+        LoginMechanisms:
+          Ref: "CognitoLoginMechanisms"
+        OAuthScopes:
+          Ref: "CognitoOAuthScopes"
+        RequireEmailAttribute:
+          Ref: "CognitoRequireEmailAttribute"
+        RequireGivenNameAttribute:
+          Ref: "CognitoRequireGivenNameAttribute"
+        RequireFamilyNameAttribute:
+          Ref: "CognitoRequireFamilyNameAttribute"
+        RequirePhoneNumberAttribute:
+          Ref: "CognitoRequirePhoneNumberAttribute"
+        EnablePreSignUp:
+          Ref: "CognitoEnablePreSignUp"
+        EnablePreTokenGeneration:
+          Ref: "CognitoEnablePreTokenGeneration"
+        EnablePostConfirmation:
+          Ref: "CognitoEnablePostConfirmation"
+        MfaMode:
+          Ref: "CognitoMfaMode"
+        DeviceTrackingMode:
+          Ref: "CognitoDeviceTrackingMode"
+        VerifyAttributeChanges:
+          Ref: "CognitoVerifyAttributeChanges"
+        VerifyAttributeChangesMode:
+          Ref: "CognitoVerifyAttributeChangesMode"
+        EnableSoftwareTokenMfa:
+          Ref: "CognitoEnableSoftwareTokenMfa"
+        EnableEmailOtpMfa:
+          Ref: "CognitoEnableEmailOtpMfa"
+        EnableSmsMfa:
+          Ref: "CognitoEnableSmsMfa"
+        CreateCustomDomain:
+          Ref: "CognitoCreateCustomDomain"
+        RegisterRoute53Alias:
+          Ref: "CognitoRegisterRoute53Alias"
+        UserPoolCustomDomainSubdomain:
+          Ref: "CognitoUserPoolCustomDomainSubdomain"
+        UserPoolCustomDomainCertArn:
+          Ref: "CognitoUserPoolCustomDomainCertArn"
+        AutoCreateSesIdentity:
+          Ref: "CognitoAutoCreateSesIdentity"
+        DeleteSesIdentityOnStackDelete:
+          Ref: "CognitoDeleteSesIdentityOnStackDelete"
+        EmailTemplateBucketName:
+          Ref: "CognitoEmailTemplateBucketName"
+        SesIdentity:
+          Ref: "CognitoSesIdentity"
+        EmailFromAddress:
+          Ref: "CognitoEmailFromAddress"
+        CallbackBaseUrl:
+          Ref: "CognitoCallbackBaseUrl"
+        KmsKeyId:
+          Ref: "CognitoKmsKeyId"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -374,6 +1103,10 @@ Resources:
                   - "ArtifactStager"
                   - "ArtifactRootPrefix"
               - "wpsuite-ai-kit"
+        AppName:
+          Ref: "AiKitAppName"
+        Environment:
+          Ref: "AiKitEnvironment"
         CognitoUserPoolId:
           Fn::If:
             - "CondCreateIdentity"
@@ -401,6 +1134,104 @@ Resources:
                 - "Outputs.IdentityPoolId"
             -
               Ref: "ExistingIdentityPoolId"
+        FrontendApiAuthMode:
+          Ref: "AiKitFrontendApiAuthMode"
+        AdminApiAuthMode:
+          Ref: "AiKitAdminApiAuthMode"
+        AdminCognitoAuthScopes:
+          Ref: "AiKitAdminCognitoAuthScopes"
+        FrontendCognitoAuthScopes:
+          Ref: "AiKitFrontendCognitoAuthScopes"
+        FrontendModelId:
+          Ref: "AiKitFrontendModelId"
+        ModelId:
+          Ref: "AiKitModelId"
+        KnowledgeBaseId:
+          Ref: "AiKitKnowledgeBaseId"
+        EnableChatbotBackend:
+          Ref: "AiKitEnableChatbotBackend"
+        EnableSummarizerBackend:
+          Ref: "AiKitEnableSummarizerBackend"
+        EnableLanguageAIBackend:
+          Ref: "AiKitEnableLanguageAIBackend"
+        EnableRecaptcha:
+          Ref: "AiKitEnableRecaptcha"
+        RecaptchaMode:
+          Ref: "RecaptchaMode"
+        RecaptchaProjectId:
+          Ref: "RecaptchaProjectId"
+        RecaptchaSiteKey:
+          Ref: "RecaptchaSiteKey"
+        RecaptchaSecretKey:
+          Ref: "RecaptchaSecretKey"
+        RecaptchaScoreThreshold:
+          Ref: "RecaptchaScoreThreshold"
+        RecaptchaChatTtlSeconds:
+          Ref: "RecaptchaChatTtlSeconds"
+        EnableWAF:
+          Ref: "AiKitEnableWAF"
+        DocsBucketName:
+          Ref: "AiKitDocsBucketName"
+        InclusionPrefix:
+          Ref: "AiKitInclusionPrefix"
+        TempAssetsPrefix:
+          Ref: "AiKitTempAssetsPrefix"
+        ConfigPrefix:
+          Ref: "AiKitConfigPrefix"
+        FlowAttachmentBucketName:
+          Ref: "AiKitFlowAttachmentBucketName"
+        FlowAttachmentPrefix:
+          Ref: "AiKitFlowAttachmentPrefix"
+        AgentModelId:
+          Ref: "AiKitAgentModelId"
+        AgentReasoningEffortLevel:
+          Ref: "AiKitAgentReasoningEffortLevel"
+        BedrockGuardrailId:
+          Ref: "AiKitBedrockGuardrailId"
+        BedrockGuardrailVersion:
+          Ref: "AiKitBedrockGuardrailVersion"
+        ApiCustomDomainName:
+          Ref: "AiKitApiCustomDomainName"
+        AcmCertificateArn:
+          Ref: "AiKitAcmCertificateArn"
+        CreateS3Trigger:
+          Ref: "AiKitCreateS3Trigger"
+        EnableRerank:
+          Ref: "AiKitEnableRerank"
+        StrictMetadataFiltering:
+          Ref: "AiKitStrictMetadataFiltering"
+        StrictKBGroundingForChat:
+          Ref: "AiKitStrictKBGroundingForChat"
+        EnableAgentModeForChatbot:
+          Ref: "AiKitEnableAgentModeForChatbot"
+        GuardrailsEnabled:
+          Ref: "AiKitGuardrailsEnabled"
+        EnableRoute53:
+          Ref: "AiKitEnableRoute53"
+        EnableAlerts:
+          Ref: "AiKitEnableAlerts"
+        MaxTokens:
+          Ref: "AiKitMaxTokens"
+        OverlapPercentage:
+          Ref: "AiKitOverlapPercentage"
+        SessionTTLDays:
+          Ref: "AiKitSessionTTLDays"
+        LambdaMemorySize:
+          Ref: "AiKitLambdaMemorySize"
+        LambdaTimeout:
+          Ref: "AiKitLambdaTimeout"
+        AiHandlerTimeout:
+          Ref: "AiKitAiHandlerTimeout"
+        AiAgentDispatcherTimeout:
+          Ref: "AiKitAiAgentDispatcherTimeout"
+        ProductionLogLevel:
+          Ref: "AiKitProductionLogLevel"
+        PublicAllowedIPs:
+          Ref: "AiKitPublicAllowedIPs"
+        AdminAllowedIPs:
+          Ref: "AiKitAdminAllowedIPs"
+        BlockedIPs:
+          Ref: "AiKitBlockedIPs"
         AdminCognitoUserPoolId:
           Fn::If:
             - "CondCreateIdentity"
@@ -458,7 +1289,7 @@ Resources:
             - "ArtifactStager"
             - "ManifestChecksum"
         LogRetentionDays:
-          Ref: "LogRetentionDays"
+          Ref: "FlowLogRetentionDays"
         DeploymentVersion:
           Ref: "TemplateVersion"
         ArtifactKeyPrefix:
@@ -470,6 +1301,14 @@ Resources:
                   - "ArtifactStager"
                   - "ArtifactRootPrefix"
               - "wpsuite-flow"
+        AppName:
+          Ref: "FlowAppName"
+        Environment:
+          Ref: "FlowEnvironment"
+        FrontendApiAuthMode:
+          Ref: "FlowFrontendApiAuthMode"
+        AdminApiAuthMode:
+          Ref: "FlowAdminApiAuthMode"
         AdminCognitoUserPoolId:
           Fn::If:
             - "CondCreateIdentity"
@@ -479,7 +1318,58 @@ Resources:
                 - "Outputs.UserPoolId"
             -
               Ref: "ExistingUserPoolId"
-        AdminCognitoAuthScopes: ""
+        AdminCognitoAuthScopes:
+          Ref: "FlowAdminCognitoAuthScopes"
+        PayloadBucketName:
+          Ref: "FlowPayloadBucketName"
+        TemplatesBucketName:
+          Ref: "FlowTemplatesBucketName"
+        FromEmail:
+          Ref: "FlowFromEmail"
+        EnableRecaptcha:
+          Ref: "FlowEnableRecaptcha"
+        RecaptchaMode:
+          Ref: "RecaptchaMode"
+        RecaptchaProjectId:
+          Ref: "RecaptchaProjectId"
+        RecaptchaSiteKey:
+          Ref: "RecaptchaSiteKey"
+        RecaptchaSecretKey:
+          Ref: "RecaptchaSecretKey"
+        RecaptchaScoreThreshold:
+          Ref: "RecaptchaScoreThreshold"
+        EnableWAF:
+          Ref: "FlowEnableWAF"
+        EnableKmsForSecrets:
+          Ref: "FlowEnableKmsForSecrets"
+        DataRetentionDays:
+          Ref: "FlowDataRetentionDays"
+        PayloadPrefix:
+          Ref: "FlowPayloadPrefix"
+        TemplatesPrefix:
+          Ref: "FlowTemplatesPrefix"
+        DefaultWebhookSigningSecret:
+          Ref: "FlowDefaultWebhookSigningSecret"
+        ApiCustomDomainName:
+          Ref: "FlowApiCustomDomainName"
+        AcmCertificateArn:
+          Ref: "FlowAcmCertificateArn"
+        EnableRoute53:
+          Ref: "FlowEnableRoute53"
+        EnableGuardDutyMalwareProtection:
+          Ref: "FlowEnableGuardDutyMalwareProtection"
+        LambdaMemorySize:
+          Ref: "FlowLambdaMemorySize"
+        LambdaTimeout:
+          Ref: "FlowLambdaTimeout"
+        LogLevel:
+          Ref: "FlowLogLevel"
+        PublicAllowedIPs:
+          Ref: "FlowPublicAllowedIPs"
+        AdminAllowedIPs:
+          Ref: "FlowAdminAllowedIPs"
+        BlockedIPs:
+          Ref: "FlowBlockedIPs"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -519,7 +1409,7 @@ Resources:
             - "ArtifactStager"
             - "ManifestChecksum"
         LogRetentionDays:
-          Ref: "LogRetentionDays"
+          Ref: "StaticGuardianLogRetentionDays"
         DeploymentVersion:
           Ref: "TemplateVersion"
         ArtifactKeyPrefix:
@@ -531,6 +1421,8 @@ Resources:
                   - "ArtifactStager"
                   - "ArtifactRootPrefix"
               - "wpsuite-site-guardian"
+        AppName:
+          Ref: "StaticGuardianAppName"
         DomainName:
           Ref: "StaticGuardianDomainName"
         CertificateArn:
@@ -566,6 +1458,38 @@ Resources:
           Ref: "StaticGuardianProtectedPaths"
         SigninPagePath:
           Ref: "StaticGuardianSigninPagePath"
+        S3BucketName:
+          Ref: "StaticGuardianS3BucketName"
+        S3WWWRoot:
+          Ref: "StaticGuardianS3WWWRoot"
+        CreateDNSRecords:
+          Ref: "StaticGuardianCreateDNSRecords"
+        ManageSigningKeys:
+          Ref: "StaticGuardianManageSigningKeys"
+        ProtectedPathGroupMap:
+          Ref: "StaticGuardianProtectedPathGroupMap"
+        CookieExpirationDays:
+          Ref: "StaticGuardianCookieExpirationDays"
+        PublicKeyContent:
+          Ref: "StaticGuardianPublicKeyContent"
+        KmsKeyId:
+          Ref: "StaticGuardianKmsKeyId"
+        EnableDetailedLogging:
+          Ref: "StaticGuardianEnableDetailedLogging"
+        NotFoundPagePath:
+          Ref: "StaticGuardianNotFoundPagePath"
+        ForbiddenPagePath:
+          Ref: "StaticGuardianForbiddenPagePath"
+        WpsuiteAccountId:
+          Ref: "StaticGuardianWpsuiteAccountId"
+        WpsuiteSiteId:
+          Ref: "StaticGuardianWpsuiteSiteId"
+        WpsuiteSiteKey:
+          Ref: "StaticGuardianWpsuiteSiteKey"
+        WpsuiteApiBaseUrl:
+          Ref: "StaticGuardianWpsuiteApiBaseUrl"
+        LicenseRefreshScheduleExpression:
+          Ref: "StaticGuardianLicenseRefreshScheduleExpression"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
