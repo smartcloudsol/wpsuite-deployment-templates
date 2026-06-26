@@ -41,6 +41,8 @@ The public templates let buyers and reviewers inspect:
 
 The templates are intended for review and Marketplace deployment transparency. A successful production deployment still requires a valid WP Suite Deployment Access purchase or an included agency deployment credit.
 
+See [Architecture overview](docs/architecture.md) for visual diagrams of the root orchestration template and the four optional nested templates.
+
 ## Security review notes
 
 Before launching a stack, review:
