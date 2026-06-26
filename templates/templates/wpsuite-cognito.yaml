@@ -1,0 +1,1958 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "WP Suite Cognito nested template for Marketplace Deployment Access"
+Parameters:
+  TemplateVersion:
+    Type: "String"
+    Default: "v0.1.0"
+    Description: "Immutable WP Suite deployment template version."
+  RuntimeConfigKey:
+    Type: "String"
+    Default: ""
+    Description: "Runtime configuration object key staged by WP Suite."
+  ManifestKey:
+    Type: "String"
+    Default: ""
+    Description: "Artifact manifest object key staged by WP Suite."
+  ManifestChecksum:
+    Type: "String"
+    Default: ""
+    Description: "SHA-256 checksum of the staged artifact manifest."
+  ArtifactRootPrefix:
+    Type: "String"
+    Description: "Buyer-owned S3 prefix containing staged artifacts. Used as the Marketplace replacement for ArtifactKeyPrefix/DeploymentVersion."
+  DeploymentVersion:
+    Type: "String"
+    Default: "0.1.0"
+    Description: "Application version used by the legacy artifact contract."
+  ArtifactBucketName:
+    Type: "String"
+    Description: "S3 bucket that stores staged artifacts for this application."
+  ArtifactKeyPrefix:
+    Type: "String"
+    Default: "wpsuite-cognito"
+    Description: "Legacy artifact key prefix. In Marketplace mode this is derived by the root stack."
+  AppName:
+    Type: "String"
+    Default: "wpsuite-cognito"
+    AllowedPattern: "^[a-zA-Z0-9-]+$"
+    Description: "Short application name used as the prefix for generated AWS resource names."
+  LogRetentionDays:
+    Type: "Number"
+    Default: 14
+    AllowedValues:
+      - "1"
+      - "3"
+      - "5"
+      - "7"
+      - "14"
+      - "30"
+      - "60"
+      - "90"
+      - "120"
+      - "150"
+      - "180"
+      - "365"
+      - "400"
+      - "545"
+      - "731"
+      - "1827"
+      - "3653"
+    Description: "Number of days to retain CloudWatch logs for Lambda functions."
+  CreateUserPool:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create a new Cognito user pool. Set false to attach triggers and settings to an existing user pool instead."
+  CreateIdentityPool:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create a Cognito identity pool for authenticated identities."
+  CreateCustomDomain:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create a Cognito custom domain for the user pool."
+  RegisterRoute53Alias:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create a Route 53 alias record for the Cognito custom domain."
+  AllowUnauthenticatedIdentities:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Allow unauthenticated identities in the identity pool."
+  EnableCustomEmailSender:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable the custom email sender Lambda and HTML email templates."
+  AutoCreateSesIdentity:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Automatically ensure an SES identity exists for the configured sender domain or email identity."
+  DeleteSesIdentityOnStackDelete:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Delete the SES identity on stack deletion."
+  EnablePreSignUp:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable the pre sign-up Lambda trigger."
+  EnablePreTokenGeneration:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable the pre token generation Lambda trigger."
+  EnablePostConfirmation:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable the post confirmation Lambda trigger."
+  EnableRecaptcha:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable reCAPTCHA verification in the pre sign-up trigger."
+  RequireEmailAttribute:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Mark the email attribute as required at sign-up."
+  RequireGivenNameAttribute:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Mark the given_name attribute as required at sign-up."
+  RequireFamilyNameAttribute:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Mark the family_name attribute as required at sign-up."
+  RequirePhoneNumberAttribute:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Mark the phone_number attribute as required at sign-up."
+  EnableSoftwareTokenMfa:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable authenticator app MFA."
+  EnableEmailOtpMfa:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable email OTP MFA."
+  EnableSmsMfa:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable SMS MFA."
+  VerifyAttributeChanges:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Keep original email or phone values active while the new value is pending verification."
+  ExistingUserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Existing Cognito user pool ID to reuse when CreateUserPool is false."
+  PostLoginRedirectUrl:
+    Type: "String"
+    Default: "https://example.com/signin"
+    Description: "OAuth callback URL used by the default user pool app client."
+  UserPoolName:
+    Type: "String"
+    Default: ""
+    Description: "Optional explicit user pool name. Leave empty to use a generated name."
+  UserPoolCustomDomainSubdomain:
+    Type: "String"
+    Default: ""
+    Description: "Full custom domain name for Cognito, for example auth.example.com."
+  UserPoolCustomDomainCertArn:
+    Type: "String"
+    Default: ""
+    Description: "ACM certificate ARN for the Cognito custom domain."
+  IdentityPoolName:
+    Type: "String"
+    Default: ""
+    Description: "Optional explicit identity pool name. Leave empty to use a generated name."
+  EmailTemplateBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Existing S3 bucket for HTML email templates. Leave empty to create a dedicated bucket."
+  SesIdentity:
+    Type: "String"
+    Default: ""
+    Description: "SES verified identity used by custom email sender or email OTP MFA."
+  EmailFromAddress:
+    Type: "String"
+    Default: ""
+    Description: "Optional From address used when SES sends custom emails."
+  CallbackBaseUrl:
+    Type: "String"
+    Default: ""
+    Description: "Optional base URL inserted into custom email templates for links and redirects."
+  KmsKeyId:
+    Type: "String"
+    Default: ""
+    Description: "KMS key ID or ARN used by Cognito for the custom email sender trigger."
+  SubjectTemplateSignUp:
+    Type: "String"
+    Default: "Confirm your account"
+    Description: "Subject line for the sign-up confirmation email."
+  SubjectTemplateResendCode:
+    Type: "String"
+    Default: "Your confirmation code"
+    Description: "Subject line for the resend confirmation code email."
+  SubjectTemplateForgotPassword:
+    Type: "String"
+    Default: "Reset your password"
+    Description: "Subject line for the forgot password email."
+  SubjectTemplateAdminCreate:
+    Type: "String"
+    Default: "Your account has been created"
+    Description: "Subject line for the admin create user email."
+  SubjectTemplateVerifyAttribute:
+    Type: "String"
+    Default: "Verify your information"
+    Description: "Subject line for the verify attribute email."
+  SubjectTemplateAuthentication:
+    Type: "String"
+    Default: "Your authentication code"
+    Description: "Subject line for the authentication code email."
+  SubjectTemplateAccountTakeover:
+    Type: "String"
+    Default: "Security alert"
+    Description: "Subject line for the account takeover alert email."
+  RecaptchaProjectId:
+    Type: "String"
+    Default: ""
+    Description: "Google Cloud project ID for reCAPTCHA Enterprise."
+  RecaptchaSiteKey:
+    Type: "String"
+    Default: ""
+    Description: "Public reCAPTCHA site key expected from the client."
+  RegisteredGroupName:
+    Type: "String"
+    Default: "registered"
+    Description: "Default Cognito group name assigned to confirmed users."
+  AdminGroupName:
+    Type: "String"
+    Default: "admin"
+    Description: "Cognito group name for administrator users."
+  SmsConfigurationSnsCallerArn:
+    Type: "String"
+    Default: ""
+    Description: "IAM role ARN that Cognito uses to send SMS through SNS when SMS MFA is enabled."
+  SmsConfigurationExternalId:
+    Type: "String"
+    Default: ""
+    Description: "Optional external ID for the SNS caller role."
+  SmsConfigurationSnsRegion:
+    Type: "String"
+    Default: ""
+    Description: "Optional SNS region for Cognito SMS sending."
+  OAuthScopes:
+    Type: "CommaDelimitedList"
+    Default: "aws.cognito.signin.user.admin,email,openid,profile"
+    Description: "OAuth scopes enabled for the default user pool app client."
+  LoginMechanisms:
+    Type: "CommaDelimitedList"
+    Default: "email"
+    Description: "Sign-in attributes allowed by the user pool."
+  RecaptchaSecretKey:
+    Type: "String"
+    Default: ""
+    Description: "Secret reCAPTCHA key stored in SSM Parameter Store when provided."
+    NoEcho: true
+  RecaptchaMode:
+    Type: "String"
+    Default: "enterprise"
+    AllowedValues:
+      - "enterprise"
+      - "classic"
+    Description: "reCAPTCHA mode used by the pre sign-up trigger."
+  RecaptchaScoreThreshold:
+    Type: "Number"
+    Default: 0.5
+    Description: "Minimum accepted reCAPTCHA score."
+  MfaMode:
+    Type: "String"
+    Default: "no"
+    AllowedValues:
+      - "no"
+      - "optional"
+      - "required"
+    Description: "Multi-factor authentication mode for the user pool."
+  DeviceTrackingMode:
+    Type: "String"
+    Default: "none"
+    AllowedValues:
+      - "none"
+      - "user_opt_in"
+      - "always"
+    Description: "Device remembering mode. Only effective when MFA is not set to no."
+  VerifyAttributeChangesMode:
+    Type: "String"
+    Default: "auto"
+    AllowedValues:
+      - "auto"
+      - "email"
+      - "phone_number"
+      - "email_and_phone"
+    Description: "Which attributes must be verified before update."
+Conditions:
+  CondCreateUserPool:
+    Fn::Equals:
+      -
+        Ref: "CreateUserPool"
+      - "true"
+  CondUseExistingUserPool:
+    Fn::And:
+      -
+        Fn::Not:
+          -
+            Condition: "CondCreateUserPool"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "ExistingUserPoolId"
+              - ""
+  CondCreateIdentityPool:
+    Fn::Equals:
+      -
+        Ref: "CreateIdentityPool"
+      - "true"
+  CondCreateIdentityPoolWithNewUserPool:
+    Fn::And:
+      -
+        Condition: "CondCreateIdentityPool"
+      -
+        Condition: "CondCreateUserPool"
+  CondCreateDomain:
+    Fn::And:
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateCustomDomain"
+          - "true"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "UserPoolCustomDomainSubdomain"
+              - ""
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "UserPoolCustomDomainCertArn"
+              - ""
+  CondRegisterAlias:
+    Fn::And:
+      -
+        Condition: "CondCreateDomain"
+      -
+        Fn::Equals:
+          -
+            Ref: "RegisterRoute53Alias"
+          - "true"
+  CondEnableEmailSender:
+    Fn::Equals:
+      -
+        Ref: "EnableCustomEmailSender"
+      - "true"
+  CondEnablePreSignUp:
+    Fn::Equals:
+      -
+        Ref: "EnablePreSignUp"
+      - "true"
+  CondEnablePreTokenGeneration:
+    Fn::Equals:
+      -
+        Ref: "EnablePreTokenGeneration"
+      - "true"
+  CondEnablePostConfirmation:
+    Fn::Equals:
+      -
+        Ref: "EnablePostConfirmation"
+      - "true"
+  CondCreateEmailTemplateBucket:
+    Fn::And:
+      -
+        Condition: "CondEnableEmailSender"
+      -
+        Fn::Equals:
+          -
+            Ref: "EmailTemplateBucketName"
+          - ""
+  CondHasSesIdentityInput:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SesIdentity"
+          - ""
+  CondAutoCreateSesIdentity:
+    Fn::And:
+      -
+        Condition: "CondEnableEmailSender"
+      -
+        Fn::Equals:
+          -
+            Ref: "AutoCreateSesIdentity"
+          - "true"
+      -
+        Fn::Or:
+          -
+            Condition: "CondHasSesIdentityInput"
+          -
+            Condition: "CondCreateDomain"
+  CondUseSES:
+    Fn::Or:
+      -
+        Condition: "CondHasSesIdentityInput"
+      -
+        Condition: "CondAutoCreateSesIdentity"
+  CondAttachCustomEmailSender:
+    Fn::And:
+      -
+        Condition: "CondEnableEmailSender"
+      -
+        Condition: "CondUseSES"
+  CondAllowUnauthenticatedIdentities:
+    Fn::Equals:
+      -
+        Ref: "AllowUnauthenticatedIdentities"
+      - "true"
+  HasSingleEmailLogin:
+    Fn::Equals:
+      -
+        Fn::Join:
+          - ","
+          -
+            Ref: "LoginMechanisms"
+      - "email"
+  HasSinglePhoneLogin:
+    Fn::Equals:
+      -
+        Fn::Join:
+          - ","
+          -
+            Ref: "LoginMechanisms"
+      - "phone_number"
+  HasMultipleLoginMechanisms:
+    Fn::Not:
+      -
+        Fn::Or:
+          -
+            Condition: "HasSingleEmailLogin"
+          -
+            Condition: "HasSinglePhoneLogin"
+          -
+            Fn::Equals:
+              -
+                Fn::Join:
+                  - ","
+                  -
+                    Ref: "LoginMechanisms"
+              - "username"
+  HasCustomUserPoolName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "UserPoolName"
+          - ""
+  HasCustomIdentityPoolName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "IdentityPoolName"
+          - ""
+  HasEmailFromAddress:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "EmailFromAddress"
+          - ""
+  CondRequireEmailAttribute:
+    Fn::Equals:
+      -
+        Ref: "RequireEmailAttribute"
+      - "true"
+  CondRequireGivenNameAttribute:
+    Fn::Equals:
+      -
+        Ref: "RequireGivenNameAttribute"
+      - "true"
+  CondRequireFamilyNameAttribute:
+    Fn::Equals:
+      -
+        Ref: "RequireFamilyNameAttribute"
+      - "true"
+  CondRequirePhoneNumberAttribute:
+    Fn::Equals:
+      -
+        Ref: "RequirePhoneNumberAttribute"
+      - "true"
+  HasProvidedKmsKeyId:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "KmsKeyId"
+          - ""
+  CondCreateCustomSenderKmsKey:
+    Fn::And:
+      -
+        Condition: "CondAttachCustomEmailSender"
+      -
+        Fn::Not:
+          -
+            Condition: "HasProvidedKmsKeyId"
+  CondEnableRecaptchaWithSecret:
+    Fn::And:
+      -
+        Fn::Equals:
+          -
+            Ref: "EnableRecaptcha"
+          - "true"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "RecaptchaSecretKey"
+              - ""
+Resources:
+  CustomSenderKmsKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      Description:
+        Fn::Sub: "KMS key for Cognito custom email sender in ${AppName}"
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AllowAccountAdmin"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                Fn::Sub: "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action:
+              - "kms:CancelKeyDeletion"
+              - "kms:CreateAlias"
+              - "kms:CreateGrant"
+              - "kms:Decrypt"
+              - "kms:DeleteAlias"
+              - "kms:DescribeKey"
+              - "kms:DisableKey"
+              - "kms:DisableKeyRotation"
+              - "kms:EnableKey"
+              - "kms:EnableKeyRotation"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+              - "kms:GenerateDataKeyPair"
+              - "kms:GenerateDataKeyPairWithoutPlaintext"
+              - "kms:GenerateDataKeyWithoutPlaintext"
+              - "kms:GetKeyPolicy"
+              - "kms:GetKeyRotationStatus"
+              - "kms:GetPublicKey"
+              - "kms:ListGrants"
+              - "kms:ListResourceTags"
+              - "kms:PutKeyPolicy"
+              - "kms:ReEncryptFrom"
+              - "kms:ReEncryptTo"
+              - "kms:RetireGrant"
+              - "kms:RevokeGrant"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:Sign"
+              - "kms:TagResource"
+              - "kms:UntagResource"
+              - "kms:UpdateAlias"
+              - "kms:UpdateKeyDescription"
+              - "kms:Verify"
+            Resource: "*"
+    Condition: "CondCreateCustomSenderKmsKey"
+  CustomSenderKmsAlias:
+    Type: "AWS::KMS::Alias"
+    Properties:
+      AliasName:
+        Fn::Sub: "alias/${AppName}-cognito-custom-sender"
+      TargetKeyId:
+        Ref: "CustomSenderKmsKey"
+    Condition: "CondCreateCustomSenderKmsKey"
+  UserPool:
+    Type: "AWS::Cognito::UserPool"
+    Properties:
+      UserPoolName:
+        Fn::If:
+          - "HasCustomUserPoolName"
+          -
+            Ref: "UserPoolName"
+          -
+            Fn::Sub: "${AppName}-user-pool"
+      UsernameAttributes:
+        Fn::If:
+          - "HasSingleEmailLogin"
+          -
+            - "email"
+          -
+            Fn::If:
+              - "HasSinglePhoneLogin"
+              -
+                - "phone_number"
+              -
+                Ref: "AWS::NoValue"
+      AliasAttributes:
+        Fn::If:
+          - "HasMultipleLoginMechanisms"
+          -
+            Ref: "LoginMechanisms"
+          -
+            Ref: "AWS::NoValue"
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+          TemporaryPasswordValidityDays: 7
+      UserPoolAddOns:
+        AdvancedSecurityMode: "ENFORCED"
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UsernameConfiguration:
+        CaseSensitive: false
+      Schema:
+        -
+          Name: "email"
+          AttributeDataType: "String"
+          Mutable: true
+          Required:
+            Fn::If:
+              - "CondRequireEmailAttribute"
+              - true
+              - false
+        -
+          Name: "given_name"
+          AttributeDataType: "String"
+          Mutable: true
+          Required:
+            Fn::If:
+              - "CondRequireGivenNameAttribute"
+              - true
+              - false
+        -
+          Name: "family_name"
+          AttributeDataType: "String"
+          Mutable: true
+          Required:
+            Fn::If:
+              - "CondRequireFamilyNameAttribute"
+              - true
+              - false
+        -
+          Name: "phone_number"
+          AttributeDataType: "String"
+          Mutable: true
+          Required:
+            Fn::If:
+              - "CondRequirePhoneNumberAttribute"
+              - true
+              - false
+      LambdaConfig:
+        PreSignUp:
+          Fn::If:
+            - "CondEnablePreSignUp"
+            -
+              Fn::GetAtt:
+                - "PreSignUpFunction"
+                - "Arn"
+            -
+              Ref: "AWS::NoValue"
+        PreTokenGenerationConfig:
+          Fn::If:
+            - "CondEnablePreTokenGeneration"
+            -
+              LambdaArn:
+                Fn::GetAtt:
+                  - "PreTokenGenerationFunction"
+                  - "Arn"
+              LambdaVersion: "V2_0"
+            -
+              Ref: "AWS::NoValue"
+        PostConfirmation:
+          Fn::If:
+            - "CondEnablePostConfirmation"
+            -
+              Fn::GetAtt:
+                - "PostConfirmationFunction"
+                - "Arn"
+            -
+              Ref: "AWS::NoValue"
+        CustomEmailSender:
+          Fn::If:
+            - "CondAttachCustomEmailSender"
+            -
+              LambdaArn:
+                Fn::GetAtt:
+                  - "CustomEmailSenderFunction"
+                  - "Arn"
+              LambdaVersion: "V1_0"
+            -
+              Ref: "AWS::NoValue"
+        KMSKeyID:
+          Fn::If:
+            - "CondAttachCustomEmailSender"
+            -
+              Fn::If:
+                - "HasProvidedKmsKeyId"
+                -
+                  Ref: "KmsKeyId"
+                -
+                  Fn::GetAtt:
+                    - "CustomSenderKmsKey"
+                    - "Arn"
+            -
+              Ref: "AWS::NoValue"
+    Condition: "CondCreateUserPool"
+  RegisteredRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Federated: "cognito-identity.amazonaws.com"
+            Action: "sts:AssumeRoleWithWebIdentity"
+            Condition:
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: "authenticated"
+              StringEquals:
+                cognito-identity.amazonaws.com:aud:
+                  Ref: "IdentityPool"
+      Policies:
+        -
+          PolicyName: "InvokeAccountApis"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "execute-api:Invoke"
+                  - "execute-api:ManageConnections"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:execute-api:*:${AWS::AccountId}:*"
+    Condition: "CondCreateIdentityPoolWithNewUserPool"
+  RegisteredGroup:
+    Type: "AWS::Cognito::UserPoolGroup"
+    Properties:
+      GroupName:
+        Ref: "RegisteredGroupName"
+      Description: "Default role for confirmed users"
+      Precedence: 1
+      RoleArn:
+        Fn::If:
+          - "CondCreateIdentityPoolWithNewUserPool"
+          -
+            Fn::GetAtt:
+              - "RegisteredRole"
+              - "Arn"
+          -
+            Ref: "AWS::NoValue"
+      UserPoolId:
+        Ref: "UserPool"
+    Condition: "CondCreateUserPool"
+  AdminGroup:
+    Type: "AWS::Cognito::UserPoolGroup"
+    Properties:
+      GroupName:
+        Ref: "AdminGroupName"
+      Description: "Elevated role for administrators"
+      Precedence: 0
+      RoleArn:
+        Fn::If:
+          - "CondCreateIdentityPoolWithNewUserPool"
+          -
+            Fn::GetAtt:
+              - "RegisteredRole"
+              - "Arn"
+          -
+            Ref: "AWS::NoValue"
+      UserPoolId:
+        Ref: "UserPool"
+    Condition: "CondCreateUserPool"
+  UserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      UserPoolId:
+        Ref: "UserPool"
+      ClientName:
+        Fn::Sub: "${AppName}-client"
+      GenerateSecret: false
+      EnableTokenRevocation: true
+      PreventUserExistenceErrors: "ENABLED"
+      SupportedIdentityProviders:
+        - "COGNITO"
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - "code"
+      AllowedOAuthScopes:
+        Ref: "OAuthScopes"
+      CallbackURLs:
+        -
+          Ref: "PostLoginRedirectUrl"
+      ExplicitAuthFlows:
+        - "ALLOW_USER_SRP_AUTH"
+        - "ALLOW_REFRESH_TOKEN_AUTH"
+        - "ALLOW_USER_AUTH"
+    Condition: "CondCreateUserPool"
+  UserPoolDomain:
+    Type: "AWS::Cognito::UserPoolDomain"
+    Properties:
+      UserPoolId:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Ref: "UserPool"
+          -
+            Ref: "ExistingUserPoolId"
+      Domain:
+        Ref: "UserPoolCustomDomainSubdomain"
+      CustomDomainConfig:
+        CertificateArn:
+          Ref: "UserPoolCustomDomainCertArn"
+      ManagedLoginVersion: 2
+    Condition: "CondCreateDomain"
+  IdentityPool:
+    Type: "AWS::Cognito::IdentityPool"
+    Properties:
+      IdentityPoolName:
+        Fn::If:
+          - "HasCustomIdentityPoolName"
+          -
+            Ref: "IdentityPoolName"
+          -
+            Fn::Sub: "${AppName}-identity-pool"
+      AllowUnauthenticatedIdentities:
+        Fn::If:
+          - "CondAllowUnauthenticatedIdentities"
+          - true
+          - false
+      CognitoIdentityProviders:
+        -
+          ClientId:
+            Ref: "UserPoolClient"
+          ProviderName:
+            Fn::GetAtt:
+              - "UserPool"
+              - "ProviderName"
+    Condition: "CondCreateIdentityPoolWithNewUserPool"
+  AuthenticatedRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Federated: "cognito-identity.amazonaws.com"
+            Action: "sts:AssumeRoleWithWebIdentity"
+            Condition:
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: "authenticated"
+              StringEquals:
+                cognito-identity.amazonaws.com:aud:
+                  Ref: "IdentityPool"
+      Policies:
+        -
+          PolicyName: "CognitoIdentityGetCredentials"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "cognito-identity:GetCredentialsForIdentity"
+                Resource: "*"
+    Condition: "CondCreateIdentityPoolWithNewUserPool"
+  IdentityPoolRoleAttachment:
+    Type: "AWS::Cognito::IdentityPoolRoleAttachment"
+    Properties:
+      IdentityPoolId:
+        Ref: "IdentityPool"
+      Roles:
+        authenticated:
+          Fn::GetAtt:
+            - "AuthenticatedRole"
+            - "Arn"
+    Condition: "CondCreateIdentityPoolWithNewUserPool"
+  EmailTemplateBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          -
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    UpdateReplacePolicy: "Delete"
+    DeletionPolicy: "Delete"
+    Condition: "CondCreateEmailTemplateBucket"
+  CognitoCommonLayer:
+    Type: "AWS::Lambda::LayerVersion"
+    Properties:
+      LayerName:
+        Fn::Sub: "${AppName}-common"
+      Description: "Shared layer for Cognito triggers and custom resource manager"
+      Content:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-cognito/layers/cognito-common-layer.zip"
+      CompatibleRuntimes:
+        - "nodejs24.x"
+    UpdateReplacePolicy: "Delete"
+    DeletionPolicy: "Delete"
+  CustomResourceFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "CustomResourceFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  Fn::Sub:
+                    - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupNamePattern}"
+                    -
+                      LogGroupNamePattern:
+                        Fn::Sub: "/aws/lambda/${AppName}-custom-resource*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:PutRetentionPolicy"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:PutParameter"
+                  - "ssm:GetParameter"
+                  - "ssm:DeleteParameter"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/recaptcha/secret"
+              -
+                Effect: "Allow"
+                Action:
+                  - "route53:ListHostedZonesByName"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "route53:ChangeResourceRecordSets"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:route53:::hostedzone/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                Resource:
+                  -
+                    Fn::If:
+                      - "CondCreateEmailTemplateBucket"
+                      -
+                        Fn::Sub: "${EmailTemplateBucket.Arn}/*"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${EmailTemplateBucketName}/*"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:s3:::${ArtifactBucketName}/${ArtifactRootPrefix}wpsuite-cognito/templates/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "cognito-idp:DescribeUserPool"
+                  - "cognito-idp:UpdateUserPool"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "cognito-idp:DescribeUserPoolDomain"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "iam:CreateServiceLinkedRole"
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    iam:AWSServiceName: "email.cognito-idp.amazonaws.com"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ses:GetEmailIdentity"
+                  - "ses:CreateEmailIdentity"
+                  - "ses:DeleteEmailIdentity"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/*"
+  CustomResourceFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-custom-resource"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-cognito/functions/custom-resource.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Timeout: 30
+      MemorySize: 256
+      Architectures:
+        - "x86_64"
+      Role:
+        Fn::GetAtt:
+          - "CustomResourceFunctionRole"
+          - "Arn"
+      Layers:
+        -
+          Ref: "CognitoCommonLayer"
+      Environment:
+        Variables:
+          AWS_PARTITION:
+            Ref: "AWS::Partition"
+          AWS_ACCOUNT_ID:
+            Ref: "AWS::AccountId"
+  CustomResourceFunctionLogGroupManager:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceFunction"
+          - "Arn"
+      Action: "LogGroupManager"
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-custom-resource"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  RecaptchaSecretParameter:
+    Type: "Custom::SSMParameter"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceFunction"
+          - "Arn"
+      Action: "SSMParameter"
+      Name:
+        Fn::Sub: "/${AppName}/recaptcha/secret"
+      Value:
+        Ref: "RecaptchaSecretKey"
+    Condition: "CondEnableRecaptchaWithSecret"
+  EmailTemplateBucketCleaner:
+    Type: "Custom::BucketCleaner"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceFunction"
+          - "Arn"
+      Action: "BucketCleaner"
+      BucketName:
+        Ref: "EmailTemplateBucket"
+      Prefix: "email-templates/"
+    Condition: "CondCreateEmailTemplateBucket"
+  TemplateUpload:
+    Type: "Custom::S3TemplateUpload"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceFunction"
+          - "Arn"
+      Action: "S3TemplateUpload"
+      SourceBucketName:
+        Ref: "ArtifactBucketName"
+      SourcePrefix:
+        Fn::Join:
+          - ""
+          -
+            -
+              Ref: "ArtifactRootPrefix"
+            - "wpsuite-cognito/templates/email-templates/"
+      BucketName:
+        Fn::If:
+          - "CondCreateEmailTemplateBucket"
+          -
+            Ref: "EmailTemplateBucket"
+          -
+            Ref: "EmailTemplateBucketName"
+      Prefix: "email-templates/"
+    Condition: "CondEnableEmailSender"
+  HostedZoneLookup:
+    Type: "Custom::HostedZoneLookup"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceFunction"
+          - "Arn"
+      Action: "HostedZoneLookup"
+      DomainName:
+        Ref: "UserPoolCustomDomainSubdomain"
+    Condition: "CondRegisterAlias"
+  Route53AliasRecord:
+    Type: "Custom::Route53Alias"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceFunction"
+          - "Arn"
+      Action: "Route53Alias"
+      HostedZoneId:
+        Fn::GetAtt:
+          - "HostedZoneLookup"
+          - "HostedZoneId"
+      RecordName:
+        Ref: "UserPoolCustomDomainSubdomain"
+      CognitoDomain:
+        Ref: "UserPoolCustomDomainSubdomain"
+    Condition: "CondRegisterAlias"
+  SesIdentityManager:
+    Type: "Custom::EnsureSesIdentity"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceFunction"
+          - "Arn"
+      Action: "EnsureSesIdentity"
+      Identity:
+        Fn::If:
+          - "CondHasSesIdentityInput"
+          -
+            Ref: "SesIdentity"
+          -
+            Ref: "UserPoolCustomDomainSubdomain"
+      AutoDetectHostedZone: "true"
+      DeleteIdentityOnStackDelete:
+        Ref: "DeleteSesIdentityOnStackDelete"
+    Condition: "CondAutoCreateSesIdentity"
+  PreSignUpFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "PreSignUpFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  Fn::Sub:
+                    - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupNamePattern}"
+                    -
+                      LogGroupNamePattern:
+                        Fn::Sub: "/aws/lambda/${AppName}-pre-signup*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "cognito-idp:AdminLinkProviderForUser"
+                  - "cognito-idp:ListUsers"
+                Resource:
+                  Fn::If:
+                    - "CondCreateUserPool"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:GetParameter"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/recaptcha/secret"
+    Condition: "CondEnablePreSignUp"
+  PreSignUpFunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-pre-signup"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+    Condition: "CondEnablePreSignUp"
+  PreSignUpFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-pre-signup"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-cognito/functions/pre-signup.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Timeout: 30
+      MemorySize: 256
+      Architectures:
+        - "x86_64"
+      Role:
+        Fn::GetAtt:
+          - "PreSignUpFunctionRole"
+          - "Arn"
+      Layers:
+        -
+          Ref: "CognitoCommonLayer"
+      Environment:
+        Variables:
+          AWS_PARTITION:
+            Ref: "AWS::Partition"
+          AWS_ACCOUNT_ID:
+            Ref: "AWS::AccountId"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::Sub: "/${AppName}/recaptcha/secret"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          ENABLE_EXTERNAL_IDP_LINKING: "true"
+    Condition: "CondEnablePreSignUp"
+  PreTokenGenerationFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "PreTokenGenerationFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  Fn::Sub:
+                    - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupNamePattern}"
+                    -
+                      LogGroupNamePattern:
+                        Fn::Sub: "/aws/lambda/${AppName}-pre-token-generation*"
+    Condition: "CondEnablePreTokenGeneration"
+  PreTokenGenerationFunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-pre-token-generation"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+    Condition: "CondEnablePreTokenGeneration"
+  PreTokenGenerationFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-pre-token-generation"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-cognito/functions/pre-token-generation.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Timeout: 30
+      MemorySize: 256
+      Architectures:
+        - "x86_64"
+      Role:
+        Fn::GetAtt:
+          - "PreTokenGenerationFunctionRole"
+          - "Arn"
+      Layers:
+        -
+          Ref: "CognitoCommonLayer"
+      Environment:
+        Variables:
+          AWS_PARTITION:
+            Ref: "AWS::Partition"
+          AWS_ACCOUNT_ID:
+            Ref: "AWS::AccountId"
+    Condition: "CondEnablePreTokenGeneration"
+  PostConfirmationFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "PostConfirmationFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  Fn::Sub:
+                    - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupNamePattern}"
+                    -
+                      LogGroupNamePattern:
+                        Fn::Sub: "/aws/lambda/${AppName}-post-confirmation*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "cognito-idp:AdminAddUserToGroup"
+                  - "cognito-idp:AdminUpdateUserAttributes"
+                Resource:
+                  Fn::If:
+                    - "CondCreateUserPool"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
+    Condition: "CondEnablePostConfirmation"
+  PostConfirmationFunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-post-confirmation"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+    Condition: "CondEnablePostConfirmation"
+  PostConfirmationFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-post-confirmation"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-cognito/functions/post-confirmation.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Timeout: 30
+      MemorySize: 256
+      Architectures:
+        - "x86_64"
+      Role:
+        Fn::GetAtt:
+          - "PostConfirmationFunctionRole"
+          - "Arn"
+      Layers:
+        -
+          Ref: "CognitoCommonLayer"
+      Environment:
+        Variables:
+          AWS_PARTITION:
+            Ref: "AWS::Partition"
+          AWS_ACCOUNT_ID:
+            Ref: "AWS::AccountId"
+          REGISTERED_GROUP_NAME:
+            Ref: "RegisteredGroupName"
+          VERIFY_EMAIL_ON_CONFIRM: "true"
+    Condition: "CondEnablePostConfirmation"
+  CustomEmailSenderFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "CustomEmailSenderFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  Fn::Sub:
+                    - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupNamePattern}"
+                    -
+                      LogGroupNamePattern:
+                        Fn::Sub: "/aws/lambda/${AppName}-custom-email-sender*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                Resource:
+                  -
+                    Fn::If:
+                      - "CondCreateEmailTemplateBucket"
+                      -
+                        Fn::Sub: "${EmailTemplateBucket.Arn}/*"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${EmailTemplateBucketName}/*"
+              -
+                Fn::If:
+                  - "CondUseSES"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "ses:SendEmail"
+                      - "ses:SendRawEmail"
+                    Resource: "*"
+                  -
+                    Ref: "AWS::NoValue"
+    Condition: "CondEnableEmailSender"
+  CustomEmailSenderFunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-custom-email-sender"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+    Condition: "CondEnableEmailSender"
+  CustomEmailSenderFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-custom-email-sender"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-cognito/functions/custom-email-sender.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Timeout: 30
+      MemorySize: 256
+      Architectures:
+        - "x86_64"
+      Role:
+        Fn::GetAtt:
+          - "CustomEmailSenderFunctionRole"
+          - "Arn"
+      Layers:
+        -
+          Ref: "CognitoCommonLayer"
+      Environment:
+        Variables:
+          AWS_PARTITION:
+            Ref: "AWS::Partition"
+          AWS_ACCOUNT_ID:
+            Ref: "AWS::AccountId"
+          TEMPLATE_BUCKET:
+            Fn::If:
+              - "CondCreateEmailTemplateBucket"
+              -
+                Ref: "EmailTemplateBucket"
+              -
+                Ref: "EmailTemplateBucketName"
+          TEMPLATE_PREFIX: "email-templates/"
+          SES_IDENTITY:
+            Fn::If:
+              - "CondAutoCreateSesIdentity"
+              -
+                Fn::GetAtt:
+                  - "SesIdentityManager"
+                  - "Identity"
+              -
+                Ref: "SesIdentity"
+          FROM_ADDRESS:
+            Ref: "EmailFromAddress"
+          CALLBACK_BASE_URL:
+            Ref: "CallbackBaseUrl"
+          SUBJECT_SIGNUP:
+            Ref: "SubjectTemplateSignUp"
+          SUBJECT_RESEND_CODE:
+            Ref: "SubjectTemplateResendCode"
+          SUBJECT_FORGOT_PASSWORD:
+            Ref: "SubjectTemplateForgotPassword"
+          SUBJECT_ADMIN_CREATE:
+            Ref: "SubjectTemplateAdminCreate"
+          SUBJECT_VERIFY_ATTRIBUTE:
+            Ref: "SubjectTemplateVerifyAttribute"
+          SUBJECT_AUTHENTICATION:
+            Ref: "SubjectTemplateAuthentication"
+          SUBJECT_ACCOUNT_TAKEOVER:
+            Ref: "SubjectTemplateAccountTakeover"
+    Condition: "CondEnableEmailSender"
+  UserPoolSettingsManager:
+    Type: "Custom::ApplyUserPoolSettings"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceFunction"
+          - "Arn"
+      Action: "ApplyUserPoolSettings"
+      UserPoolId:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Ref: "UserPool"
+          -
+            Ref: "ExistingUserPoolId"
+      LoginMechanisms:
+        Fn::Join:
+          - ","
+          -
+            Ref: "LoginMechanisms"
+      RequireEmailAttribute:
+        Ref: "RequireEmailAttribute"
+      RequirePhoneNumberAttribute:
+        Ref: "RequirePhoneNumberAttribute"
+      MfaMode:
+        Ref: "MfaMode"
+      EnableSoftwareTokenMfa:
+        Ref: "EnableSoftwareTokenMfa"
+      EnableEmailOtpMfa:
+        Ref: "EnableEmailOtpMfa"
+      EnableSmsMfa:
+        Ref: "EnableSmsMfa"
+      DeviceTrackingMode:
+        Ref: "DeviceTrackingMode"
+      VerifyAttributeChanges:
+        Ref: "VerifyAttributeChanges"
+      VerifyAttributeChangesMode:
+        Ref: "VerifyAttributeChangesMode"
+      SmsConfigurationSnsCallerArn:
+        Ref: "SmsConfigurationSnsCallerArn"
+      SmsConfigurationExternalId:
+        Ref: "SmsConfigurationExternalId"
+      SmsConfigurationSnsRegion:
+        Ref: "SmsConfigurationSnsRegion"
+      SesIdentity:
+        Ref: "SesIdentity"
+      ResolvedSesIdentity:
+        Fn::If:
+          - "CondAutoCreateSesIdentity"
+          -
+            Fn::GetAtt:
+              - "SesIdentityManager"
+              - "Identity"
+          -
+            Ref: "SesIdentity"
+      EmailFromAddress:
+        Ref: "EmailFromAddress"
+      PreSignUpArn:
+        Fn::If:
+          - "CondEnablePreSignUp"
+          -
+            Fn::GetAtt:
+              - "PreSignUpFunction"
+              - "Arn"
+          - ""
+      PreTokenGenerationArn:
+        Fn::If:
+          - "CondEnablePreTokenGeneration"
+          -
+            Fn::GetAtt:
+              - "PreTokenGenerationFunction"
+              - "Arn"
+          - ""
+      PostConfirmationArn:
+        Fn::If:
+          - "CondEnablePostConfirmation"
+          -
+            Fn::GetAtt:
+              - "PostConfirmationFunction"
+              - "Arn"
+          - ""
+      CustomEmailSenderArn:
+        Fn::If:
+          - "CondAttachCustomEmailSender"
+          -
+            Fn::GetAtt:
+              - "CustomEmailSenderFunction"
+              - "Arn"
+          - ""
+      KmsKeyId:
+        Fn::If:
+          - "CondAttachCustomEmailSender"
+          -
+            Fn::If:
+              - "HasProvidedKmsKeyId"
+              -
+                Ref: "KmsKeyId"
+              -
+                Fn::GetAtt:
+                  - "CustomSenderKmsKey"
+                  - "Arn"
+          - ""
+  TriggerAttachToExistingPool:
+    Type: "Custom::TriggerAttachment"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceFunction"
+          - "Arn"
+      Action: "TriggerAttachment"
+      UserPoolId:
+        Ref: "ExistingUserPoolId"
+      PreSignUpArn:
+        Fn::If:
+          - "CondEnablePreSignUp"
+          -
+            Fn::GetAtt:
+              - "PreSignUpFunction"
+              - "Arn"
+          - ""
+      PreTokenGenerationArn:
+        Fn::If:
+          - "CondEnablePreTokenGeneration"
+          -
+            Fn::GetAtt:
+              - "PreTokenGenerationFunction"
+              - "Arn"
+          - ""
+      PostConfirmationArn:
+        Fn::If:
+          - "CondEnablePostConfirmation"
+          -
+            Fn::GetAtt:
+              - "PostConfirmationFunction"
+              - "Arn"
+          - ""
+      CustomEmailSenderArn:
+        Fn::If:
+          - "CondAttachCustomEmailSender"
+          -
+            Fn::GetAtt:
+              - "CustomEmailSenderFunction"
+              - "Arn"
+          - ""
+      KmsKeyId:
+        Fn::If:
+          - "CondAttachCustomEmailSender"
+          -
+            Fn::If:
+              - "HasProvidedKmsKeyId"
+              -
+                Ref: "KmsKeyId"
+              -
+                Fn::GetAtt:
+                  - "CustomSenderKmsKey"
+                  - "Arn"
+          - ""
+    Condition: "CondUseExistingUserPool"
+  PermissionForPreSignUp:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "PreSignUpFunction"
+      Principal: "cognito-idp.amazonaws.com"
+      SourceArn:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+          -
+            Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
+    Condition: "CondEnablePreSignUp"
+  PermissionForPreTokenGeneration:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "PreTokenGenerationFunction"
+      Principal: "cognito-idp.amazonaws.com"
+      SourceArn:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+          -
+            Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
+    Condition: "CondEnablePreTokenGeneration"
+  PermissionForPostConfirmation:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "PostConfirmationFunction"
+      Principal: "cognito-idp.amazonaws.com"
+      SourceArn:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+          -
+            Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
+    Condition: "CondEnablePostConfirmation"
+  PermissionForCustomEmailSender:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "CustomEmailSenderFunction"
+      Principal: "cognito-idp.amazonaws.com"
+      SourceArn:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+          -
+            Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
+    Condition: "CondAttachCustomEmailSender"
+Outputs:
+  UserPoolId:
+    Description: "Cognito User Pool ID."
+    Value:
+      Fn::If:
+        - "CondCreateUserPool"
+        -
+          Ref: "UserPool"
+        -
+          Ref: "ExistingUserPoolId"
+  UserPoolArn:
+    Description: "Cognito User Pool ARN."
+    Value:
+      Fn::If:
+        - "CondCreateUserPool"
+        -
+          Fn::GetAtt:
+            - "UserPool"
+            - "Arn"
+        -
+          Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
+  UserPoolClientId:
+    Description: "Cognito User Pool client ID."
+    Value:
+      Ref: "UserPoolClient"
+    Condition: "CondCreateUserPool"
+  UserPoolDomain:
+    Description: "Cognito User Pool custom domain."
+    Value:
+      Ref: "UserPoolCustomDomainSubdomain"
+    Condition: "CondCreateDomain"
+  UserPoolDomainAliasTarget:
+    Description: "Route 53 alias target for the Cognito custom domain."
+    Value:
+      Fn::GetAtt:
+        - "Route53AliasRecord"
+        - "AliasTarget"
+    Condition: "CondRegisterAlias"
+  IdentityPoolId:
+    Description: "Cognito Identity Pool ID."
+    Value:
+      Ref: "IdentityPool"
+    Condition: "CondCreateIdentityPoolWithNewUserPool"
+  AuthenticatedRoleArn:
+    Description: "Authenticated Cognito Identity role ARN."
+    Value:
+      Fn::GetAtt:
+        - "AuthenticatedRole"
+        - "Arn"
+    Condition: "CondCreateIdentityPoolWithNewUserPool"
+  RegisteredRoleArn:
+    Description: "Registered Cognito Identity role ARN."
+    Value:
+      Fn::GetAtt:
+        - "RegisteredRole"
+        - "Arn"
+    Condition: "CondCreateIdentityPoolWithNewUserPool"
+  RegisteredGroupName:
+    Description: "Default registered group name."
+    Value:
+      Ref: "RegisteredGroupName"
+  EmailTemplateBucketName:
+    Description: "Email template bucket name."
+    Value:
+      Fn::If:
+        - "CondCreateEmailTemplateBucket"
+        -
+          Ref: "EmailTemplateBucket"
+        -
+          Ref: "EmailTemplateBucketName"
+    Condition: "CondEnableEmailSender"
+  SesIdentityValue:
+    Description: "Resolved SES identity."
+    Value:
+      Fn::If:
+        - "CondAutoCreateSesIdentity"
+        -
+          Fn::GetAtt:
+            - "SesIdentityManager"
+            - "Identity"
+        -
+          Ref: "SesIdentity"
+    Condition: "CondUseSES"
+  PreSignUpFunctionArn:
+    Description: "Pre sign-up Lambda ARN."
+    Value:
+      Fn::GetAtt:
+        - "PreSignUpFunction"
+        - "Arn"
+    Condition: "CondEnablePreSignUp"
+  PreTokenGenerationFunctionArn:
+    Description: "Pre token generation Lambda ARN."
+    Value:
+      Fn::GetAtt:
+        - "PreTokenGenerationFunction"
+        - "Arn"
+    Condition: "CondEnablePreTokenGeneration"
+  PostConfirmationFunctionArn:
+    Description: "Post confirmation Lambda ARN."
+    Value:
+      Fn::GetAtt:
+        - "PostConfirmationFunction"
+        - "Arn"
+    Condition: "CondEnablePostConfirmation"
+  CustomEmailSenderFunctionArn:
+    Description: "Custom email sender Lambda ARN."
+    Value:
+      Fn::GetAtt:
+        - "CustomEmailSenderFunction"
+        - "Arn"
+    Condition: "CondEnableEmailSender"

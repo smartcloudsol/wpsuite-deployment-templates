@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-06-26T09:00:31.763Z",
+  "templateVersion": "v0.1.0",
+  "sourceProject": "@wpsuite/deployment-orchestration",
+  "sourceGeneratedDirectory": "generated/templates",
+  "templates": [
+    {
+      "name": "wpsuite-deployment-orchestrator.yaml",
+      "kind": "root",
+      "path": "templates/wpsuite-deployment-orchestrator.yaml",
+      "description": "WP Suite Deployment Access root orchestration template for AWS Marketplace Quick Launch"
+    },
+    {
+      "name": "wpsuite-cognito.yaml",
+      "kind": "nested",
+      "path": "templates/templates/wpsuite-cognito.yaml",
+      "description": "WP Suite Cognito nested template for Marketplace Deployment Access"
+    },
+    {
+      "name": "wpsuite-ai-kit-backend.yaml",
+      "kind": "nested",
+      "path": "templates/templates/wpsuite-ai-kit-backend.yaml",
+      "description": "WP Suite AI Kit backend nested template for Marketplace Deployment Access"
+    },
+    {
+      "name": "wpsuite-flow-backend.yaml",
+      "kind": "nested",
+      "path": "templates/templates/wpsuite-flow-backend.yaml",
+      "description": "WP Suite Flow backend nested template for Marketplace Deployment Access"
+    },
+    {
+      "name": "wpsuite-static-site-guardian.yaml",
+      "kind": "nested",
+      "path": "templates/templates/wpsuite-static-site-guardian.yaml",
+      "description": "WP Suite Site Guardian nested template for Marketplace Deployment Access"
+    }
+  ]
+}

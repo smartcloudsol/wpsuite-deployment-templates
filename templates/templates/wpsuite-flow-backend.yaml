@@ -1,0 +1,2841 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "WP Suite Flow backend nested template for Marketplace Deployment Access"
+Parameters:
+  TemplateVersion:
+    Type: "String"
+    Default: "v0.1.0"
+    Description: "Immutable WP Suite deployment template version."
+  ArtifactRootPrefix:
+    Type: "String"
+    Description: "Buyer-owned S3 prefix containing staged WP Suite artifacts."
+  RuntimeConfigKey:
+    Type: "String"
+    Default: ""
+    Description: "Runtime configuration object key staged by WP Suite."
+  ManifestKey:
+    Type: "String"
+    Default: ""
+    Description: "Artifact manifest object key staged by WP Suite."
+  ManifestChecksum:
+    Type: "String"
+    Default: ""
+    Description: "SHA-256 checksum of the staged artifact manifest."
+  DeploymentVersion:
+    Type: "String"
+    Default: "1.0.0"
+    Description: "Application version used to locate Lambda, docs, and template artifacts in S3."
+  ArtifactBucketName:
+    Type: "String"
+    Default: "wpsuite-artifacts"
+    Description: "S3 bucket that stores the published deployment artifacts for this application."
+  ArtifactKeyPrefix:
+    Type: "String"
+    Default: "wpsuite-flow"
+    Description: "S3 key prefix under the artifact bucket for this Flow application."
+  AppName:
+    Type: "String"
+    Default: "wpsuite-flow"
+    Description: "Application name prefix used when naming Flow resources."
+  Environment:
+    Type: "String"
+    Default: "prod"
+    AllowedValues:
+      - "dev"
+      - "staging"
+      - "prod"
+    Description: "Deployment environment used in generated resource names."
+  FrontendApiAuthMode:
+    Type: "String"
+    Default: "NONE"
+    AllowedValues:
+      - "NONE"
+      - "IAM"
+    Description: "Authentication mode for public frontend submission endpoints."
+  AdminApiAuthMode:
+    Type: "String"
+    Default: "COGNITO"
+    AllowedValues:
+      - "NONE"
+      - "IAM"
+      - "COGNITO"
+    Description: "Authentication mode for admin management endpoints."
+  AdminCognitoUserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito user pool ID for admin authentication when AdminApiAuthMode is COGNITO."
+  AdminCognitoAuthScopes:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "Optional OAuth scopes required on admin endpoints when Cognito auth is enabled."
+  EnableRecaptcha:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable Google reCAPTCHA validation for public form submissions."
+  RecaptchaMode:
+    Type: "String"
+    Default: "classic"
+    AllowedValues:
+      - "classic"
+      - "enterprise"
+    Description: "Which reCAPTCHA product to use when reCAPTCHA protection is enabled."
+  RecaptchaProjectId:
+    Type: "String"
+    Default: ""
+    Description: "Google Cloud project ID for reCAPTCHA Enterprise."
+  RecaptchaSiteKey:
+    Type: "String"
+    Default: ""
+    Description: "Public reCAPTCHA site key expected from the frontend."
+  RecaptchaSecretKey:
+    Type: "String"
+    Default: ""
+    Description: "Secret reCAPTCHA key stored in SSM Parameter Store when provided."
+    NoEcho: true
+  RecaptchaScoreThreshold:
+    Type: "Number"
+    Default: 0.5
+    Description: "Minimum accepted reCAPTCHA score from 0.0 to 1.0."
+  EnableWAF:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable AWS WAF protection for the Flow API."
+  PublicAllowedIPs:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "Optional CIDR allowlist for frontend form endpoints."
+  AdminAllowedIPs:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "Optional CIDR allowlist for admin endpoints."
+  BlockedIPs:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "Optional CIDR ranges to block for all API traffic."
+  EnableKmsForSecrets:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create a dedicated KMS key for encrypting SSM-stored secrets."
+  EnableGuardDutyMalwareProtection:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable GuardDuty Malware Protection for the payload bucket."
+  DataRetentionDays:
+    Type: "Number"
+    Default: 30
+    Description: "Number of days to retain submission data before TTL cleanup."
+  LogRetentionDays:
+    Type: "Number"
+    Default: 14
+    AllowedValues:
+      - "1"
+      - "3"
+      - "5"
+      - "7"
+      - "14"
+      - "30"
+      - "60"
+      - "90"
+      - "120"
+      - "150"
+      - "180"
+      - "365"
+      - "400"
+      - "545"
+      - "731"
+      - "1827"
+      - "3653"
+    Description: "Number of days to retain CloudWatch logs for Flow resources."
+  LambdaMemorySize:
+    Type: "Number"
+    Default: 1024
+    Description: "Memory size in MB allocated to Flow Lambda functions."
+  LambdaTimeout:
+    Type: "Number"
+    Default: 30
+    Description: "Maximum execution time in seconds for Flow Lambda functions."
+  LogLevel:
+    Type: "String"
+    Default: "INFO"
+    AllowedValues:
+      - "DEBUG"
+      - "INFO"
+      - "WARN"
+      - "ERROR"
+    Description: "Application log level used by Flow Lambda functions."
+  TemplatesBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Existing S3 bucket for email templates. Leave empty to create one."
+  PayloadBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Existing S3 bucket for uploaded files. Leave empty to create one."
+  PayloadPrefix:
+    Type: "String"
+    Default: "uploads/"
+    Description: "S3 prefix used to store and resolve uploaded attachment objects."
+  TemplatesPrefix:
+    Type: "String"
+    Default: "templates/"
+    Description: "S3 prefix used to store and resolve email template files."
+  FromEmail:
+    Type: "String"
+    Default: ""
+    Description: "SES-verified email address used as the sender for outbound email actions."
+  DefaultWebhookSigningSecret:
+    Type: "String"
+    Default: ""
+    Description: "Optional default HMAC secret used to sign webhook payloads."
+    NoEcho: true
+  ApiCustomDomainName:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    ConstraintDescription: "Must be a valid domain name or empty."
+    Description: "Custom domain name for the API (optional, e.g. forms.example.com)"
+  AcmCertificateArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^arn:aws(-[a-z0-9-]+)?:acm:[a-z0-9-]+:[0-9]{12}:certificate/[a-f0-9-]+$"
+    ConstraintDescription: "Must be a valid ACM certificate ARN or empty."
+    Description: "ACM certificate ARN for the custom domain (required when ApiCustomDomainName is set)"
+  EnableRoute53:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable automatic Route53 alias record creation for the custom domain"
+  Route53HostedZoneId:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^[A-Z0-9]{10,32}$"
+    ConstraintDescription: "Must be a valid hosted zone ID or empty."
+    Description: "Route53 hosted zone ID (optional, auto-discovered when empty)"
+Conditions:
+  UseCustomDomain:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "ApiCustomDomainName"
+          - ""
+  UseRoute53:
+    Fn::And:
+      -
+        Condition: "UseCustomDomain"
+      -
+        Fn::Equals:
+          -
+            Ref: "EnableRoute53"
+          - "true"
+  UseProvidedHostedZoneId:
+    Fn::And:
+      -
+        Condition: "UseRoute53"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "Route53HostedZoneId"
+              - ""
+  EnableRecaptchaProtection:
+    Fn::Equals:
+      -
+        Ref: "EnableRecaptcha"
+      - "true"
+  WAFEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableWAF"
+      - "true"
+  HasPublicAllowedIPs:
+    Fn::And:
+      -
+        Condition: "WAFEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Join:
+                  - ""
+                  -
+                    Ref: "PublicAllowedIPs"
+              - ""
+  HasAdminAllowedIPs:
+    Fn::And:
+      -
+        Condition: "WAFEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Join:
+                  - ""
+                  -
+                    Ref: "AdminAllowedIPs"
+              - ""
+  HasBlockedIPs:
+    Fn::And:
+      -
+        Condition: "WAFEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Join:
+                  - ""
+                  -
+                    Ref: "BlockedIPs"
+              - ""
+  UseAdminCognito:
+    Fn::And:
+      -
+        Fn::Equals:
+          -
+            Ref: "AdminApiAuthMode"
+          - "COGNITO"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "AdminCognitoUserPoolId"
+              - ""
+  UseProvidedTemplatesBucket:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "TemplatesBucketName"
+          - ""
+  CreateTemplatesBucket:
+    Fn::Equals:
+      -
+        Ref: "TemplatesBucketName"
+      - ""
+  UseProvidedPayloadBucket:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "PayloadBucketName"
+          - ""
+  CreatePayloadBucket:
+    Fn::Equals:
+      -
+        Ref: "PayloadBucketName"
+      - ""
+  CreateKmsKey:
+    Fn::Equals:
+      -
+        Ref: "EnableKmsForSecrets"
+      - "true"
+  GuardDutyMalwareProtectionEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableGuardDutyMalwareProtection"
+      - "true"
+  HasDefaultWebhookSigningSecret:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "DefaultWebhookSigningSecret"
+          - ""
+Resources:
+  ApiGatewayCloudWatchLogsRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "apigateway.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        -
+          Fn::Sub: "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+  ApiGatewayAccountConfig:
+    Type: "Custom::ApiGatewayAccount"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - "ApiGatewayCloudWatchLogsRole"
+          - "Arn"
+  RestApi:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-api"
+      Description:
+        Fn::Sub: "${AppName}-${Environment} WP Suite Flow API"
+      EndpointConfiguration:
+        Types:
+          - "REGIONAL"
+    DependsOn:
+      - "ApiGatewayAccountConfig"
+  ApiDomainName:
+    Type: "AWS::ApiGateway::DomainName"
+    Properties:
+      DomainName:
+        Ref: "ApiCustomDomainName"
+      RegionalCertificateArn:
+        Ref: "AcmCertificateArn"
+      EndpointConfiguration:
+        Types:
+          - "REGIONAL"
+      SecurityPolicy: "TLS_1_2"
+    Condition: "UseCustomDomain"
+  AdminAuthorizer:
+    Type: "Custom::ApiAuthorizer"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-admin-cognito-authorizer"
+      RestApiId:
+        Ref: "RestApi"
+      Type: "COGNITO_USER_POOLS"
+      IdentitySource: "method.request.header.Authorization"
+      ProviderARNs:
+        -
+          Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${AdminCognitoUserPoolId}"
+    Condition: "UseAdminCognito"
+  DeadLetterQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName:
+        Fn::Sub: "${AppName}-${Environment}-dlq"
+      MessageRetentionPeriod: 1209600
+  SecretsKmsKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      Description:
+        Fn::Sub: "${AppName}-${Environment} secrets key"
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "EnableRootPermissions"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                Fn::Sub: "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action:
+              - "kms:CancelKeyDeletion"
+              - "kms:CreateAlias"
+              - "kms:CreateGrant"
+              - "kms:Decrypt"
+              - "kms:DeleteAlias"
+              - "kms:DescribeKey"
+              - "kms:DisableKey"
+              - "kms:DisableKeyRotation"
+              - "kms:EnableKey"
+              - "kms:EnableKeyRotation"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+              - "kms:GenerateDataKeyPair"
+              - "kms:GenerateDataKeyPairWithoutPlaintext"
+              - "kms:GenerateDataKeyWithoutPlaintext"
+              - "kms:GetKeyPolicy"
+              - "kms:GetKeyRotationStatus"
+              - "kms:GetPublicKey"
+              - "kms:ListGrants"
+              - "kms:ListResourceTags"
+              - "kms:PutKeyPolicy"
+              - "kms:ReEncryptFrom"
+              - "kms:ReEncryptTo"
+              - "kms:RetireGrant"
+              - "kms:RevokeGrant"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:Sign"
+              - "kms:TagResource"
+              - "kms:UntagResource"
+              - "kms:UpdateAlias"
+              - "kms:UpdateKeyDescription"
+              - "kms:Verify"
+            Resource: "*"
+          -
+            Sid: "AllowSsmUse"
+            Effect: "Allow"
+            Principal:
+              Service: "ssm.amazonaws.com"
+            Action:
+              - "kms:Decrypt"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+              - "kms:DescribeKey"
+            Resource: "*"
+    Condition: "CreateKmsKey"
+  SecretsKmsAlias:
+    Type: "AWS::KMS::Alias"
+    Properties:
+      AliasName:
+        Fn::Sub: "alias/${AppName}-${Environment}-secrets"
+      TargetKeyId:
+        Ref: "SecretsKmsKey"
+    Condition: "CreateKmsKey"
+  TemplatesBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName:
+        Fn::Sub: "${AppName}-${Environment}-templates-${AWS::AccountId}"
+      CorsConfiguration:
+        CorsRules:
+          -
+            AllowedOrigins:
+              - "*"
+            AllowedMethods:
+              - "PUT"
+              - "GET"
+              - "HEAD"
+            AllowedHeaders:
+              - "*"
+            ExposedHeaders:
+              - "ETag"
+            MaxAge: 3600
+      VersioningConfiguration:
+        Status: "Enabled"
+    Condition: "CreateTemplatesBucket"
+  PayloadBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName:
+        Fn::Sub: "${AppName}-${Environment}-payloads-${AWS::AccountId}"
+      CorsConfiguration:
+        CorsRules:
+          -
+            AllowedOrigins:
+              - "*"
+            AllowedMethods:
+              - "PUT"
+              - "GET"
+              - "HEAD"
+            AllowedHeaders:
+              - "*"
+            ExposedHeaders:
+              - "ETag"
+            MaxAge: 3600
+      VersioningConfiguration:
+        Status: "Enabled"
+    Condition: "CreatePayloadBucket"
+  TemplatesBucketCleaner:
+    Type: "Custom::BucketCleaner"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      BucketName:
+        Ref: "TemplatesBucket"
+    Condition: "CreateTemplatesBucket"
+  PayloadBucketCleaner:
+    Type: "Custom::BucketCleaner"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      BucketName:
+        Ref: "PayloadBucket"
+    Condition: "CreatePayloadBucket"
+  SubmissionsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-${Environment}-submissions"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+        -
+          AttributeName: "SK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1PK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1SK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI2PK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI2SK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI3PK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI3SK"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+        -
+          AttributeName: "SK"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI1"
+          KeySchema:
+            -
+              AttributeName: "GSI1PK"
+              KeyType: "HASH"
+            -
+              AttributeName: "GSI1SK"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        -
+          IndexName: "GSI2"
+          KeySchema:
+            -
+              AttributeName: "GSI2PK"
+              KeyType: "HASH"
+            -
+              AttributeName: "GSI2SK"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        -
+          IndexName: "GSI3"
+          KeySchema:
+            -
+              AttributeName: "GSI3PK"
+              KeyType: "HASH"
+            -
+              AttributeName: "GSI3SK"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+      TimeToLiveSpecification:
+        AttributeName: "expiresAt"
+        Enabled: true
+  SubmissionEventsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-${Environment}-submission-events"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+        -
+          AttributeName: "SK"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+        -
+          AttributeName: "SK"
+          KeyType: "RANGE"
+  TemplatesTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-${Environment}-templates"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+        -
+          AttributeName: "SK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1PK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1SK"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+        -
+          AttributeName: "SK"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI1"
+          KeySchema:
+            -
+              AttributeName: "GSI1PK"
+              KeyType: "HASH"
+            -
+              AttributeName: "GSI1SK"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+  WorkflowDefinitionsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-${Environment}-workflow-definitions"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+        -
+          AttributeName: "SK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1PK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1SK"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+        -
+          AttributeName: "SK"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI1"
+          KeySchema:
+            -
+              AttributeName: "GSI1PK"
+              KeyType: "HASH"
+            -
+              AttributeName: "GSI1SK"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+  FormDefinitionsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-${Environment}-form-definitions"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+        -
+          AttributeName: "SK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1PK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1SK"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+        -
+          AttributeName: "SK"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI1"
+          KeySchema:
+            -
+              AttributeName: "GSI1PK"
+              KeyType: "HASH"
+            -
+              AttributeName: "GSI1SK"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+  WebhookEndpointsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-${Environment}-webhook-endpoints"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+        -
+          AttributeName: "SK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1PK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1SK"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+        -
+          AttributeName: "SK"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI1"
+          KeySchema:
+            -
+              AttributeName: "GSI1PK"
+              KeyType: "HASH"
+            -
+              AttributeName: "GSI1SK"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+  ProcessMapsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-${Environment}-process-maps"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+        -
+          AttributeName: "SK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1PK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1SK"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+        -
+          AttributeName: "SK"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI1"
+          KeySchema:
+            -
+              AttributeName: "GSI1PK"
+              KeyType: "HASH"
+            -
+              AttributeName: "GSI1SK"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+  CustomResourceManagerFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "CustomResourceManagerFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "apigateway:GET"
+                  - "apigateway:POST"
+                  - "apigateway:PUT"
+                  - "apigateway:PATCH"
+                  - "apigateway:DELETE"
+                  - "apigateway:SetWebACL"
+                  - "apigateway:RemoveWebACL"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/account"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/*"
+                  -
+                    Fn::If:
+                      - "UseCustomDomain"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/domainnames/${ApiCustomDomainName}"
+                      -
+                        Ref: "AWS::NoValue"
+                  -
+                    Fn::If:
+                      - "UseCustomDomain"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/domainnames/${ApiCustomDomainName}/*"
+                      -
+                        Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action:
+                  - "route53:ListHostedZonesByName"
+                  - "wafv2:AssociateWebACL"
+                  - "wafv2:DisassociateWebACL"
+                  - "wafv2:CreateIPSet"
+                  - "wafv2:GetIPSet"
+                  - "wafv2:UpdateIPSet"
+                  - "wafv2:DeleteIPSet"
+                  - "wafv2:CreateWebACL"
+                  - "wafv2:GetWebACL"
+                  - "wafv2:UpdateWebACL"
+                  - "wafv2:DeleteWebACL"
+                  - "wafv2:TagResource"
+                  - "wafv2:UntagResource"
+                  - "guardduty:CreateMalwareProtectionPlan"
+                  - "guardduty:UpdateMalwareProtectionPlan"
+                  - "guardduty:GetMalwareProtectionPlan"
+                  - "guardduty:DeleteMalwareProtectionPlan"
+                  - "guardduty:TagResource"
+                  - "guardduty:UntagResource"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:PutParameter"
+                  - "ssm:DeleteParameter"
+                  - "ssm:GetParameter"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/recaptcha/secret"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/webhook/default-signing-secret"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                  - "s3:ListBucketVersions"
+                  - "s3:ListBucketMultipartUploads"
+                Resource:
+                  -
+                    Fn::If:
+                      - "CreateTemplatesBucket"
+                      -
+                        Fn::GetAtt:
+                          - "TemplatesBucket"
+                          - "Arn"
+                      -
+                        Ref: "AWS::NoValue"
+                  -
+                    Fn::If:
+                      - "CreatePayloadBucket"
+                      -
+                        Fn::GetAtt:
+                          - "PayloadBucket"
+                          - "Arn"
+                      -
+                        Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:DeleteObject"
+                  - "s3:DeleteObjectVersion"
+                  - "s3:AbortMultipartUpload"
+                Resource:
+                  -
+                    Fn::If:
+                      - "CreateTemplatesBucket"
+                      -
+                        Fn::Sub: "${TemplatesBucket.Arn}/*"
+                      -
+                        Ref: "AWS::NoValue"
+                  -
+                    Fn::If:
+                      - "CreatePayloadBucket"
+                      -
+                        Fn::Sub: "${PayloadBucket.Arn}/*"
+                      -
+                        Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action:
+                  - "iam:PassRole"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "ApiGatewayCloudWatchLogsRole"
+                      - "Arn"
+                  -
+                    Fn::If:
+                      - "GuardDutyMalwareProtectionEnabled"
+                      -
+                        Fn::GetAtt:
+                          - "GuardDutyMalwareProtectionRole"
+                          - "Arn"
+                      -
+                        Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:Decrypt"
+                  - "kms:DescribeKey"
+                  - "kms:Encrypt"
+                  - "kms:GenerateDataKey"
+                Resource:
+                  Fn::If:
+                    - "CreateKmsKey"
+                    -
+                      Fn::GetAtt:
+                        - "SecretsKmsKey"
+                        - "Arn"
+                    -
+                      Ref: "AWS::NoValue"
+  CustomResourceManagerFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-${Environment}-custom-resource-manager"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/custom-resource.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout: 180
+      TracingConfig:
+        Mode: "Active"
+      Role:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunctionRole"
+          - "Arn"
+      Environment:
+        Variables:
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          EVENT_BUS_NAME: "default"
+          SUBMISSIONS_TABLE:
+            Ref: "SubmissionsTable"
+          SUBMISSION_EVENTS_TABLE:
+            Ref: "SubmissionEventsTable"
+          TEMPLATES_TABLE:
+            Ref: "TemplatesTable"
+          WORKFLOW_DEFINITIONS_TABLE:
+            Ref: "WorkflowDefinitionsTable"
+          FORM_DEFINITIONS_TABLE:
+            Ref: "FormDefinitionsTable"
+          WEBHOOK_ENDPOINTS_TABLE:
+            Ref: "WebhookEndpointsTable"
+          PROCESS_MAPS_TABLE:
+            Ref: "ProcessMapsTable"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          TEMPLATES_BUCKET:
+            Fn::If:
+              - "UseProvidedTemplatesBucket"
+              -
+                Ref: "TemplatesBucketName"
+              -
+                Ref: "TemplatesBucket"
+          PAYLOAD_BUCKET:
+            Fn::If:
+              - "UseProvidedPayloadBucket"
+              -
+                Ref: "PayloadBucketName"
+              -
+                Ref: "PayloadBucket"
+          PAYLOAD_PREFIX:
+            Ref: "PayloadPrefix"
+          TEMPLATES_PREFIX:
+            Ref: "TemplatesPrefix"
+          FROM_EMAIL:
+            Ref: "FromEmail"
+          LOG_LEVEL:
+            Ref: "LogLevel"
+          DATA_RETENTION_DAYS:
+            Ref: "DataRetentionDays"
+  CustomResourceManagerLogGroupManager:
+    Type: "Custom::LogGroupManager"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-custom-resource-manager"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  RecaptchaSecretParameter:
+    Type: "Custom::SSMParameter"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      Name:
+        Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret"
+      Value:
+        Ref: "RecaptchaSecretKey"
+      KeyId:
+        Fn::If:
+          - "CreateKmsKey"
+          -
+            Ref: "SecretsKmsKey"
+          -
+            Ref: "AWS::NoValue"
+    Condition: "EnableRecaptchaProtection"
+  DefaultWebhookSigningSecretParameter:
+    Type: "Custom::SSMParameter"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      Name:
+        Fn::Sub: "/${AppName}/${Environment}/webhook/default-signing-secret"
+      Value:
+        Ref: "DefaultWebhookSigningSecret"
+      KeyId:
+        Fn::If:
+          - "CreateKmsKey"
+          -
+            Ref: "SecretsKmsKey"
+          -
+            Ref: "AWS::NoValue"
+    Condition: "HasDefaultWebhookSigningSecret"
+  GuardDutyMalwareProtectionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "malware-protection-plan.guardduty.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "guardduty-malware-protection-payload-bucket"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "events:PutRule"
+                  - "events:DeleteRule"
+                  - "events:PutTargets"
+                  - "events:RemoveTargets"
+                  - "events:DescribeRule"
+                  - "events:ListTargetsByRule"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetBucketLocation"
+                  - "s3:GetBucketNotification"
+                  - "s3:PutBucketNotification"
+                  - "s3:ListBucket"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedPayloadBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${PayloadBucketName}"
+                    -
+                      Fn::GetAtt:
+                        - "PayloadBucket"
+                        - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectVersion"
+                  - "s3:GetObjectTagging"
+                  - "s3:GetObjectVersionTagging"
+                  - "s3:PutObjectTagging"
+                  - "s3:PutObjectVersionTagging"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedPayloadBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${PayloadBucketName}/*"
+                    -
+                      Fn::Sub: "${PayloadBucket.Arn}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:GenerateDataKey"
+                  - "kms:Decrypt"
+                  - "kms:DescribeKey"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+    Condition: "GuardDutyMalwareProtectionEnabled"
+  GuardDutyMalwareProtectionPlan:
+    Type: "Custom::GuardDutyMalwareProtectionPlan"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      Role:
+        Fn::GetAtt:
+          - "GuardDutyMalwareProtectionRole"
+          - "Arn"
+      ProtectedResource:
+        S3Bucket:
+          BucketName:
+            Fn::If:
+              - "UseProvidedPayloadBucket"
+              -
+                Ref: "PayloadBucketName"
+              -
+                Ref: "PayloadBucket"
+      Actions:
+        Tagging:
+          Status: "ENABLED"
+      Tags:
+        -
+          Key: "Application"
+          Value:
+            Ref: "AppName"
+        -
+          Key: "Environment"
+          Value:
+            Ref: "Environment"
+    Condition: "GuardDutyMalwareProtectionEnabled"
+  PublicAllowedIpSet:
+    Type: "Custom::WafIPSet"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-public-allow"
+      Scope: "REGIONAL"
+      IPAddressVersion: "IPV4"
+      Addresses:
+        Fn::Join:
+          - ","
+          -
+            Ref: "PublicAllowedIPs"
+    Condition: "HasPublicAllowedIPs"
+  AdminAllowedIpSet:
+    Type: "Custom::WafIPSet"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-admin-allow"
+      Scope: "REGIONAL"
+      IPAddressVersion: "IPV4"
+      Addresses:
+        Fn::Join:
+          - ","
+          -
+            Ref: "AdminAllowedIPs"
+    Condition: "HasAdminAllowedIPs"
+  BlockedIpSet:
+    Type: "Custom::WafIPSet"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-blocked"
+      Scope: "REGIONAL"
+      IPAddressVersion: "IPV4"
+      Addresses:
+        Fn::Join:
+          - ","
+          -
+            Ref: "BlockedIPs"
+    Condition: "HasBlockedIPs"
+  WebAcl:
+    Type: "Custom::WafWebACL"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-webacl"
+      Description: "WAF protection for WP Suite Flow API"
+      Scope: "REGIONAL"
+      DefaultAction:
+        Allow:
+
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName:
+          Fn::Sub: "${AppName}-${Environment}-webacl"
+      Rules:
+        -
+          Fn::If:
+            - "HasBlockedIPs"
+            -
+              Name: "BlockMaliciousIPs"
+              Priority: 100
+              Statement:
+                IPSetReferenceStatement:
+                  ARN:
+                    Fn::GetAtt:
+                      - "BlockedIpSet"
+                      - "Arn"
+              Action:
+                Block:
+
+              VisibilityConfig:
+                SampledRequestsEnabled: true
+                CloudWatchMetricsEnabled: true
+                MetricName:
+                  Fn::Sub: "${AppName}-${Environment}-blocked-ips"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasAdminAllowedIPs"
+            -
+              Name: "DenyAdminEndpointsIfNotInAllowlist"
+              Priority: 200
+              Statement:
+                AndStatement:
+                  Statements:
+                    -
+                      NotStatement:
+                        Statement:
+                          IPSetReferenceStatement:
+                            ARN:
+                              Fn::GetAtt:
+                                - "AdminAllowedIpSet"
+                                - "Arn"
+                    -
+                      ByteMatchStatement:
+                        SearchString: "/admin"
+                        FieldToMatch:
+                          UriPath:
+
+                        TextTransformations:
+                          -
+                            Priority: 0
+                            Type: "NONE"
+                        PositionalConstraint: "STARTS_WITH"
+              Action:
+                Block:
+
+              VisibilityConfig:
+                SampledRequestsEnabled: true
+                CloudWatchMetricsEnabled: true
+                MetricName:
+                  Fn::Sub: "${AppName}-${Environment}-admin-blocked"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasPublicAllowedIPs"
+            -
+              Name: "DenyPublicEndpointsIfNotInAllowlist"
+              Priority: 300
+              Statement:
+                AndStatement:
+                  Statements:
+                    -
+                      NotStatement:
+                        Statement:
+                          IPSetReferenceStatement:
+                            ARN:
+                              Fn::GetAtt:
+                                - "PublicAllowedIpSet"
+                                - "Arn"
+                    -
+                      ByteMatchStatement:
+                        SearchString: "/frontend"
+                        FieldToMatch:
+                          UriPath:
+
+                        TextTransformations:
+                          -
+                            Priority: 0
+                            Type: "NONE"
+                        PositionalConstraint: "STARTS_WITH"
+              Action:
+                Block:
+
+              VisibilityConfig:
+                SampledRequestsEnabled: true
+                CloudWatchMetricsEnabled: true
+                MetricName:
+                  Fn::Sub: "${AppName}-${Environment}-public-blocked"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Name: "AWSManagedRulesCommonRuleSet"
+          Priority: 400
+          OverrideAction:
+            None:
+
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: "AWS"
+              Name: "AWSManagedRulesCommonRuleSet"
+              RuleActionOverrides:
+                -
+                  Name: "SizeRestrictions_BODY"
+                  ActionToUse:
+                    Count:
+
+                -
+                  Name: "GenericLFI_BODY"
+                  ActionToUse:
+                    Count:
+
+                -
+                  Name: "GenericRFI_BODY"
+                  ActionToUse:
+                    Count:
+
+                -
+                  Name: "EC2MetaDataSSRF_BODY"
+                  ActionToUse:
+                    Count:
+
+                -
+                  Name: "CrossSiteScripting_BODY"
+                  ActionToUse:
+                    Count:
+
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-${Environment}-common-rules"
+        -
+          Name: "AWSManagedRulesKnownBadInputsRuleSet"
+          Priority: 500
+          OverrideAction:
+            None:
+
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: "AWS"
+              Name: "AWSManagedRulesKnownBadInputsRuleSet"
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-${Environment}-bad-inputs"
+        -
+          Name: "AWSManagedRulesAmazonIpReputationList"
+          Priority: 600
+          OverrideAction:
+            None:
+
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: "AWS"
+              Name: "AWSManagedRulesAmazonIpReputationList"
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-${Environment}-ip-reputation"
+        -
+          Name: "RateLimitFrontendEndpoints"
+          Priority: 700
+          Statement:
+            RateBasedStatement:
+              Limit: 2000
+              AggregateKeyType: "IP"
+              ScopeDownStatement:
+                ByteMatchStatement:
+                  SearchString: "/frontend"
+                  FieldToMatch:
+                    UriPath:
+
+                  TextTransformations:
+                    -
+                      Priority: 0
+                      Type: "NONE"
+                  PositionalConstraint: "STARTS_WITH"
+          Action:
+            Block:
+
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-${Environment}-frontend-rate-limit"
+        -
+          Name: "RateLimitAdminEndpoints"
+          Priority: 800
+          Statement:
+            RateBasedStatement:
+              Limit: 500
+              AggregateKeyType: "IP"
+              ScopeDownStatement:
+                ByteMatchStatement:
+                  SearchString: "/admin"
+                  FieldToMatch:
+                    UriPath:
+
+                  TextTransformations:
+                    -
+                      Priority: 0
+                      Type: "NONE"
+                  PositionalConstraint: "STARTS_WITH"
+          Action:
+            Block:
+
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-${Environment}-admin-rate-limit"
+    Condition: "WAFEnabled"
+  FormsApiLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-forms-api"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  FormsApiFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "FormsApiFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:BatchGetItem"
+                  - "dynamodb:BatchWriteItem"
+                  - "dynamodb:ConditionCheckItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:DescribeTable"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:GetRecords"
+                  - "dynamodb:GetShardIterator"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:Scan"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "SubmissionsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "SubmissionsTable"
+                            - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "SubmissionEventsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "SubmissionEventsTable"
+                            - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "TemplatesTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "TemplatesTable"
+                            - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "WorkflowDefinitionsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "WorkflowDefinitionsTable"
+                            - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "FormDefinitionsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "FormDefinitionsTable"
+                            - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "WebhookEndpointsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "WebhookEndpointsTable"
+                            - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "ProcessMapsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "ProcessMapsTable"
+                            - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:AbortMultipartUpload"
+                  - "s3:DeleteObject"
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                  - "s3:PutObject"
+                Resource:
+                  -
+                    Fn::If:
+                      - "UseProvidedTemplatesBucket"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${TemplatesBucketName}"
+                      -
+                        Fn::GetAtt:
+                          - "TemplatesBucket"
+                          - "Arn"
+                  -
+                    Fn::If:
+                      - "UseProvidedTemplatesBucket"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${TemplatesBucketName}/*"
+                      -
+                        Fn::Sub: "${TemplatesBucket.Arn}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:AbortMultipartUpload"
+                  - "s3:DeleteObject"
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                  - "s3:PutObject"
+                Resource:
+                  -
+                    Fn::If:
+                      - "UseProvidedPayloadBucket"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${PayloadBucketName}"
+                      -
+                        Fn::GetAtt:
+                          - "PayloadBucket"
+                          - "Arn"
+                  -
+                    Fn::If:
+                      - "UseProvidedPayloadBucket"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${PayloadBucketName}/*"
+                      -
+                        Fn::Sub: "${PayloadBucket.Arn}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "events:PutEvents"
+                  - "ssm:GetParameter"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:Decrypt"
+                  - "kms:DescribeKey"
+                  - "kms:Encrypt"
+                  - "kms:GenerateDataKey"
+                Resource:
+                  Fn::If:
+                    - "CreateKmsKey"
+                    -
+                      Fn::GetAtt:
+                        - "SecretsKmsKey"
+                        - "Arn"
+                    -
+                      Ref: "AWS::NoValue"
+  FormsApiFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-${Environment}-forms-api"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/forms-api.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout:
+        Ref: "LambdaTimeout"
+      TracingConfig:
+        Mode: "Active"
+      Role:
+        Fn::GetAtt:
+          - "FormsApiFunctionRole"
+          - "Arn"
+      Environment:
+        Variables:
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          EVENT_BUS_NAME: "default"
+          SUBMISSIONS_TABLE:
+            Ref: "SubmissionsTable"
+          SUBMISSION_EVENTS_TABLE:
+            Ref: "SubmissionEventsTable"
+          TEMPLATES_TABLE:
+            Ref: "TemplatesTable"
+          WORKFLOW_DEFINITIONS_TABLE:
+            Ref: "WorkflowDefinitionsTable"
+          FORM_DEFINITIONS_TABLE:
+            Ref: "FormDefinitionsTable"
+          WEBHOOK_ENDPOINTS_TABLE:
+            Ref: "WebhookEndpointsTable"
+          PROCESS_MAPS_TABLE:
+            Ref: "ProcessMapsTable"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          TEMPLATES_BUCKET:
+            Fn::If:
+              - "UseProvidedTemplatesBucket"
+              -
+                Ref: "TemplatesBucketName"
+              -
+                Ref: "TemplatesBucket"
+          PAYLOAD_BUCKET:
+            Fn::If:
+              - "UseProvidedPayloadBucket"
+              -
+                Ref: "PayloadBucketName"
+              -
+                Ref: "PayloadBucket"
+          PAYLOAD_PREFIX:
+            Ref: "PayloadPrefix"
+          TEMPLATES_PREFIX:
+            Ref: "TemplatesPrefix"
+          FROM_EMAIL:
+            Ref: "FromEmail"
+          LOG_LEVEL:
+            Ref: "LogLevel"
+          DATA_RETENTION_DAYS:
+            Ref: "DataRetentionDays"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::If:
+              - "EnableRecaptchaProtection"
+              -
+                Ref: "RecaptchaSecretParameter"
+              - ""
+          DEFAULT_WEBHOOK_SIGNING_SECRET_PARAMETER_NAME:
+            Fn::If:
+              - "HasDefaultWebhookSigningSecret"
+              -
+                Ref: "DefaultWebhookSigningSecretParameter"
+              - ""
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+  FormsApiInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "FormsApiFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*/*"
+  ApiRoutes:
+    Type: "Custom::ApiRoutes"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      RestApiId:
+        Ref: "RestApi"
+      StageName: "prod"
+      FormsApiIntegrationUri:
+        Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FormsApiFunction.Arn}/invocations"
+      FrontendAuthMode:
+        Ref: "FrontendApiAuthMode"
+      AdminAuthMode:
+        Ref: "AdminApiAuthMode"
+      AdminAuthorizerId:
+        Fn::If:
+          - "UseAdminCognito"
+          -
+            Ref: "AdminAuthorizer"
+          - ""
+      AdminAuthorizationScopes:
+        Fn::Join:
+          - ","
+          -
+            Ref: "AdminCognitoAuthScopes"
+      FrontendRoutes:
+        -
+          path: "/frontend/forms/{formId}/submit"
+          method: "POST"
+        -
+          path: "/frontend/forms/{formId}/drafts"
+          method: "POST"
+        -
+          path: "/frontend/forms/{formId}/drafts/load"
+          method: "POST"
+        -
+          path: "/frontend/forms/{formId}/drafts/delete"
+          method: "POST"
+        -
+          path: "/frontend/forms/{formId}/drafts/{submissionId}/submit"
+          method: "POST"
+        -
+          path: "/frontend/forms/{formId}/upload-url"
+          method: "POST"
+      AdminRoutes:
+        -
+          path: "/admin/forms"
+          method: "GET"
+        -
+          path: "/admin/forms/{formId}"
+          method: "GET"
+        -
+          path: "/admin/forms"
+          method: "POST"
+        -
+          path: "/admin/forms/{formId}"
+          method: "PUT"
+        -
+          path: "/admin/forms/{formId}"
+          method: "DELETE"
+        -
+          path: "/admin/forms/{formId}/submissions"
+          method: "GET"
+        -
+          path: "/admin/forms/{formId}/submissions/{submissionId}"
+          method: "GET"
+        -
+          path: "/admin/forms/{formId}/submissions/{submissionId}/events"
+          method: "GET"
+        -
+          path: "/admin/forms/{formId}/submissions/{submissionId}"
+          method: "PATCH"
+        -
+          path: "/admin/forms/{formId}/submissions/{submissionId}"
+          method: "DELETE"
+        -
+          path: "/admin/forms/{formId}/submissions/{submissionId}/actions/{actionKey}"
+          method: "POST"
+        -
+          path: "/admin/submissions"
+          method: "GET"
+        -
+          path: "/admin/templates"
+          method: "GET"
+        -
+          path: "/admin/templates/{templateKey}"
+          method: "GET"
+        -
+          path: "/admin/templates"
+          method: "POST"
+        -
+          path: "/admin/template-attachments/upload-url"
+          method: "POST"
+        -
+          path: "/admin/template-attachments/drafts/delete"
+          method: "POST"
+        -
+          path: "/admin/templates/{templateKey}"
+          method: "PUT"
+        -
+          path: "/admin/templates/{templateKey}"
+          method: "DELETE"
+        -
+          path: "/admin/templates/{templateKey}/preview"
+          method: "POST"
+        -
+          path: "/admin/workflows"
+          method: "GET"
+        -
+          path: "/admin/workflows/{workflowId}"
+          method: "GET"
+        -
+          path: "/admin/workflows"
+          method: "POST"
+        -
+          path: "/admin/workflows/{workflowId}"
+          method: "PUT"
+        -
+          path: "/admin/workflows/{workflowId}"
+          method: "DELETE"
+        -
+          path: "/admin/webhook-endpoints"
+          method: "GET"
+        -
+          path: "/admin/webhook-endpoints/{webhookKey}"
+          method: "GET"
+        -
+          path: "/admin/webhook-endpoints"
+          method: "POST"
+        -
+          path: "/admin/webhook-endpoints/{webhookKey}"
+          method: "PUT"
+        -
+          path: "/admin/webhook-endpoints/{webhookKey}"
+          method: "DELETE"
+        -
+          path: "/admin/process-maps"
+          method: "GET"
+        -
+          path: "/admin/process-maps/{processMapId}"
+          method: "GET"
+        -
+          path: "/admin/process-maps"
+          method: "POST"
+        -
+          path: "/admin/process-maps/{processMapId}"
+          method: "PUT"
+        -
+          path: "/admin/process-maps/{processMapId}"
+          method: "DELETE"
+    DependsOn:
+      - "FormsApiInvokePermission"
+  ApiBasePathMapping:
+    Type: "Custom::ApiBasePathMapping"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      DomainName:
+        Ref: "ApiDomainName"
+      RestApiId:
+        Ref: "RestApi"
+      Stage: "prod"
+      BasePath: ""
+    DependsOn:
+      - "ApiRoutes"
+    Condition: "UseCustomDomain"
+  HostedZoneLookup:
+    Type: "Custom::HostedZoneLookup"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      DomainName:
+        Ref: "ApiCustomDomainName"
+    Condition: "UseRoute53"
+  DnsRecordA:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId:
+        Fn::If:
+          - "UseProvidedHostedZoneId"
+          -
+            Ref: "Route53HostedZoneId"
+          -
+            Fn::GetAtt:
+              - "HostedZoneLookup"
+              - "HostedZoneId"
+      Name:
+        Ref: "ApiCustomDomainName"
+      Type: "A"
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt:
+            - "ApiDomainName"
+            - "RegionalDomainName"
+        HostedZoneId:
+          Fn::GetAtt:
+            - "ApiDomainName"
+            - "RegionalHostedZoneId"
+    DependsOn:
+      - "ApiBasePathMapping"
+    Condition: "UseRoute53"
+  DnsRecordAAAA:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId:
+        Fn::If:
+          - "UseProvidedHostedZoneId"
+          -
+            Ref: "Route53HostedZoneId"
+          -
+            Fn::GetAtt:
+              - "HostedZoneLookup"
+              - "HostedZoneId"
+      Name:
+        Ref: "ApiCustomDomainName"
+      Type: "AAAA"
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt:
+            - "ApiDomainName"
+            - "RegionalDomainName"
+        HostedZoneId:
+          Fn::GetAtt:
+            - "ApiDomainName"
+            - "RegionalHostedZoneId"
+    DependsOn:
+      - "ApiBasePathMapping"
+    Condition: "UseRoute53"
+  WebAclAssociation:
+    Type: "Custom::WafAssociation"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManagerFunction"
+          - "Arn"
+      WebACLArn:
+        Fn::GetAtt:
+          - "WebAcl"
+          - "Arn"
+      ResourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/${RestApi}/stages/prod"
+    DependsOn:
+      - "ApiRoutes"
+    Condition: "WAFEnabled"
+  WorkflowDispatcherLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-workflow-dispatcher"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  WorkflowDispatcherFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "WorkflowDispatcherFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:BatchGetItem"
+                  - "dynamodb:BatchWriteItem"
+                  - "dynamodb:ConditionCheckItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:DescribeTable"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:GetRecords"
+                  - "dynamodb:GetShardIterator"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:Scan"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "SubmissionsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "SubmissionsTable"
+                            - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "SubmissionEventsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "SubmissionEventsTable"
+                            - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:BatchGetItem"
+                  - "dynamodb:DescribeTable"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:Scan"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "WorkflowDefinitionsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "WorkflowDefinitionsTable"
+                            - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "FormDefinitionsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "FormDefinitionsTable"
+                            - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "WebhookEndpointsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "WebhookEndpointsTable"
+                            - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "events:PutEvents"
+                Resource: "*"
+  WorkflowDispatcherFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-${Environment}-workflow-dispatcher"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/workflow-dispatcher.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout:
+        Ref: "LambdaTimeout"
+      TracingConfig:
+        Mode: "Active"
+      Role:
+        Fn::GetAtt:
+          - "WorkflowDispatcherFunctionRole"
+          - "Arn"
+      Environment:
+        Variables:
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          EVENT_BUS_NAME: "default"
+          SUBMISSIONS_TABLE:
+            Ref: "SubmissionsTable"
+          SUBMISSION_EVENTS_TABLE:
+            Ref: "SubmissionEventsTable"
+          TEMPLATES_TABLE:
+            Ref: "TemplatesTable"
+          WORKFLOW_DEFINITIONS_TABLE:
+            Ref: "WorkflowDefinitionsTable"
+          FORM_DEFINITIONS_TABLE:
+            Ref: "FormDefinitionsTable"
+          WEBHOOK_ENDPOINTS_TABLE:
+            Ref: "WebhookEndpointsTable"
+          PROCESS_MAPS_TABLE:
+            Ref: "ProcessMapsTable"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          TEMPLATES_BUCKET:
+            Fn::If:
+              - "UseProvidedTemplatesBucket"
+              -
+                Ref: "TemplatesBucketName"
+              -
+                Ref: "TemplatesBucket"
+          PAYLOAD_BUCKET:
+            Fn::If:
+              - "UseProvidedPayloadBucket"
+              -
+                Ref: "PayloadBucketName"
+              -
+                Ref: "PayloadBucket"
+          PAYLOAD_PREFIX:
+            Ref: "PayloadPrefix"
+          TEMPLATES_PREFIX:
+            Ref: "TemplatesPrefix"
+          FROM_EMAIL:
+            Ref: "FromEmail"
+          LOG_LEVEL:
+            Ref: "LogLevel"
+          DATA_RETENTION_DAYS:
+            Ref: "DataRetentionDays"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+  WorkflowDispatcherEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      EventPattern:
+        source:
+          - "wpsuite.forms"
+          - "wpsuite.ai-kit"
+        detail-type:
+          - "submission.created"
+          - "submission.updated"
+          - "submission.status-changed"
+          - "submission.action-invoked"
+          - "ai.agent.completed"
+          - "ai.agent.failed"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "WorkflowDispatcherFunction"
+              - "Arn"
+          Id: "WorkflowDispatcherFunction"
+  WorkflowDispatcherEventPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "WorkflowDispatcherFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "WorkflowDispatcherEventRule"
+          - "Arn"
+    DependsOn:
+      - "WorkflowDispatcherEventRule"
+  EmailSenderLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-email-sender"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  EmailSenderFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "EmailSenderFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:BatchGetItem"
+                  - "dynamodb:DescribeTable"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:Scan"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "TemplatesTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "TemplatesTable"
+                            - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:BatchGetItem"
+                  - "dynamodb:BatchWriteItem"
+                  - "dynamodb:ConditionCheckItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:DescribeTable"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:GetRecords"
+                  - "dynamodb:GetShardIterator"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:Scan"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "SubmissionEventsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "SubmissionEventsTable"
+                            - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                Resource:
+                  -
+                    Fn::If:
+                      - "UseProvidedTemplatesBucket"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${TemplatesBucketName}"
+                      -
+                        Fn::GetAtt:
+                          - "TemplatesBucket"
+                          - "Arn"
+                  -
+                    Fn::If:
+                      - "UseProvidedTemplatesBucket"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${TemplatesBucketName}/*"
+                      -
+                        Fn::Sub: "${TemplatesBucket.Arn}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ses:SendEmail"
+                  - "events:PutEvents"
+                Resource: "*"
+  EmailSenderFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-${Environment}-email-sender"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/email-sender.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout:
+        Ref: "LambdaTimeout"
+      TracingConfig:
+        Mode: "Active"
+      Role:
+        Fn::GetAtt:
+          - "EmailSenderFunctionRole"
+          - "Arn"
+      Environment:
+        Variables:
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          EVENT_BUS_NAME: "default"
+          SUBMISSIONS_TABLE:
+            Ref: "SubmissionsTable"
+          SUBMISSION_EVENTS_TABLE:
+            Ref: "SubmissionEventsTable"
+          TEMPLATES_TABLE:
+            Ref: "TemplatesTable"
+          WORKFLOW_DEFINITIONS_TABLE:
+            Ref: "WorkflowDefinitionsTable"
+          FORM_DEFINITIONS_TABLE:
+            Ref: "FormDefinitionsTable"
+          WEBHOOK_ENDPOINTS_TABLE:
+            Ref: "WebhookEndpointsTable"
+          PROCESS_MAPS_TABLE:
+            Ref: "ProcessMapsTable"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          TEMPLATES_BUCKET:
+            Fn::If:
+              - "UseProvidedTemplatesBucket"
+              -
+                Ref: "TemplatesBucketName"
+              -
+                Ref: "TemplatesBucket"
+          PAYLOAD_BUCKET:
+            Fn::If:
+              - "UseProvidedPayloadBucket"
+              -
+                Ref: "PayloadBucketName"
+              -
+                Ref: "PayloadBucket"
+          PAYLOAD_PREFIX:
+            Ref: "PayloadPrefix"
+          TEMPLATES_PREFIX:
+            Ref: "TemplatesPrefix"
+          FROM_EMAIL:
+            Ref: "FromEmail"
+          LOG_LEVEL:
+            Ref: "LogLevel"
+          DATA_RETENTION_DAYS:
+            Ref: "DataRetentionDays"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+  EmailSenderEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      EventPattern:
+        source:
+          - "wpsuite.forms"
+        detail-type:
+          - "email.requested"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "EmailSenderFunction"
+              - "Arn"
+          Id: "EmailSenderFunction"
+  EmailSenderEventPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "EmailSenderFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "EmailSenderEventRule"
+          - "Arn"
+    DependsOn:
+      - "EmailSenderEventRule"
+  WebhookDispatcherLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-webhook-dispatcher"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  WebhookDispatcherFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "WebhookDispatcherFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:BatchGetItem"
+                  - "dynamodb:BatchWriteItem"
+                  - "dynamodb:ConditionCheckItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:DescribeTable"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:GetRecords"
+                  - "dynamodb:GetShardIterator"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:Scan"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "SubmissionEventsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "SubmissionEventsTable"
+                            - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:BatchGetItem"
+                  - "dynamodb:DescribeTable"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:Scan"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "WebhookEndpointsTable"
+                      - "Arn"
+                  -
+                    Fn::Sub:
+                      - "${TableArn}/index/*"
+                      -
+                        TableArn:
+                          Fn::GetAtt:
+                            - "WebhookEndpointsTable"
+                            - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:GetParameter"
+                  - "events:PutEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:Decrypt"
+                  - "kms:DescribeKey"
+                  - "kms:Encrypt"
+                  - "kms:GenerateDataKey"
+                Resource:
+                  Fn::If:
+                    - "CreateKmsKey"
+                    -
+                      Fn::GetAtt:
+                        - "SecretsKmsKey"
+                        - "Arn"
+                    -
+                      Ref: "AWS::NoValue"
+  WebhookDispatcherFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-${Environment}-webhook-dispatcher"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/webhook-dispatcher.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout:
+        Ref: "LambdaTimeout"
+      TracingConfig:
+        Mode: "Active"
+      Role:
+        Fn::GetAtt:
+          - "WebhookDispatcherFunctionRole"
+          - "Arn"
+      Environment:
+        Variables:
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          EVENT_BUS_NAME: "default"
+          SUBMISSIONS_TABLE:
+            Ref: "SubmissionsTable"
+          SUBMISSION_EVENTS_TABLE:
+            Ref: "SubmissionEventsTable"
+          TEMPLATES_TABLE:
+            Ref: "TemplatesTable"
+          WORKFLOW_DEFINITIONS_TABLE:
+            Ref: "WorkflowDefinitionsTable"
+          FORM_DEFINITIONS_TABLE:
+            Ref: "FormDefinitionsTable"
+          WEBHOOK_ENDPOINTS_TABLE:
+            Ref: "WebhookEndpointsTable"
+          PROCESS_MAPS_TABLE:
+            Ref: "ProcessMapsTable"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          TEMPLATES_BUCKET:
+            Fn::If:
+              - "UseProvidedTemplatesBucket"
+              -
+                Ref: "TemplatesBucketName"
+              -
+                Ref: "TemplatesBucket"
+          PAYLOAD_BUCKET:
+            Fn::If:
+              - "UseProvidedPayloadBucket"
+              -
+                Ref: "PayloadBucketName"
+              -
+                Ref: "PayloadBucket"
+          PAYLOAD_PREFIX:
+            Ref: "PayloadPrefix"
+          TEMPLATES_PREFIX:
+            Ref: "TemplatesPrefix"
+          FROM_EMAIL:
+            Ref: "FromEmail"
+          LOG_LEVEL:
+            Ref: "LogLevel"
+          DATA_RETENTION_DAYS:
+            Ref: "DataRetentionDays"
+          DEFAULT_WEBHOOK_SIGNING_SECRET_PARAMETER_NAME:
+            Fn::If:
+              - "HasDefaultWebhookSigningSecret"
+              -
+                Ref: "DefaultWebhookSigningSecretParameter"
+              - ""
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+  WebhookDispatcherEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      EventPattern:
+        source:
+          - "wpsuite.forms"
+        detail-type:
+          - "integration.webhook.requested"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "WebhookDispatcherFunction"
+              - "Arn"
+          Id: "WebhookDispatcherFunction"
+  WebhookDispatcherEventPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "WebhookDispatcherFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "WebhookDispatcherEventRule"
+          - "Arn"
+    DependsOn:
+      - "WebhookDispatcherEventRule"
+Outputs:
+  TemplateFamily:
+    Description: "Template family identifier."
+    Value: "wpsuite-flow-backend"
+  TemplateVersion:
+    Description: "Template version used for this nested stack."
+    Value:
+      Ref: "TemplateVersion"
+  ApiUrl:
+    Description: "Flow API URL."
+    Value:
+      Fn::If:
+        - "UseCustomDomain"
+        -
+          Fn::Sub: "https://${ApiCustomDomainName}"
+        -
+          Fn::Sub: "https://${RestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+  TemplatesBucketOutput:
+    Description: "Resolved templates bucket name."
+    Value:
+      Fn::If:
+        - "UseProvidedTemplatesBucket"
+        -
+          Ref: "TemplatesBucketName"
+        -
+          Ref: "TemplatesBucket"
+  PayloadBucketOutput:
+    Description: "Resolved payload bucket name."
+    Value:
+      Fn::If:
+        - "UseProvidedPayloadBucket"
+        -
+          Ref: "PayloadBucketName"
+        -
+          Ref: "PayloadBucket"
+  RecaptchaSecretParameterName:
+    Description: "reCAPTCHA secret parameter name."
+    Value:
+      Ref: "RecaptchaSecretParameter"
+    Condition: "EnableRecaptchaProtection"
+  CustomDomainUrl:
+    Description: "Custom domain URL."
+    Value:
+      Fn::Sub: "https://${ApiCustomDomainName}"
+    Condition: "UseCustomDomain"
+  RegionalDomainName:
+    Description: "API Gateway regional domain name."
+    Value:
+      Fn::GetAtt:
+        - "ApiDomainName"
+        - "RegionalDomainName"
+    Condition: "UseCustomDomain"
+  RegionalHostedZoneId:
+    Description: "API Gateway regional hosted zone ID."
+    Value:
+      Fn::GetAtt:
+        - "ApiDomainName"
+        - "RegionalHostedZoneId"
+    Condition: "UseCustomDomain"

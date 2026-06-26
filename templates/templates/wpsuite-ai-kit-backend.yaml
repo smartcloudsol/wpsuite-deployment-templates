@@ -1,0 +1,3821 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "WP Suite AI Kit backend nested template for Marketplace Deployment Access"
+Parameters:
+  TemplateVersion:
+    Type: "String"
+    Default: "v0.1.0"
+    Description: "Immutable WP Suite deployment template version."
+  ArtifactRootPrefix:
+    Type: "String"
+    Description: "Buyer-owned S3 prefix containing staged WP Suite artifacts."
+  RuntimeConfigKey:
+    Type: "String"
+    Default: ""
+    Description: "Runtime configuration object key staged by WP Suite."
+  ManifestKey:
+    Type: "String"
+    Default: ""
+    Description: "Artifact manifest object key staged by WP Suite."
+  ManifestChecksum:
+    Type: "String"
+    Default: ""
+    Description: "SHA-256 checksum of the staged artifact manifest."
+  CognitoUserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito User Pool ID passed by the root orchestration template."
+  CognitoUserPoolClientId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito User Pool client ID passed by the root orchestration template."
+  CognitoIdentityPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito Identity Pool ID passed by the root orchestration template."
+  DeploymentVersion:
+    Type: "String"
+    Default: "1.0.0"
+    Description: "Application version used to locate Lambda, layer, docs, and template artifacts in S3."
+  ArtifactBucketName:
+    Type: "String"
+    Default: "wpsuite-artifacts"
+    Description: "S3 bucket that stores the published deployment artifacts for this application."
+  ArtifactKeyPrefix:
+    Type: "String"
+    Default: "wpsuite-ai-kit"
+    Description: "S3 key prefix under the artifact bucket for this AI Kit application."
+  AppName:
+    Type: "String"
+    Default: "wpsuite-ai-kit"
+    AllowedPattern: "^[a-zA-Z0-9-]+$"
+    ConstraintDescription: "Must contain only alphanumeric characters and hyphens"
+    Description: "Application name for resource naming"
+  Environment:
+    Type: "String"
+    Default: "prod"
+    AllowedValues:
+      - "dev"
+      - "staging"
+      - "prod"
+    Description: "Deployment environment"
+  UseLegacyCustomResourceManagerName:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Keep legacy custom-resource-manager naming for update-safe ServiceToken stability."
+  DocsBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Optional existing S3 bucket name for knowledge base documents. Leave empty to create a new bucket."
+  InclusionPrefix:
+    Type: "String"
+    Default: "documents/"
+    Description: "S3 prefix to include in Knowledge Base and trigger automatic sync."
+  TempAssetsPrefix:
+    Type: "String"
+    Default: "temp-assets/"
+    Description: "S3 prefix for temporary asset uploads."
+  ConfigPrefix:
+    Type: "String"
+    Default: "config/"
+    Description: "S3 prefix for metadata configuration files and prompt templates."
+  FlowAttachmentBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Optional Flow payload bucket name that stores workflow attachment objects for AI consumption."
+  FlowAttachmentPrefix:
+    Type: "String"
+    Default: ""
+    Description: "Optional Flow payload prefix used to resolve attachment uris inside the Flow payload bucket."
+  FrontendModelId:
+    Type: "String"
+    Default: "amazon.nova-lite-v1:0"
+    Description: "Bedrock model for frontend endpoints."
+  ModelId:
+    Type: "String"
+    Default: "amazon.nova-lite-v1:0"
+    Description: "Bedrock model for admin endpoints."
+  AgentModelId:
+    Type: "String"
+    Default: "global.amazon.nova-2-lite-v1:0"
+    Description: "Bedrock model for agent workflow paths."
+  AgentReasoningEffortLevel:
+    Type: "String"
+    Default: ""
+    Description: "Optional reasoning level for chatbot agent mode."
+  AgentTools:
+    Type: "String"
+    Default: ""
+    Description: "Optional comma-separated tools enabled for chatbot agent mode."
+  AgentToolInvocationPolicy:
+    Type: "String"
+    Default: "auto"
+    Description: "Tool invocation policy for chatbot agent mode."
+  WorkMailOrganizationId:
+    Type: "String"
+    Default: ""
+    Description: "Amazon WorkMail organization ID allowed to invoke inbound email intake."
+  EmailIntakeSesBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Optional SES raw-email S3 bucket name."
+  EmailIntakeSesPrefix:
+    Type: "String"
+    Default: ""
+    Description: "Optional SES raw-email S3 prefix."
+  EmailIntakeAccountId:
+    Type: "String"
+    Default: ""
+    Description: "Flow accountId to place on normalized inbound email events."
+  EmailIntakeSiteId:
+    Type: "String"
+    Default: ""
+    Description: "Flow siteId to place on normalized inbound email events."
+  EmailIntakeFormId:
+    Type: "String"
+    Default: "email-intake"
+    Description: "Flow formId to place on normalized inbound email events."
+  EmailIntakeStatus:
+    Type: "String"
+    Default: "received"
+    Description: "Submission-like status to place on normalized inbound email events."
+  EmailIntakeActionKey:
+    Type: "String"
+    Default: "email-intake"
+    Description: "Action key to place on normalized inbound email events."
+  EmailIntakeEventSource:
+    Type: "String"
+    Default: "wpsuite.ai-kit"
+    Description: "EventBridge source for normalized inbound email events."
+  EmailIntakeOutputDetailType:
+    Type: "String"
+    Default: "submission.created"
+    Description: "EventBridge detail-type emitted after AI extraction."
+  InquiryFieldNames:
+    Type: "String"
+    Default: "email,fullName,subject,message,requestSummary,requestedAction,intent,language,company,phone,sourceSystem,sourceChannel,messageId,organizationId,recipients,attachments"
+    Description: "Comma-separated list of canonical inquiry field names."
+  KnowledgeBaseId:
+    Type: "String"
+    Default: ""
+    Description: "Existing Bedrock Knowledge Base ID. Leave empty to create a new one."
+  BedrockGuardrailId:
+    Type: "String"
+    Default: ""
+    Description: "AWS Bedrock Guardrail ID."
+  BedrockGuardrailVersion:
+    Type: "String"
+    Default: "DRAFT"
+    Description: "AWS Bedrock Guardrail version."
+  RecaptchaSecretKey:
+    Type: "String"
+    Default: ""
+    Description: "Google reCAPTCHA secret."
+  RecaptchaProjectId:
+    Type: "String"
+    Default: ""
+    Description: "Google Cloud Project ID for reCAPTCHA Enterprise."
+  RecaptchaSiteKey:
+    Type: "String"
+    Default: ""
+    Description: "reCAPTCHA site key."
+  ApiCustomDomainName:
+    Type: "String"
+    Default: ""
+    Description: "Custom domain name for API."
+  AcmCertificateArn:
+    Type: "String"
+    Default: ""
+    Description: "ACM certificate ARN for custom domain."
+  Route53HostedZoneId:
+    Type: "String"
+    Default: ""
+    Description: "Route53 hosted zone ID."
+  AdminCognitoUserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito User Pool ID for admin COGNITO auth mode."
+  FrontendCognitoUserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito User Pool ID for frontend COGNITO auth mode."
+  ProductionLogLevel:
+    Type: "String"
+    Default: "INFO"
+    Description: "Production log level."
+  EnableRerank:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable semantic reranking."
+  StrictMetadataFiltering:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable strict metadata filtering."
+  StrictKBGroundingForChat:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Require chat answers to be grounded in KB snippets."
+  EnableAgentModeForChatbot:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Use the agent model path for chatbot requests."
+  CreateS3Trigger:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable automatic knowledge base sync on S3 document changes."
+  GuardrailsEnabled:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable or disable content guardrails."
+  EnableSummarizerBackend:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable frontend API endpoint for text summarization."
+  EnableChatbotBackend:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable frontend API endpoint for chatbot functionality."
+  EnableLanguageAIBackend:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable frontend writing assistant endpoints."
+  EnableRecaptcha:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable Google reCAPTCHA protection for frontend APIs."
+  EnableRoute53:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable automatic Route53 DNS configuration for custom domain."
+  EnableAlerts:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable SNS topic creation for critical alerts."
+  EnableWAF:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable AWS WAF protection for API endpoints."
+  FrontendApiAuthMode:
+    Type: "String"
+    Default: "NONE"
+    AllowedValues:
+      - "NONE"
+      - "IAM"
+      - "COGNITO"
+    Description: "Authentication mode for frontend APIs."
+  AdminApiAuthMode:
+    Type: "String"
+    Default: "IAM"
+    AllowedValues:
+      - "NONE"
+      - "IAM"
+      - "COGNITO"
+    Description: "Authentication mode for admin APIs."
+  RecaptchaMode:
+    Type: "String"
+    Default: "enterprise"
+    AllowedValues:
+      - "enterprise"
+      - "classic"
+    Description: "Verification mode used when reCAPTCHA is enabled."
+  AdminCognitoAuthScopes:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "Optional OAuth scopes for admin Cognito authorization."
+  FrontendCognitoAuthScopes:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "Optional OAuth scopes for frontend Cognito authorization."
+  PublicAllowedIPs:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "CIDR ranges allowed for public endpoints."
+  AdminAllowedIPs:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "CIDR ranges allowed for admin endpoints."
+  BlockedIPs:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "CIDR ranges to block for all endpoints."
+  MaxTokens:
+    Type: "Number"
+    Default: 300
+    Description: "Maximum number of tokens generated by the model."
+  OverlapPercentage:
+    Type: "Number"
+    Default: 20
+    Description: "Chunk overlap percentage for knowledge base ingestion."
+  SessionTTLDays:
+    Type: "Number"
+    Default: 1
+    Description: "Days to retain chat sessions and messages."
+  RecaptchaChatTtlSeconds:
+    Type: "Number"
+    Default: 120
+    Description: "reCAPTCHA verification cache TTL for chat sessions."
+  RecaptchaScoreThreshold:
+    Type: "Number"
+    Default: 0.5
+    Description: "Minimum reCAPTCHA score threshold."
+  LambdaMemorySize:
+    Type: "Number"
+    Default: 2048
+    Description: "Lambda function memory size in MB."
+  LambdaTimeout:
+    Type: "Number"
+    Default: 30
+    Description: "Lambda function timeout in seconds."
+  AiHandlerTimeout:
+    Type: "Number"
+    Default: 30
+    Description: "Timeout for the ai-handler Lambda."
+  AiAgentDispatcherTimeout:
+    Type: "Number"
+    Default: 30
+    Description: "Timeout for the ai-agent-dispatcher Lambda."
+  FrontendApiBurstLimit:
+    Type: "Number"
+    Default: 1000
+    Description: "API Gateway burst limit for frontend endpoints."
+  FrontendApiRateLimit:
+    Type: "Number"
+    Default: 500
+    Description: "API Gateway rate limit for frontend endpoints."
+  AdminApiBurstLimit:
+    Type: "Number"
+    Default: 0
+    Description: "API Gateway burst limit for admin endpoints."
+  AdminApiRateLimit:
+    Type: "Number"
+    Default: 0
+    Description: "API Gateway rate limit for admin endpoints."
+  ApiSchemaVersion:
+    Type: "Number"
+    Default: 3
+    Description: "API schema version number."
+  LogRetentionDays:
+    Type: "Number"
+    Default: 14
+    Description: "CloudWatch Logs retention in days."
+Conditions:
+  UseCustomDomain:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "ApiCustomDomainName"
+          - ""
+  UseRoute53:
+    Fn::And:
+      -
+        Condition: "UseCustomDomain"
+      -
+        Fn::Equals:
+          -
+            Ref: "EnableRoute53"
+          - "true"
+  UseProvidedHostedZoneId:
+    Fn::And:
+      -
+        Condition: "UseRoute53"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "Route53HostedZoneId"
+              - ""
+  UseProvidedDocsBucket:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "DocsBucketName"
+          - ""
+  CreateNewDocsBucket:
+    Fn::Equals:
+      -
+        Ref: "DocsBucketName"
+      - ""
+  CreateNewKnowledgeBase:
+    Fn::Equals:
+      -
+        Ref: "KnowledgeBaseId"
+      - ""
+  UseProvidedKnowledgeBase:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "KnowledgeBaseId"
+          - ""
+  HasWorkMailOrganizationId:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "WorkMailOrganizationId"
+          - ""
+  HasEmailIntakeSesBucketName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "EmailIntakeSesBucketName"
+          - ""
+  HasEmailIntakeSesPrefix:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "EmailIntakeSesPrefix"
+          - ""
+  HasEmailIntakeSesAccessConfig:
+    Fn::And:
+      -
+        Condition: "HasEmailIntakeSesBucketName"
+      -
+        Condition: "HasEmailIntakeSesPrefix"
+  HasFlowAttachmentBucketName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "FlowAttachmentBucketName"
+          - ""
+  HasFlowAttachmentPrefix:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "FlowAttachmentPrefix"
+          - ""
+  HasFlowAttachmentAccessConfig:
+    Fn::And:
+      -
+        Condition: "HasFlowAttachmentBucketName"
+      -
+        Condition: "HasFlowAttachmentPrefix"
+  S3TriggerEnabled:
+    Fn::Equals:
+      -
+        Ref: "CreateS3Trigger"
+      - "true"
+  EnableGuardrails:
+    Fn::Equals:
+      -
+        Ref: "GuardrailsEnabled"
+      - "true"
+  UseAdminCognito:
+    Fn::Equals:
+      -
+        Ref: "AdminApiAuthMode"
+      - "COGNITO"
+  HasAdminCognitoScopes:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Join:
+              - ""
+              -
+                Ref: "AdminCognitoAuthScopes"
+          - ""
+  UseFrontendCognito:
+    Fn::Equals:
+      -
+        Ref: "FrontendApiAuthMode"
+      - "COGNITO"
+  HasFrontendCognitoScopes:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Join:
+              - ""
+              -
+                Ref: "FrontendCognitoAuthScopes"
+          - ""
+  EnableRecaptchaProtection:
+    Fn::Equals:
+      -
+        Ref: "EnableRecaptcha"
+      - "true"
+  IsProduction:
+    Fn::Equals:
+      -
+        Ref: "Environment"
+      - "prod"
+  UseLegacyCustomResourceManagerNaming:
+    Fn::Equals:
+      -
+        Ref: "UseLegacyCustomResourceManagerName"
+      - "true"
+  AlertsEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableAlerts"
+      - "true"
+  WAFEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableWAF"
+      - "true"
+  HasPublicAllowedIPs:
+    Fn::And:
+      -
+        Condition: "WAFEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Join:
+                  - ""
+                  -
+                    Ref: "PublicAllowedIPs"
+              - ""
+  HasAdminAllowedIPs:
+    Fn::And:
+      -
+        Condition: "WAFEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Join:
+                  - ""
+                  -
+                    Ref: "AdminAllowedIPs"
+              - ""
+  HasBlockedIPs:
+    Fn::And:
+      -
+        Condition: "WAFEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Join:
+                  - ""
+                  -
+                    Ref: "BlockedIPs"
+              - ""
+  HasFrontendThrottling:
+    Fn::Not:
+      -
+        Fn::And:
+          -
+            Fn::Equals:
+              -
+                Ref: "FrontendApiBurstLimit"
+              - "0"
+          -
+            Fn::Equals:
+              -
+                Ref: "FrontendApiRateLimit"
+              - "0"
+  HasAdminThrottling:
+    Fn::Not:
+      -
+        Fn::And:
+          -
+            Fn::Equals:
+              -
+                Ref: "AdminApiBurstLimit"
+              - "0"
+          -
+            Fn::Equals:
+              -
+                Ref: "AdminApiRateLimit"
+              - "0"
+  S3TriggerEnabledWithNewBucket:
+    Fn::And:
+      -
+        Condition: "S3TriggerEnabled"
+      -
+        Condition: "CreateNewDocsBucket"
+  S3TriggerEnabledWithProvidedBucket:
+    Fn::And:
+      -
+        Condition: "S3TriggerEnabled"
+      -
+        Condition: "UseProvidedDocsBucket"
+  HasSummarizerBackendEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableSummarizerBackend"
+      - "true"
+  HasChatbotBackendEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableChatbotBackend"
+      - "true"
+  HasLanguageAIBackendEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableLanguageAIBackend"
+      - "true"
+  HasAnyFrontend:
+    Fn::Or:
+      -
+        Condition: "HasSummarizerBackendEnabled"
+      -
+        Condition: "HasChatbotBackendEnabled"
+      -
+        Condition: "HasLanguageAIBackendEnabled"
+Resources:
+  AiHandlerFunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-ai-handler"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  RestApiLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/apigateway/${AppName}-${Environment}-rest-api"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  RestApiExecutionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "API-Gateway-Execution-Logs_${RestApi}/prod"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  RecaptchaKmsKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      Description:
+        Fn::Sub: "KMS key for encrypting reCAPTCHA secrets in ${AppName}"
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              AWS:
+                Fn::Sub: "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action:
+              - "kms:CancelKeyDeletion"
+              - "kms:CreateAlias"
+              - "kms:CreateGrant"
+              - "kms:Decrypt"
+              - "kms:DeleteAlias"
+              - "kms:DescribeKey"
+              - "kms:DisableKey"
+              - "kms:DisableKeyRotation"
+              - "kms:EnableKey"
+              - "kms:EnableKeyRotation"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+              - "kms:GenerateDataKeyPair"
+              - "kms:GenerateDataKeyPairWithoutPlaintext"
+              - "kms:GenerateDataKeyWithoutPlaintext"
+              - "kms:GetKeyPolicy"
+              - "kms:GetKeyRotationStatus"
+              - "kms:GetPublicKey"
+              - "kms:ListGrants"
+              - "kms:ListResourceTags"
+              - "kms:PutKeyPolicy"
+              - "kms:ReEncryptFrom"
+              - "kms:ReEncryptTo"
+              - "kms:RetireGrant"
+              - "kms:RevokeGrant"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:Sign"
+              - "kms:TagResource"
+              - "kms:UntagResource"
+              - "kms:UpdateAlias"
+              - "kms:UpdateKeyDescription"
+              - "kms:Verify"
+            Resource: "*"
+    Condition: "EnableRecaptchaProtection"
+  RecaptchaKmsKeyAlias:
+    Type: "AWS::KMS::Alias"
+    Properties:
+      AliasName:
+        Fn::Sub: "alias/${AppName}-${Environment}-recaptcha-key"
+      TargetKeyId:
+        Ref: "RecaptchaKmsKey"
+    Condition: "EnableRecaptchaProtection"
+  ApiGatewayCloudWatchLogsRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "apigateway.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        -
+          Fn::Sub: "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+  ApiGatewayAccountConfig:
+    Type: "Custom::ApiGatewayAccount"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - "ApiGatewayCloudWatchLogsRole"
+          - "Arn"
+  RestApi:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-rest-api"
+      Description:
+        Fn::Sub: "${AppName} REST API"
+      EndpointConfiguration:
+        Types:
+          - "REGIONAL"
+    DependsOn:
+      - "ApiGatewayAccountConfig"
+  FrontendCognitoAuth:
+    Type: "Custom::ApiAuthorizer"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-frontend-cognito-auth"
+      Type: "COGNITO_USER_POOLS"
+      RestApiId:
+        Ref: "RestApi"
+      IdentitySource: "method.request.header.Authorization"
+      ProviderARNs:
+        -
+          Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${FrontendCognitoUserPoolId}"
+      AuthorizerResultTtlInSeconds: 300
+    Condition: "UseFrontendCognito"
+  AdminCognitoAuth:
+    Type: "Custom::ApiAuthorizer"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-admin-cognito-auth"
+      Type: "COGNITO_USER_POOLS"
+      RestApiId:
+        Ref: "RestApi"
+      IdentitySource: "method.request.header.Authorization"
+      ProviderARNs:
+        -
+          Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${AdminCognitoUserPoolId}"
+      AuthorizerResultTtlInSeconds: 300
+    Condition: "UseAdminCognito"
+  ApiAuthorizerAttachment:
+    Type: "Custom::ApiAuthorizerAttachment"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      RestApiId:
+        Ref: "RestApi"
+      AdminAuthMode:
+        Ref: "AdminApiAuthMode"
+      AdminAuthorizerId:
+        Fn::If:
+          - "UseAdminCognito"
+          -
+            Ref: "AdminCognitoAuth"
+          - ""
+      AdminAuthorizationScopes:
+        Fn::If:
+          - "HasAdminCognitoScopes"
+          -
+            Fn::Join:
+              - ","
+              -
+                Ref: "AdminCognitoAuthScopes"
+          - ""
+      FrontendAuthMode:
+        Ref: "FrontendApiAuthMode"
+      FrontendAuthorizerId:
+        Fn::If:
+          - "UseFrontendCognito"
+          -
+            Ref: "FrontendCognitoAuth"
+          - ""
+      FrontendAuthorizationScopes:
+        Fn::If:
+          - "HasFrontendCognitoScopes"
+          -
+            Fn::Join:
+              - ","
+              -
+                Ref: "FrontendCognitoAuthScopes"
+          - ""
+      FrontendEndpoints:
+        -
+          Fn::If:
+            - "HasSummarizerBackendEnabled"
+            -
+              Path: "/frontend/summarize"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasChatbotBackendEnabled"
+            -
+              Path: "/frontend/kb/metadata-options"
+              Method: "GET"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasChatbotBackendEnabled"
+            -
+              Path: "/frontend/prompt"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasChatbotBackendEnabled"
+            -
+              Path: "/frontend/generate-upload-url"
+              Method: "GET"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasLanguageAIBackendEnabled"
+            -
+              Path: "/frontend/write"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasLanguageAIBackendEnabled"
+            -
+              Path: "/frontend/rewrite"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasLanguageAIBackendEnabled"
+            -
+              Path: "/frontend/translate"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasLanguageAIBackendEnabled"
+            -
+              Path: "/frontend/proofread"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasLanguageAIBackendEnabled"
+            -
+              Path: "/frontend/detect-language"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+      AdminEndpoints:
+        -
+          Path: "/admin/knowledge-bases"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/upload"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/delete"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/validate"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/status"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/metadata-config"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/metadata-config"
+          Method: "PUT"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/metadata-options"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/prompt-templates"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/prompt-templates"
+          Method: "PUT"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/summarize"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/prompt"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/generate-upload-url"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/write"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/rewrite"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/translate"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/proofread"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/detect-language"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+  RestApiDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    Properties:
+      RestApiId:
+        Ref: "RestApi"
+      Description:
+        Fn::Sub: "Deployment ${DeploymentVersion} - API Schema v${ApiSchemaVersion}"
+    DependsOn:
+      - "ApiAuthorizerAttachment"
+  ApiStage:
+    Type: "AWS::ApiGateway::Stage"
+    Properties:
+      RestApiId:
+        Ref: "RestApi"
+      StageName: "prod"
+      DeploymentId:
+        Ref: "RestApiDeployment"
+      TracingEnabled: false
+      AccessLogSetting:
+        DestinationArn:
+          Fn::GetAtt:
+            - "RestApiLogGroup"
+            - "Arn"
+        Format: "$context.requestId $context.extendedRequestId $context.identity.sourceIp $context.requestTime $context.httpMethod $context.resourcePath $context.status $context.protocol $context.responseLatency $context.integrationLatency $context.error.message $context.error.messageString $context.integrationErrorMessage"
+      MethodSettings:
+        -
+          ResourcePath: "/admin/knowledge-bases"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/upload"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/delete"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/validate"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/status"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/metadata-config"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/metadata-config"
+          HttpMethod: "PUT"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/metadata-options"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/prompt-templates"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/prompt-templates"
+          HttpMethod: "PUT"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/summarize"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/prompt"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/generate-upload-url"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/write"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/rewrite"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/translate"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/proofread"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/detect-language"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel: "INFO"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+    DependsOn:
+      - "RestApiExecutionLogGroup"
+  ApiMethodSettings:
+    Type: "Custom::ApiMethodSettings"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      RestApiId:
+        Ref: "RestApi"
+      StageName: "prod"
+      ThrottlingBurstLimit:
+        Fn::If:
+          - "HasFrontendThrottling"
+          -
+            Ref: "FrontendApiBurstLimit"
+          -
+            Ref: "AWS::NoValue"
+      ThrottlingRateLimit:
+        Fn::If:
+          - "HasFrontendThrottling"
+          -
+            Ref: "FrontendApiRateLimit"
+          -
+            Ref: "AWS::NoValue"
+      LoggingLevel: "INFO"
+      DataTraceEnabled: false
+      MetricsEnabled: true
+      TracingEnabled: false
+      Endpoints:
+        -
+          Fn::If:
+            - "HasAnyFrontend"
+            -
+              Fn::If:
+                - "HasSummarizerBackendEnabled"
+                -
+                  Path: "/frontend/summarize"
+                  Method: "POST"
+                  IntegrationUri:
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+                -
+                  Ref: "AWS::NoValue"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasAnyFrontend"
+            -
+              Fn::If:
+                - "HasChatbotBackendEnabled"
+                -
+                  Path: "/frontend/kb/metadata-options"
+                  Method: "GET"
+                  IntegrationUri:
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+                -
+                  Ref: "AWS::NoValue"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasAnyFrontend"
+            -
+              Fn::If:
+                - "HasChatbotBackendEnabled"
+                -
+                  Path: "/frontend/prompt"
+                  Method: "POST"
+                  IntegrationUri:
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+                -
+                  Ref: "AWS::NoValue"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasAnyFrontend"
+            -
+              Fn::If:
+                - "HasChatbotBackendEnabled"
+                -
+                  Path: "/frontend/generate-upload-url"
+                  Method: "GET"
+                  IntegrationUri:
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+                -
+                  Ref: "AWS::NoValue"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasAnyFrontend"
+            -
+              Fn::If:
+                - "HasLanguageAIBackendEnabled"
+                -
+                  Path: "/frontend/write"
+                  Method: "POST"
+                  IntegrationUri:
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+                -
+                  Ref: "AWS::NoValue"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasAnyFrontend"
+            -
+              Fn::If:
+                - "HasLanguageAIBackendEnabled"
+                -
+                  Path: "/frontend/rewrite"
+                  Method: "POST"
+                  IntegrationUri:
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+                -
+                  Ref: "AWS::NoValue"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasAnyFrontend"
+            -
+              Fn::If:
+                - "HasLanguageAIBackendEnabled"
+                -
+                  Path: "/frontend/translate"
+                  Method: "POST"
+                  IntegrationUri:
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+                -
+                  Ref: "AWS::NoValue"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasAnyFrontend"
+            -
+              Fn::If:
+                - "HasLanguageAIBackendEnabled"
+                -
+                  Path: "/frontend/proofread"
+                  Method: "POST"
+                  IntegrationUri:
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+                -
+                  Ref: "AWS::NoValue"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasAnyFrontend"
+            -
+              Fn::If:
+                - "HasLanguageAIBackendEnabled"
+                -
+                  Path: "/frontend/detect-language"
+                  Method: "POST"
+                  IntegrationUri:
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+                -
+                  Ref: "AWS::NoValue"
+            -
+              Ref: "AWS::NoValue"
+    DependsOn:
+      - "ApiStage"
+    Condition: "HasAnyFrontend"
+  AiHandlerInvokePermissionFrontend:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        Ref: "AiHandlerFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*/*/*"
+    Condition: "HasChatbotBackendEnabled"
+  ApiDomainName:
+    Type: "AWS::ApiGateway::DomainName"
+    Properties:
+      DomainName:
+        Ref: "ApiCustomDomainName"
+      RegionalCertificateArn:
+        Ref: "AcmCertificateArn"
+      EndpointConfiguration:
+        Types:
+          - "REGIONAL"
+      SecurityPolicy: "TLS_1_2"
+    Condition: "UseCustomDomain"
+  ApiBasePathMapping:
+    Type: "Custom::ApiBasePathMapping"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      DomainName:
+        Ref: "ApiDomainName"
+      RestApiId:
+        Ref: "RestApi"
+      Stage: "prod"
+      BasePath: ""
+    DependsOn:
+      - "ApiStage"
+    Condition: "UseCustomDomain"
+  PublicAllowedIPSet:
+    Type: "Custom::WafIPSet"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-public-allowed-ips"
+      Scope: "REGIONAL"
+      IPAddressVersion: "IPV4"
+      Addresses:
+        Ref: "PublicAllowedIPs"
+    Condition: "HasPublicAllowedIPs"
+  AdminAllowedIPSet:
+    Type: "Custom::WafIPSet"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-admin-allowed-ips"
+      Scope: "REGIONAL"
+      IPAddressVersion: "IPV4"
+      Addresses:
+        Ref: "AdminAllowedIPs"
+    Condition: "HasAdminAllowedIPs"
+  BlockedIPSet:
+    Type: "Custom::WafIPSet"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-blocked-ips"
+      Scope: "REGIONAL"
+      IPAddressVersion: "IPV4"
+      Addresses:
+        Ref: "BlockedIPs"
+    Condition: "HasBlockedIPs"
+  WebACL:
+    Type: "Custom::WafWebACL"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-web-acl"
+      Description: "WAF protection for REST API endpoints with endpoint-based IP filtering"
+      Scope: "REGIONAL"
+      DefaultAction:
+        Allow:
+
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName:
+          Fn::Sub: "${AppName}-${Environment}-web-acl"
+      Rules:
+        -
+          Fn::If:
+            - "HasBlockedIPs"
+            -
+              Name: "BlockMaliciousIPs"
+              Priority: 100
+              Statement:
+                IPSetReferenceStatement:
+                  ARN:
+                    Fn::GetAtt:
+                      - "BlockedIPSet"
+                      - "IPSetArn"
+              Action:
+                Block:
+
+              VisibilityConfig:
+                SampledRequestsEnabled: true
+                CloudWatchMetricsEnabled: true
+                MetricName:
+                  Fn::Sub: "${AppName}-${Environment}-blocked-ips"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasAdminAllowedIPs"
+            -
+              Name: "DenyAdminEndpointsIfNotInAllowlist"
+              Priority: 200
+              Statement:
+                AndStatement:
+                  Statements:
+                    -
+                      NotStatement:
+                        Statement:
+                          IPSetReferenceStatement:
+                            ARN:
+                              Fn::GetAtt:
+                                - "AdminAllowedIPSet"
+                                - "IPSetArn"
+                    -
+                      ByteMatchStatement:
+                        SearchString: "/admin"
+                        FieldToMatch:
+                          UriPath:
+
+                        TextTransformations:
+                          -
+                            Priority: 0
+                            Type: "NONE"
+                        PositionalConstraint: "STARTS_WITH"
+              Action:
+                Block:
+
+              VisibilityConfig:
+                SampledRequestsEnabled: true
+                CloudWatchMetricsEnabled: true
+                MetricName:
+                  Fn::Sub: "${AppName}-${Environment}-admin-blocked"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "HasPublicAllowedIPs"
+            -
+              Name: "DenyPublicEndpointsIfNotInAllowlist"
+              Priority: 300
+              Statement:
+                AndStatement:
+                  Statements:
+                    -
+                      NotStatement:
+                        Statement:
+                          IPSetReferenceStatement:
+                            ARN:
+                              Fn::GetAtt:
+                                - "PublicAllowedIPSet"
+                                - "IPSetArn"
+                    -
+                      ByteMatchStatement:
+                        SearchString: "/frontend"
+                        FieldToMatch:
+                          UriPath:
+
+                        TextTransformations:
+                          -
+                            Priority: 0
+                            Type: "NONE"
+                        PositionalConstraint: "STARTS_WITH"
+              Action:
+                Block:
+
+              VisibilityConfig:
+                SampledRequestsEnabled: true
+                CloudWatchMetricsEnabled: true
+                MetricName:
+                  Fn::Sub: "${AppName}-${Environment}-public-blocked"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Name: "AWSManagedRulesCommonRuleSet"
+          Priority: 400
+          OverrideAction:
+            None:
+
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: "AWS"
+              Name: "AWSManagedRulesCommonRuleSet"
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-${Environment}-common-rules"
+        -
+          Name: "AWSManagedRulesKnownBadInputsRuleSet"
+          Priority: 500
+          OverrideAction:
+            None:
+
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: "AWS"
+              Name: "AWSManagedRulesKnownBadInputsRuleSet"
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-${Environment}-bad-inputs"
+        -
+          Name: "AWSManagedRulesAmazonIpReputationList"
+          Priority: 600
+          OverrideAction:
+            None:
+
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: "AWS"
+              Name: "AWSManagedRulesAmazonIpReputationList"
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-${Environment}-ip-reputation"
+        -
+          Name: "RateLimitFrontendEndpoints"
+          Priority: 700
+          Statement:
+            RateBasedStatement:
+              Limit: 2000
+              AggregateKeyType: "IP"
+              ScopeDownStatement:
+                ByteMatchStatement:
+                  SearchString: "/frontend"
+                  FieldToMatch:
+                    UriPath:
+
+                  TextTransformations:
+                    -
+                      Priority: 0
+                      Type: "NONE"
+                  PositionalConstraint: "STARTS_WITH"
+          Action:
+            Block:
+
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-${Environment}-frontend-rate-limit"
+        -
+          Name: "RateLimitAdminEndpoints"
+          Priority: 800
+          Statement:
+            RateBasedStatement:
+              Limit: 500
+              AggregateKeyType: "IP"
+              ScopeDownStatement:
+                ByteMatchStatement:
+                  SearchString: "/admin"
+                  FieldToMatch:
+                    UriPath:
+
+                  TextTransformations:
+                    -
+                      Priority: 0
+                      Type: "NONE"
+                  PositionalConstraint: "STARTS_WITH"
+          Action:
+            Block:
+
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-${Environment}-admin-rate-limit"
+    Condition: "WAFEnabled"
+  WebACLAssociation:
+    Type: "Custom::WafAssociation"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      ResourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/${RestApi}/stages/prod"
+      WebACLArn:
+        Fn::GetAtt:
+          - "WebACL"
+          - "WebACLArn"
+    DependsOn:
+      - "ApiStage"
+    Condition: "WAFEnabled"
+  DocsBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName:
+        Fn::Sub: "${AppName}-${Environment}-docs-${AWS::AccountId}-${AWS::Region}"
+      VersioningConfiguration:
+        Status: "Enabled"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          -
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          -
+            AllowedOrigins:
+              - "*"
+            AllowedMethods:
+              - "PUT"
+              - "POST"
+            AllowedHeaders:
+              - "*"
+            MaxAge: 3000
+      LifecycleConfiguration:
+        Rules:
+          -
+            Id: "DeleteTempAssets"
+            Status: "Enabled"
+            Prefix:
+              Ref: "TempAssetsPrefix"
+            ExpirationInDays: 1
+            NoncurrentVersionExpirationInDays: 1
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+    Condition: "CreateNewDocsBucket"
+  DocsBucketCleaner:
+    Type: "Custom::BucketCleaner"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Ref: "DocsBucket"
+    Condition: "CreateNewDocsBucket"
+  KnowledgeBasePolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      ManagedPolicyName:
+        Fn::Sub: "${AppName}-${Environment}-knowledge-base-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:GetObject"
+              - "s3:ListBucket"
+            Resource:
+              -
+                Fn::If:
+                  - "UseProvidedDocsBucket"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}"
+                  -
+                    Fn::GetAtt:
+                      - "DocsBucket"
+                      - "Arn"
+              -
+                Fn::If:
+                  - "UseProvidedDocsBucket"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}/*"
+                  -
+                    Fn::Sub: "${DocsBucket.Arn}/*"
+          -
+            Effect: "Allow"
+            Action:
+              - "s3vectors:GetVectorBucket"
+              - "s3vectors:GetIndex"
+              - "s3vectors:QueryVectors"
+              - "s3vectors:PutVectors"
+              - "s3vectors:GetVectors"
+              - "s3vectors:DeleteVectors"
+              - "s3vectors:ListVectors"
+              - "bedrock:GetFoundationModel"
+              - "bedrock:GetInferenceProfile"
+              - "bedrock:ListFoundationModels"
+              - "bedrock:ListInferenceProfiles"
+              - "bedrock:InvokeModel"
+              - "bedrock:Rerank"
+              - "aws-marketplace:ViewSubscriptions"
+            Resource: "*"
+  KnowledgeBaseRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName:
+        Fn::Sub: "${AppName}-${Environment}-knowledge-base-service-role"
+      Path: "/service-role/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "bedrock.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        -
+          Ref: "KnowledgeBasePolicy"
+  VectorBucket:
+    Type: "Custom::S3VectorsBucket"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Fn::Sub: "${AppName}-${Environment}-vectors"
+      IndexName: "bedrock-knowledge-base-default-index"
+  KnowledgeBase:
+    Type: "Custom::BedrockKnowledgeBase"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      Name:
+        Fn::Sub: "${AppName}-${Environment}-knowledge-base"
+      Description: "RAG knowledge base for WP Suite AI Kit"
+      RoleArn:
+        Fn::GetAtt:
+          - "KnowledgeBaseRole"
+          - "Arn"
+      KnowledgeBaseConfiguration:
+        type: "VECTOR"
+        vectorKnowledgeBaseConfiguration:
+          embeddingModelArn:
+            Fn::Sub: "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v2:0"
+      StorageConfiguration:
+        type: "S3_VECTORS"
+        s3VectorsConfiguration:
+          vectorBucketArn:
+            Fn::GetAtt:
+              - "VectorBucket"
+              - "VectorBucketArn"
+          indexArn:
+            Fn::GetAtt:
+              - "VectorBucket"
+              - "IndexArn"
+    Condition: "CreateNewKnowledgeBase"
+  KnowledgeBaseDataSource:
+    Type: "Custom::BedrockDataSource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      KnowledgeBaseId:
+        Fn::GetAtt:
+          - "KnowledgeBase"
+          - "KnowledgeBaseId"
+      Name: "s3-documents"
+      Description: "S3 document source for knowledge base"
+      DataSourceConfiguration:
+        type: "S3"
+        s3Configuration:
+          bucketArn:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}"
+              -
+                Fn::GetAtt:
+                  - "DocsBucket"
+                  - "Arn"
+          inclusionPrefixes:
+            -
+              Ref: "InclusionPrefix"
+      VectorIngestionConfiguration:
+        chunkingConfiguration:
+          chunkingStrategy: "FIXED_SIZE"
+          fixedSizeChunkingConfiguration:
+            maxTokens:
+              Ref: "MaxTokens"
+            overlapPercentage:
+              Ref: "OverlapPercentage"
+    Condition: "CreateNewKnowledgeBase"
+  KnowledgeBaseBootstrap:
+    Type: "Custom::KbBootstrap"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      KnowledgeBaseId:
+        Fn::GetAtt:
+          - "KnowledgeBase"
+          - "KnowledgeBaseId"
+      DataSourceId:
+        Fn::GetAtt:
+          - "KnowledgeBaseDataSource"
+          - "DataSourceId"
+    Condition: "CreateNewKnowledgeBase"
+  QueryTemplateUpload:
+    Type: "Custom::S3Upload"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Fn::If:
+          - "UseProvidedDocsBucket"
+          -
+            Ref: "DocsBucketName"
+          -
+            Ref: "DocsBucket"
+      Key:
+        Fn::Sub: "${ConfigPrefix}query-template.txt"
+      SourcePath: "/opt/nodejs/templates/query-template.txt"
+      ContentType: "text/plain"
+  RerankTemplateUpload:
+    Type: "Custom::S3Upload"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Fn::If:
+          - "UseProvidedDocsBucket"
+          -
+            Ref: "DocsBucketName"
+          -
+            Ref: "DocsBucket"
+      Key:
+        Fn::Sub: "${ConfigPrefix}rerank-template.txt"
+      SourcePath: "/opt/nodejs/templates/rerank-template.txt"
+      ContentType: "text/plain"
+  SummaryTemplateUpload:
+    Type: "Custom::S3Upload"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Fn::If:
+          - "UseProvidedDocsBucket"
+          -
+            Ref: "DocsBucketName"
+          -
+            Ref: "DocsBucket"
+      Key:
+        Fn::Sub: "${ConfigPrefix}summary-template.txt"
+      SourcePath: "/opt/nodejs/templates/summary-template.txt"
+      ContentType: "text/plain"
+  AnswerTemplateUpload:
+    Type: "Custom::S3Upload"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Fn::If:
+          - "UseProvidedDocsBucket"
+          -
+            Ref: "DocsBucketName"
+          -
+            Ref: "DocsBucket"
+      Key:
+        Fn::Sub: "${ConfigPrefix}answer-template.txt"
+      SourcePath: "/opt/nodejs/templates/answer-template.txt"
+      ContentType: "text/plain"
+  AnswerTemplateAskWhenNoKbUpload:
+    Type: "Custom::S3Upload"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Fn::If:
+          - "UseProvidedDocsBucket"
+          -
+            Ref: "DocsBucketName"
+          -
+            Ref: "DocsBucket"
+      Key:
+        Fn::Sub: "${ConfigPrefix}answer-template-ask-when-no-kb.txt"
+      SourcePath: "/opt/nodejs/templates/answer-template-ask-when-no-kb.txt"
+      ContentType: "text/plain"
+  AnswerTemplateKbOnlyUpload:
+    Type: "Custom::S3Upload"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Fn::If:
+          - "UseProvidedDocsBucket"
+          -
+            Ref: "DocsBucketName"
+          -
+            Ref: "DocsBucket"
+      Key:
+        Fn::Sub: "${ConfigPrefix}answer-template-kb-only.txt"
+      SourcePath: "/opt/nodejs/templates/answer-template-kb-only.txt"
+      ContentType: "text/plain"
+  AnswerTemplateKbPreferredUpload:
+    Type: "Custom::S3Upload"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Fn::If:
+          - "UseProvidedDocsBucket"
+          -
+            Ref: "DocsBucketName"
+          -
+            Ref: "DocsBucket"
+      Key:
+        Fn::Sub: "${ConfigPrefix}answer-template-kb-preferred.txt"
+      SourcePath: "/opt/nodejs/templates/answer-template-kb-preferred.txt"
+      ContentType: "text/plain"
+  AnswerTemplateKbRagUpload:
+    Type: "Custom::S3Upload"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Fn::If:
+          - "UseProvidedDocsBucket"
+          -
+            Ref: "DocsBucketName"
+          -
+            Ref: "DocsBucket"
+      Key:
+        Fn::Sub: "${ConfigPrefix}answer-template-kb-rag.txt"
+      SourcePath: "/opt/nodejs/templates/answer-template-kb-rag.txt"
+      ContentType: "text/plain"
+  KBSyncStateTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-${Environment}-KbSyncState"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "KnowledgeBaseId"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "KnowledgeBaseId"
+          KeyType: "HASH"
+      TimeToLiveSpecification:
+        AttributeName: "TTL"
+        Enabled: true
+    Condition: "S3TriggerEnabled"
+  ChatSessionsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-${Environment}-ChatSessions"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "SessionId"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "SessionId"
+          KeyType: "HASH"
+      TimeToLiveSpecification:
+        AttributeName: "TTL"
+        Enabled: true
+  ChatMessagesTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-${Environment}-ChatMessages"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "SessionId"
+          AttributeType: "S"
+        -
+          AttributeName: "MessageId"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "SessionId"
+          KeyType: "HASH"
+        -
+          AttributeName: "MessageId"
+          KeyType: "RANGE"
+      TimeToLiveSpecification:
+        AttributeName: "TTL"
+        Enabled: true
+  CommonDependenciesLayer:
+    Type: "AWS::Lambda::LayerVersion"
+    Properties:
+      LayerName:
+        Fn::Sub: "${AppName}-${Environment}-common-dependencies"
+      Description:
+        Fn::Sub: "Shared dependencies for WP Suite AI Kit Lambda functions (v${DeploymentVersion})"
+      Content:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/layers/common-layer.zip"
+      CompatibleRuntimes:
+        - "nodejs24.x"
+      CompatibleArchitectures:
+        - "arm64"
+  RecaptchaSecretParameter:
+    Type: "Custom::SSMParameter"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      ParameterName:
+        Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+      ParameterDescription: "Google reCAPTCHA secret for frontend API protection"
+      ParameterType: "SecureString"
+      ParameterValue:
+        Ref: "RecaptchaSecretKey"
+      KmsKeyId:
+        Ref: "RecaptchaKmsKey"
+    Condition: "EnableRecaptchaProtection"
+  AiHandlerFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "AiHandlerFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:InvokeModel"
+                  - "bedrock:GetFoundationModel"
+                  - "bedrock:GetInferenceProfile"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:bedrock:*::foundation-model/*"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:Retrieve"
+                  - "bedrock:RetrieveAndGenerate"
+                  - "bedrock:GetIngestionJob"
+                  - "bedrock:ListIngestionJobs"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedKnowledgeBase"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:knowledge-base/${KnowledgeBaseId}"
+                    -
+                      Fn::GetAtt:
+                        - "KnowledgeBase"
+                        - "KnowledgeBaseArn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:ListKnowledgeBases"
+                  - "translate:TranslateText"
+                  - "comprehend:DetectDominantLanguage"
+                  - "aws-marketplace:ViewSubscriptions"
+                  - "aws-marketplace:Subscribe"
+                  - "cloudwatch:PutMetricData"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:ApplyGuardrail"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedDocsBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}"
+                    -
+                      Fn::GetAtt:
+                        - "DocsBucket"
+                        - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedDocsBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}/*"
+                    -
+                      Fn::Sub: "${DocsBucket.Arn}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:Query"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "ChatSessionsTable"
+                      - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "ChatMessagesTable"
+                      - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameters"
+                  - "ssm:PutParameter"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:Decrypt"
+                  - "kms:DescribeKey"
+                Resource: "*"
+  AiHandlerFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-${Environment}-ai-handler"
+      Description: "Preview consolidated API handler that routes all endpoints through a single Lambda"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/ai-handler.zip"
+      Handler: "dist/handler.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout:
+        Ref: "AiHandlerTimeout"
+      Role:
+        Fn::GetAtt:
+          - "AiHandlerFunctionRole"
+          - "Arn"
+      Layers:
+        -
+          Ref: "CommonDependenciesLayer"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_CHAT_TTL_SECONDS:
+            Ref: "RecaptchaChatTtlSeconds"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          CHAT_SESSIONS_TABLE:
+            Ref: "ChatSessionsTable"
+          CHAT_MESSAGES_TABLE:
+            Ref: "ChatMessagesTable"
+          SESSION_TTL_DAYS:
+            Ref: "SessionTTLDays"
+          MAX_CONTEXT_MESSAGES: "10"
+          MAX_TOKENS_BEFORE_SUMMARIZE: "10000"
+          CONFIG_PREFIX:
+            Ref: "ConfigPrefix"
+          ENABLE_RERANK:
+            Ref: "EnableRerank"
+          STRICT_METADATA_FILTERING:
+            Ref: "StrictMetadataFiltering"
+          STRICT_KB_GROUNDING_FOR_CHAT:
+            Ref: "StrictKBGroundingForChat"
+          ENABLE_CHATBOT_BACKEND:
+            Ref: "EnableChatbotBackend"
+          ENABLE_SUMMARIZER_BACKEND:
+            Ref: "EnableSummarizerBackend"
+          ENABLE_LANGUAGE_AI_BACKEND:
+            Ref: "EnableLanguageAIBackend"
+          ENABLE_AGENT_MODE_FOR_CHATBOT:
+            Ref: "EnableAgentModeForChatbot"
+          AGENT_REASONING_EFFORT_LEVEL:
+            Ref: "AgentReasoningEffortLevel"
+          AGENT_TOOLS:
+            Ref: "AgentTools"
+          AGENT_TOOL_INVOCATION_POLICY:
+            Ref: "AgentToolInvocationPolicy"
+          KNOWLEDGE_BASE_ID:
+            Fn::If:
+              - "UseProvidedKnowledgeBase"
+              -
+                Ref: "KnowledgeBaseId"
+              -
+                Fn::GetAtt:
+                  - "KnowledgeBase"
+                  - "KnowledgeBaseId"
+          KB_DOCUMENTS_PREFIX: "documents/"
+          DATA_SOURCE_ID:
+            Fn::If:
+              - "CreateNewKnowledgeBase"
+              -
+                Fn::GetAtt:
+                  - "KnowledgeBaseDataSource"
+                  - "DataSourceId"
+              - ""
+          KB_SYNC_FUNCTION_ARN:
+            Fn::If:
+              - "S3TriggerEnabled"
+              -
+                Fn::GetAtt:
+                  - "KnowledgeBaseSyncFunction"
+                  - "Arn"
+              - ""
+  AiAgentDispatcherLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-ai-agent-dispatcher"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  AiAgentDispatcherFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "AiAgentDispatcherFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:InvokeModel"
+                  - "bedrock:GetFoundationModel"
+                  - "bedrock:GetInferenceProfile"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:bedrock:*::foundation-model/*"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:Retrieve"
+                  - "bedrock:RetrieveAndGenerate"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedKnowledgeBase"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:knowledge-base/${KnowledgeBaseId}"
+                    -
+                      Fn::GetAtt:
+                        - "KnowledgeBase"
+                        - "KnowledgeBaseArn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "events:PutEvents"
+                  - "cloudwatch:PutMetricData"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameters"
+                  - "ssm:PutParameter"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/bedrock/models/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                Resource:
+                  -
+                    Fn::If:
+                      - "UseProvidedDocsBucket"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}/*"
+                      -
+                        Fn::Sub: "${DocsBucket.Arn}/*"
+                  -
+                    Fn::If:
+                      - "HasFlowAttachmentAccessConfig"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${FlowAttachmentBucketName}/${FlowAttachmentPrefix}*"
+                      -
+                        Ref: "AWS::NoValue"
+  AiAgentDispatcherFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-${Environment}-ai-agent-dispatcher"
+      Description: "Consumes ai.agent.requested events and emits ai.agent.completed / ai.agent.failed"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/ai-agent-dispatcher.zip"
+      Handler: "dist/handler.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout:
+        Ref: "AiAgentDispatcherTimeout"
+      Role:
+        Fn::GetAtt:
+          - "AiAgentDispatcherFunctionRole"
+          - "Arn"
+      Layers:
+        -
+          Ref: "CommonDependenciesLayer"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_CHAT_TTL_SECONDS:
+            Ref: "RecaptchaChatTtlSeconds"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          CONFIG_PREFIX:
+            Ref: "ConfigPrefix"
+          ENABLE_RERANK:
+            Ref: "EnableRerank"
+          STRICT_METADATA_FILTERING:
+            Ref: "StrictMetadataFiltering"
+          STRICT_KB_GROUNDING_FOR_CHAT:
+            Ref: "StrictKBGroundingForChat"
+          ENABLE_CHATBOT_BACKEND:
+            Ref: "EnableChatbotBackend"
+          ENABLE_SUMMARIZER_BACKEND:
+            Ref: "EnableSummarizerBackend"
+          ENABLE_LANGUAGE_AI_BACKEND:
+            Ref: "EnableLanguageAIBackend"
+          KNOWLEDGE_BASE_ID:
+            Fn::If:
+              - "UseProvidedKnowledgeBase"
+              -
+                Ref: "KnowledgeBaseId"
+              -
+                Fn::GetAtt:
+                  - "KnowledgeBase"
+                  - "KnowledgeBaseId"
+          INQUIRY_FIELD_NAMES:
+            Ref: "InquiryFieldNames"
+          FLOW_ATTACHMENT_BUCKET_NAME:
+            Ref: "FlowAttachmentBucketName"
+          FLOW_ATTACHMENT_PREFIX:
+            Ref: "FlowAttachmentPrefix"
+  AiAgentDispatcherEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      EventPattern:
+        source:
+          - "wpsuite.forms"
+        detail-type:
+          - "ai.agent.requested"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "AiAgentDispatcherFunction"
+              - "Arn"
+          Id: "AiAgentDispatcherFunction"
+  AiAgentDispatcherEventPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "AiAgentDispatcherFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "AiAgentDispatcherEventRule"
+          - "Arn"
+    DependsOn:
+      - "AiAgentDispatcherEventRule"
+  AiEmailIntakeDispatcherLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-ai-email-intake-dispatcher"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  AiEmailIntakeDispatcherFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "AiEmailIntakeDispatcherFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:InvokeModel"
+                  - "bedrock:GetFoundationModel"
+                  - "bedrock:GetInferenceProfile"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:bedrock:*::foundation-model/*"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "workmailmessageflow:GetRawMessageContent"
+                  - "events:PutEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                Resource:
+                  -
+                    Fn::If:
+                      - "HasEmailIntakeSesAccessConfig"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${EmailIntakeSesBucketName}/${EmailIntakeSesPrefix}*"
+                      -
+                        Ref: "AWS::NoValue"
+                  -
+                    Fn::If:
+                      - "HasFlowAttachmentAccessConfig"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${FlowAttachmentBucketName}/${FlowAttachmentPrefix}*"
+                      -
+                        Ref: "AWS::NoValue"
+  AiEmailIntakeDispatcherFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-${Environment}-ai-email-intake-dispatcher"
+      Description: "Consumes inbound WorkMail or SES email events and emits flow-compatible EventBridge events"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/ai-email-intake-dispatcher.zip"
+      Handler: "dist/handler.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout:
+        Ref: "LambdaTimeout"
+      Role:
+        Fn::GetAtt:
+          - "AiEmailIntakeDispatcherFunctionRole"
+          - "Arn"
+      Layers:
+        -
+          Ref: "CommonDependenciesLayer"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_CHAT_TTL_SECONDS:
+            Ref: "RecaptchaChatTtlSeconds"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          EVENT_BUS_NAME: "default"
+          INQUIRY_FIELD_NAMES:
+            Ref: "InquiryFieldNames"
+          EMAIL_INTAKE_ACCOUNT_ID:
+            Ref: "EmailIntakeAccountId"
+          EMAIL_INTAKE_SITE_ID:
+            Ref: "EmailIntakeSiteId"
+          EMAIL_INTAKE_FORM_ID:
+            Ref: "EmailIntakeFormId"
+          EMAIL_INTAKE_STATUS:
+            Ref: "EmailIntakeStatus"
+          EMAIL_INTAKE_ACTION_KEY:
+            Ref: "EmailIntakeActionKey"
+          EMAIL_INTAKE_EVENT_SOURCE:
+            Ref: "EmailIntakeEventSource"
+          EMAIL_INTAKE_OUTPUT_DETAIL_TYPE:
+            Ref: "EmailIntakeOutputDetailType"
+          EMAIL_INTAKE_SES_BUCKET_NAME:
+            Ref: "EmailIntakeSesBucketName"
+          EMAIL_INTAKE_SES_PREFIX:
+            Ref: "EmailIntakeSesPrefix"
+          FLOW_ATTACHMENT_BUCKET_NAME:
+            Ref: "FlowAttachmentBucketName"
+          FLOW_ATTACHMENT_PREFIX:
+            Ref: "FlowAttachmentPrefix"
+  AiEmailIntakeDispatcherInvokePermissionWorkMail:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        Ref: "AiEmailIntakeDispatcherFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "workmail.amazonaws.com"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:workmail:${AWS::Region}:${AWS::AccountId}:organization/${WorkMailOrganizationId}"
+    Condition: "HasWorkMailOrganizationId"
+  AiEmailIntakeDispatcherInvokePermissionS3:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        Ref: "AiEmailIntakeDispatcherFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "s3.amazonaws.com"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:s3:::${EmailIntakeSesBucketName}"
+    Condition: "HasEmailIntakeSesBucketName"
+  CustomResourceManagerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "CustomResourceManagerRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:InvokeModel"
+                  - "bedrock:GetFoundationModel"
+                  - "bedrock:GetInferenceProfile"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:bedrock:*::foundation-model/*"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:CreateKnowledgeBase"
+                  - "bedrock:TagResource"
+                  - "bedrock:DeleteKnowledgeBase"
+                  - "bedrock:GetKnowledgeBase"
+                  - "bedrock:UpdateKnowledgeBase"
+                  - "bedrock:CreateDataSource"
+                  - "bedrock:DeleteDataSource"
+                  - "bedrock:GetDataSource"
+                  - "bedrock:UpdateDataSource"
+                  - "bedrock:StartIngestionJob"
+                  - "bedrock:GetIngestionJob"
+                  - "s3vectors:CreateVectorBucket"
+                  - "s3vectors:DeleteVectorBucket"
+                  - "s3vectors:GetVectorBucket"
+                  - "s3vectors:CreateIndex"
+                  - "s3vectors:DeleteIndex"
+                  - "s3vectors:GetIndex"
+                  - "wafv2:CreateIPSet"
+                  - "wafv2:UpdateIPSet"
+                  - "wafv2:DeleteIPSet"
+                  - "wafv2:GetIPSet"
+                  - "wafv2:CreateWebACL"
+                  - "wafv2:UpdateWebACL"
+                  - "wafv2:DeleteWebACL"
+                  - "wafv2:GetWebACL"
+                  - "wafv2:AssociateWebACL"
+                  - "wafv2:DisassociateWebACL"
+                  - "wafv2:GetWebACLForResource"
+                  - "wafv2:TagResource"
+                  - "wafv2:UntagResource"
+                  - "route53:ListHostedZonesByName"
+                  - "aws-marketplace:ViewSubscriptions"
+                  - "aws-marketplace:Subscribe"
+                  - "aws-marketplace:Unsubscribe"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "apigateway:GET"
+                  - "apigateway:POST"
+                  - "apigateway:PUT"
+                  - "apigateway:PATCH"
+                  - "apigateway:DELETE"
+                  - "apigateway:SetWebACL"
+                  - "apigateway:RemoveWebACL"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/account"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/*"
+                  -
+                    Fn::If:
+                      - "UseCustomDomain"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/domainnames/${ApiCustomDomainName}*"
+                      -
+                        Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "logs:PutRetentionPolicy"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-${Environment}-custom-resource-manager*"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource-manager*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "lambda:AddPermission"
+                  - "lambda:RemovePermission"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetBucketNotification"
+                  - "s3:PutBucketNotification"
+                  - "s3:ListBucket"
+                  - "s3:ListBucketVersions"
+                  - "s3:ListBucketMultipartUploads"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedDocsBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}"
+                    -
+                      Fn::GetAtt:
+                        - "DocsBucket"
+                        - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                  - "s3:DeleteObjectVersion"
+                  - "s3:AbortMultipartUpload"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedDocsBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}/*"
+                    -
+                      Fn::Sub: "${DocsBucket.Arn}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:PutParameter"
+                  - "ssm:GetParameter"
+                  - "ssm:DeleteParameter"
+                  - "ssm:AddTagsToResource"
+                  - "ssm:RemoveTagsFromResource"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "iam:PassRole"
+                Resource:
+                  Fn::GetAtt:
+                    - "KnowledgeBaseRole"
+                    - "Arn"
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: "bedrock.amazonaws.com"
+              -
+                Effect: "Allow"
+                Action:
+                  - "iam:PassRole"
+                Resource:
+                  Fn::GetAtt:
+                    - "ApiGatewayCloudWatchLogsRole"
+                    - "Arn"
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: "apigateway.amazonaws.com"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:Decrypt"
+                  - "kms:DescribeKey"
+                  - "kms:Encrypt"
+                  - "kms:GenerateDataKey"
+                Resource: "*"
+  CustomResourceManager:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::If:
+          - "UseLegacyCustomResourceManagerNaming"
+          -
+            Fn::Sub: "${AppName}-custom-resource-manager"
+          -
+            Fn::Sub: "${AppName}-${Environment}-custom-resource-manager"
+      Description: "Custom resource manager for WP Suite AI Kit backend deployment resources"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/custom-resource.zip"
+      Handler: "dist/handler.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize: 512
+      Timeout: 900
+      Role:
+        Fn::GetAtt:
+          - "CustomResourceManagerRole"
+          - "Arn"
+      Layers:
+        -
+          Ref: "CommonDependenciesLayer"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_CHAT_TTL_SECONDS:
+            Ref: "RecaptchaChatTtlSeconds"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+  CustomResourceManagerLogGroupManager:
+    Type: "Custom::LogGroupManager"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      LogGroupName:
+        Fn::If:
+          - "UseLegacyCustomResourceManagerNaming"
+          -
+            Fn::Sub: "/aws/lambda/${AppName}-custom-resource-manager"
+          -
+            Fn::Sub: "/aws/lambda/${AppName}-${Environment}-custom-resource-manager"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  KnowledgeBaseSyncFunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-kb-sync"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+    Condition: "S3TriggerEnabled"
+  KnowledgeBaseSyncFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "KnowledgeBaseSyncFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:StartIngestionJob"
+                  - "bedrock:GetIngestionJob"
+                  - "bedrock:ListDataSources"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedKnowledgeBase"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:knowledge-base/${KnowledgeBaseId}"
+                    -
+                      Fn::GetAtt:
+                        - "KnowledgeBase"
+                        - "KnowledgeBaseArn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "scheduler:CreateSchedule"
+                  - "scheduler:UpdateSchedule"
+                  - "scheduler:GetSchedule"
+                  - "scheduler:DeleteSchedule"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/${AppName}-${Environment}-kb-sync-*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "iam:PassRole"
+                Resource:
+                  Fn::GetAtt:
+                    - "KBSyncScheduleRole"
+                    - "Arn"
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: "scheduler.amazonaws.com"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "KBSyncStateTable"
+                    - "Arn"
+  KnowledgeBaseSyncFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-${Environment}-kb-sync"
+      Description: "Preview Lambda that merges the KB sync scheduler and ingestion workers"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/kb-sync.zip"
+      Handler: "dist/handler.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout:
+        Ref: "LambdaTimeout"
+      Role:
+        Fn::GetAtt:
+          - "KnowledgeBaseSyncFunctionRole"
+          - "Arn"
+      Layers:
+        -
+          Ref: "CommonDependenciesLayer"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_CHAT_TTL_SECONDS:
+            Ref: "RecaptchaChatTtlSeconds"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          STATE_TABLE_NAME:
+            Ref: "KBSyncStateTable"
+          KNOWLEDGE_BASE_ID:
+            Fn::If:
+              - "UseProvidedKnowledgeBase"
+              -
+                Ref: "KnowledgeBaseId"
+              -
+                Fn::GetAtt:
+                  - "KnowledgeBase"
+                  - "KnowledgeBaseId"
+          DATA_SOURCE_ID:
+            Fn::If:
+              - "CreateNewKnowledgeBase"
+              -
+                Fn::GetAtt:
+                  - "KnowledgeBaseDataSource"
+                  - "DataSourceId"
+              - ""
+          SCHEDULER_ROLE_ARN:
+            Fn::GetAtt:
+              - "KBSyncScheduleRole"
+              - "Arn"
+          SYNC_FUNCTION_ARN:
+            Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
+          DEBOUNCE_DELAY_SECONDS: "60"
+          WAIT_FOR_COMPLETION: "false"
+    Condition: "S3TriggerEnabled"
+  S3NotificationSetupForNewBucket:
+    Type: "Custom::S3Notification"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Ref: "DocsBucket"
+      LambdaFunctionArn:
+        Fn::GetAtt:
+          - "KnowledgeBaseSyncFunction"
+          - "Arn"
+      NotificationConfiguration:
+        Events:
+          - "s3:ObjectCreated:*"
+        Filter:
+          Key:
+            FilterRules:
+              -
+                Name: "prefix"
+                Value:
+                  Ref: "InclusionPrefix"
+    Condition: "S3TriggerEnabledWithNewBucket"
+  S3NotificationSetup:
+    Type: "Custom::S3Notification"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      BucketName:
+        Ref: "DocsBucketName"
+      LambdaFunctionArn:
+        Fn::GetAtt:
+          - "KnowledgeBaseSyncFunction"
+          - "Arn"
+      NotificationConfiguration:
+        Events:
+          - "s3:ObjectCreated:*"
+        Filter:
+          Key:
+            FilterRules:
+              -
+                Name: "prefix"
+                Value:
+                  Ref: "InclusionPrefix"
+    Condition: "S3TriggerEnabledWithProvidedBucket"
+  KBSyncSchedulePolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      ManagedPolicyName:
+        Fn::Sub: "${AppName}-${Environment}-kb-sync-schedule-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "lambda:InvokeFunction"
+            Resource:
+              Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
+  KBSyncScheduleRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName:
+        Fn::Sub: "${AppName}-${Environment}-kb-sync-schedule-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "scheduler.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        -
+          Ref: "KBSyncSchedulePolicy"
+    Condition: "S3TriggerEnabled"
+  AlertsTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName:
+        Fn::Sub: "${AppName}-${Environment}-alerts"
+      DisplayName:
+        Fn::Sub: "${AppName} Critical Alerts"
+    Condition: "AlertsEnabled"
+  DeadLetterQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName:
+        Fn::Sub: "${AppName}-${Environment}-dlq"
+      MessageRetentionPeriod: 1209600
+      VisibilityTimeout: 60
+  HostedZoneLookup:
+    Type: "Custom::HostedZoneLookup"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      DomainName:
+        Ref: "ApiCustomDomainName"
+    Condition: "UseRoute53"
+  HostedZoneIdSelector:
+    Type: "Custom::SelectHostedZoneId"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      UseProvided:
+        Fn::If:
+          - "UseProvidedHostedZoneId"
+          - "true"
+          - "false"
+      ProvidedHostedZoneId:
+        Ref: "Route53HostedZoneId"
+      LookupHostedZoneId:
+        Fn::GetAtt:
+          - "HostedZoneLookup"
+          - "HostedZoneId"
+    Condition: "UseRoute53"
+  DnsRecordA:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId:
+        Ref: "HostedZoneIdSelector"
+      Name:
+        Ref: "ApiCustomDomainName"
+      Type: "A"
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt:
+            - "ApiDomainName"
+            - "RegionalDomainName"
+        HostedZoneId:
+          Fn::GetAtt:
+            - "ApiDomainName"
+            - "RegionalHostedZoneId"
+    DependsOn:
+      - "ApiBasePathMapping"
+    Condition: "UseRoute53"
+  DnsRecordAAAA:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId:
+        Ref: "HostedZoneIdSelector"
+      Name:
+        Ref: "ApiCustomDomainName"
+      Type: "AAAA"
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt:
+            - "ApiDomainName"
+            - "RegionalDomainName"
+        HostedZoneId:
+          Fn::GetAtt:
+            - "ApiDomainName"
+            - "RegionalHostedZoneId"
+    DependsOn:
+      - "ApiBasePathMapping"
+    Condition: "UseRoute53"
+Outputs:
+  TemplateFamily:
+    Description: "Template family identifier."
+    Value: "wpsuite-ai-kit-backend"
+  TemplateVersion:
+    Description: "Template version used for this nested stack."
+    Value:
+      Ref: "TemplateVersion"
+  ArtifactBucketName:
+    Description: "Buyer-owned artifact bucket."
+    Value:
+      Ref: "ArtifactBucketName"
+  ArtifactRootPrefix:
+    Description: "Buyer-owned artifact root prefix."
+    Value:
+      Ref: "ArtifactRootPrefix"
+  ApiBaseUrl:
+    Description: "Base URL for the API."
+    Value:
+      Fn::If:
+        - "UseCustomDomain"
+        -
+          Fn::Sub: "https://${ApiCustomDomainName}"
+        -
+          Fn::Sub: "https://${RestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+  ApiId:
+    Description: "REST API ID."
+    Value:
+      Ref: "RestApi"
+  HasAnyFrontend:
+    Description: "Has Any Frontend?"
+    Value:
+      Fn::If:
+        - "HasAnyFrontend"
+        - "true"
+        - "false"
+  CustomDomainUrl:
+    Description: "Custom domain URL for the API."
+    Value:
+      Fn::Sub: "https://${ApiCustomDomainName}"
+    Condition: "UseCustomDomain"
+  RegionalDomainName:
+    Description: "Regional domain name for DNS configuration."
+    Value:
+      Fn::GetAtt:
+        - "ApiDomainName"
+        - "RegionalDomainName"
+    Condition: "UseCustomDomain"
+  RegionalHostedZoneId:
+    Description: "Regional hosted zone ID for DNS configuration."
+    Value:
+      Fn::GetAtt:
+        - "ApiDomainName"
+        - "RegionalHostedZoneId"
+    Condition: "UseCustomDomain"
+  RecaptchaKmsKeyArn:
+    Description: "KMS Key ARN for reCAPTCHA secret encryption."
+    Value:
+      Fn::GetAtt:
+        - "RecaptchaKmsKey"
+        - "Arn"
+    Condition: "EnableRecaptchaProtection"
+  DocsBucketName:
+    Description: "S3 bucket name for knowledge base documents."
+    Value:
+      Fn::If:
+        - "UseProvidedDocsBucket"
+        -
+          Ref: "DocsBucketName"
+        -
+          Ref: "DocsBucket"
+  KnowledgeBaseId:
+    Description: "Bedrock Knowledge Base ID."
+    Value:
+      Fn::If:
+        - "UseProvidedKnowledgeBase"
+        -
+          Ref: "KnowledgeBaseId"
+        -
+          Fn::GetAtt:
+            - "KnowledgeBase"
+            - "KnowledgeBaseId"
+  VectorStorageType:
+    Description: "Vector storage type."
+    Value: "S3_VECTORS"
+  DataSourceId:
+    Description: "Knowledge Base Data Source ID."
+    Value:
+      Fn::GetAtt:
+        - "KnowledgeBaseDataSource"
+        - "DataSourceId"
+    Condition: "CreateNewKnowledgeBase"
+  AlertsTopicArn:
+    Description: "SNS Topic ARN for alerts."
+    Value:
+      Ref: "AlertsTopic"
+    Condition: "AlertsEnabled"
+  AlertsTopicName:
+    Description: "SNS Topic Name for alerts."
+    Value:
+      Fn::GetAtt:
+        - "AlertsTopic"
+        - "TopicName"
+    Condition: "AlertsEnabled"
+  WebACLId:
+    Description: "WAF WebACL ID."
+    Value:
+      Fn::GetAtt:
+        - "WebACL"
+        - "WebACLId"
+    Condition: "WAFEnabled"
+  WebACLArn:
+    Description: "WAF WebACL ARN."
+    Value:
+      Fn::GetAtt:
+        - "WebACL"
+        - "WebACLArn"
+    Condition: "WAFEnabled"

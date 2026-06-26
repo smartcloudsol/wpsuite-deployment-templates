@@ -1,0 +1,1033 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "WP Suite Site Guardian nested template for Marketplace Deployment Access"
+Parameters:
+  TemplateVersion:
+    Type: "String"
+    Default: "v0.1.0"
+    Description: "Immutable WP Suite deployment template version."
+  ArtifactRootPrefix:
+    Type: "String"
+    Description: "Buyer-owned S3 prefix containing staged WP Suite artifacts."
+  RuntimeConfigKey:
+    Type: "String"
+    Default: ""
+    Description: "Runtime configuration object key staged by WP Suite."
+  ManifestKey:
+    Type: "String"
+    Default: ""
+    Description: "Artifact manifest object key staged by WP Suite."
+  ManifestChecksum:
+    Type: "String"
+    Default: ""
+    Description: "SHA-256 checksum of the staged artifact manifest."
+  DeploymentVersion:
+    Type: "String"
+    Default: "1.0.0"
+    Description: "Application version used to locate Lambda and documentation artifacts in S3."
+  ArtifactBucketName:
+    Type: "String"
+    Default: "wpsuite-artifacts"
+    Description: "S3 bucket that stores the published deployment artifacts for this application."
+  ArtifactKeyPrefix:
+    Type: "String"
+    Default: "wpsuite-site-guardian"
+    Description: "S3 key prefix under the artifact bucket for this application."
+  AppName:
+    Type: "String"
+    Default: "wpsuite-site-guardian"
+    Description: "Short application name used for generated resource names and SSM parameter paths."
+  DomainName:
+    Type: "String"
+    Default: "example.com"
+    Description: "Custom domain for CloudFront distribution."
+  CertificateArn:
+    Type: "String"
+    Default: ""
+    Description: "ARN of the SSL certificate in ACM us-east-1."
+  CognitoUserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito User Pool ID for JWT issuer validation."
+  CognitoUserPoolClientId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito User Pool client ID passed by the root orchestration template."
+  CognitoAppClientIds:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "Comma-separated list of Cognito App Client IDs for JWT audience validation."
+  ProtectedPaths:
+    Type: "CommaDelimitedList"
+    Default: "/restricted"
+    Description: "List of paths to protect with signed cookies."
+  ProtectedPathGroupMap:
+    Type: "String"
+    Default: "{}"
+    Description: "Optional JSON object mapping protected paths to allowed groups."
+  SigninPagePath:
+    Type: "String"
+    Default: "/signin"
+    Description: "Path to redirect unauthenticated users for sign-in."
+  CookieExpirationDays:
+    Type: "Number"
+    Default: 30
+    Description: "Cookie expiration in days."
+  ManageSigningKeys:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Automatically generate and manage the CloudFront signing key pair, KMS key, and SSM parameters."
+  PublicKeyContent:
+    Type: "String"
+    Default: ""
+    Description: "Manual mode only. Base64 encoded RSA public key content."
+  KmsKeyId:
+    Type: "String"
+    Default: ""
+    Description: "Manual mode only. KMS Key ID containing the encrypted CloudFront private key."
+  EnableDetailedLogging:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable detailed CloudWatch logging for troubleshooting."
+  LogRetentionDays:
+    Type: "Number"
+    Default: 14
+    Description: "Number of days to retain CloudWatch logs."
+  S3BucketName:
+    Type: "String"
+    Default: ""
+    Description: "Custom name for the S3 bucket hosting static files."
+  S3WWWRoot:
+    Type: "String"
+    Default: "wwwroot"
+    Description: "S3 wwwroot prefix without leading/trailing slash."
+  NotFoundPagePath:
+    Type: "String"
+    Default: ""
+    Description: "Optional path to custom 404 error page relative to S3WWWRoot."
+  ForbiddenPagePath:
+    Type: "String"
+    Default: ""
+    Description: "Optional path to custom 403 error page relative to S3WWWRoot."
+  CreateDNSRecords:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create Route53 DNS records for the domains."
+  WpsuiteAccountId:
+    Type: "String"
+    Default: ""
+    Description: "Optional WP Suite account ID used by the weekly config refresh Lambda."
+  WpsuiteSiteId:
+    Type: "String"
+    Default: ""
+    Description: "Optional WP Suite site ID used by the weekly config refresh Lambda."
+  WpsuiteSiteKey:
+    Type: "String"
+    Default: ""
+    Description: "Optional WP Suite site key stored as a SecureString in SSM when weekly refresh is enabled."
+    NoEcho: true
+  WpsuiteApiBaseUrl:
+    Type: "String"
+    Default: "https://api.wpsuite.io"
+    Description: "Base URL for WP Suite license refresh requests."
+  LicenseRefreshScheduleExpression:
+    Type: "String"
+    Default: "rate(7 days)"
+    Description: "EventBridge schedule expression for refreshing config.enc and lic.jws."
+Conditions:
+  EnableLogging:
+    Fn::Equals:
+      -
+        Ref: "EnableDetailedLogging"
+      - "true"
+  UseCustomBucketName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "S3BucketName"
+          - ""
+  CreateDNS:
+    Fn::Equals:
+      -
+        Ref: "CreateDNSRecords"
+      - "true"
+  ManageSigningKeyMaterial:
+    Fn::Equals:
+      -
+        Ref: "ManageSigningKeys"
+      - "true"
+  HasNotFoundPage:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "NotFoundPagePath"
+          - ""
+  HasForbiddenPage:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "ForbiddenPagePath"
+          - ""
+  HasWpsuiteAccountId:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "WpsuiteAccountId"
+          - ""
+  HasWpsuiteSiteId:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "WpsuiteSiteId"
+          - ""
+  HasWpsuiteSiteKey:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "WpsuiteSiteKey"
+          - ""
+  EnableWeeklyLicenseRefresh:
+    Fn::And:
+      -
+        Condition: "HasWpsuiteAccountId"
+      -
+        Condition: "HasWpsuiteSiteId"
+      -
+        Condition: "HasWpsuiteSiteKey"
+Resources:
+  StaticSiteBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName:
+        Fn::If:
+          - "UseCustomBucketName"
+          -
+            Ref: "S3BucketName"
+          -
+            Fn::Sub: "${AWS::StackName}-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          -
+            ObjectOwnership: "BucketOwnerPreferred"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          -
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
+      VersioningConfiguration:
+        Status: "Enabled"
+  CloudFrontResourceManagerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "CloudFrontResourceManagerRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "cloudfront:CreatePublicKey"
+                  - "cloudfront:DeletePublicKey"
+                  - "cloudfront:GetPublicKey"
+                  - "cloudfront:CreateKeyGroup"
+                  - "cloudfront:DeleteKeyGroup"
+                  - "cloudfront:GetKeyGroup"
+                  - "cloudfront:CreateFunction"
+                  - "cloudfront:UpdateFunction"
+                  - "cloudfront:DeleteFunction"
+                  - "cloudfront:DescribeFunction"
+                  - "cloudfront:PublishFunction"
+                  - "cloudfront:CreateOriginAccessControl"
+                  - "cloudfront:DeleteOriginAccessControl"
+                  - "cloudfront:GetOriginAccessControl"
+                  - "cloudfront:CreateResponseHeadersPolicy"
+                  - "cloudfront:UpdateResponseHeadersPolicy"
+                  - "cloudfront:DeleteResponseHeadersPolicy"
+                  - "cloudfront:GetResponseHeadersPolicy"
+                  - "cloudfront:UpdateDistribution"
+                  - "cloudfront:GetDistribution"
+                  - "cloudfront:GetDistributionConfig"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "route53:ListHostedZones"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:CreateKey"
+                  - "kms:DescribeKey"
+                  - "kms:ScheduleKeyDeletion"
+                  - "kms:ListAliases"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:CreateAlias"
+                  - "kms:DeleteAlias"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/${AppName}-site-guardian-cloudfront-private-key"
+              -
+                Effect: "Allow"
+                Action:
+                  - "lambda:GetFunction"
+                  - "lambda:UpdateFunctionCode"
+                  - "lambda:PublishVersion"
+                Resource:
+                  Fn::GetAtt:
+                    - "CookieSigningFunction"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "lambda:CreateAlias"
+                  - "lambda:UpdateAlias"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "CookieSigningFunction"
+                      - "Arn"
+                  -
+                    Fn::Sub: "${CookieSigningFunction.Arn}:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:PutParameter"
+                  - "ssm:GetParameter"
+                  - "ssm:DeleteParameter"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/site-guardian/*"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudfront/private-key/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                  - "s3:ListBucketVersions"
+                  - "s3:ListBucketMultipartUploads"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:s3:::${StaticSiteBucket}"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:DeleteObject"
+                  - "s3:DeleteObjectVersion"
+                  - "s3:AbortMultipartUpload"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:s3:::${StaticSiteBucket}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "logs:PutRetentionPolicy"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+  CloudFrontResourceManager:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AWS::StackName}-cloudfront-manager"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/cloudfront-manager.zip"
+      Handler: "cloudfront_manager.lambda_handler"
+      Description: "Manages CloudFront resources not supported by native CloudFormation"
+      Runtime: "python3.12"
+      Timeout: 900
+      MemorySize: 512
+      Role:
+        Fn::GetAtt:
+          - "CloudFrontResourceManagerRole"
+          - "Arn"
+      Environment:
+        Variables:
+          STACK_NAME:
+            Ref: "AWS::StackName"
+          PUBLIC_KEY_CONTENT:
+            Ref: "PublicKeyContent"
+          PROTECTED_PATHS:
+            Fn::Join:
+              - ","
+              -
+                Ref: "ProtectedPaths"
+          SIGNIN_PAGE_PATH:
+            Ref: "SigninPagePath"
+  CloudFrontResourceManagerLogGroupManager:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "LogGroupManager"
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AWS::StackName}-cloudfront-manager"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+  SigningKeyMaterial:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "SigningKeyMaterial"
+      AppName:
+        Ref: "AppName"
+    Condition: "ManageSigningKeyMaterial"
+  CloudFrontPublicKey:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "PublicKey"
+      Name:
+        Fn::Sub: "${AWS::StackName}-public-key"
+      PublicKeyContent:
+        Fn::If:
+          - "ManageSigningKeyMaterial"
+          -
+            Fn::GetAtt:
+              - "SigningKeyMaterial"
+              - "PublicKeyContent"
+          -
+            Ref: "PublicKeyContent"
+  CloudFrontKeyGroup:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "KeyGroup"
+      Name:
+        Fn::Sub: "${AWS::StackName}-key-group"
+      PublicKeyId:
+        Fn::GetAtt:
+          - "CloudFrontPublicKey"
+          - "PublicKeyId"
+  OriginAccessControl:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "OriginAccessControl"
+      Name:
+        Fn::Sub: "${AWS::StackName}-OAC"
+  NoCachePolicy:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "ResponsePolicy"
+      Name:
+        Fn::Sub: "${AWS::StackName}-NoCachePolicy"
+  SiteKeyParameter:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "SSMParameter"
+      Name:
+        Fn::Sub: "/${AppName}/site-guardian/site-key"
+      Value:
+        Ref: "WpsuiteSiteKey"
+    Condition: "EnableWeeklyLicenseRefresh"
+  ViewerRequestFunction:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "Function"
+      Name:
+        Fn::Sub: "${AWS::StackName}-viewer-request"
+      ProtectedPaths:
+        Fn::Join:
+          - ","
+          -
+            Ref: "ProtectedPaths"
+      SigninPagePath:
+        Ref: "SigninPagePath"
+      S3WWWRoot:
+        Ref: "S3WWWRoot"
+  PathRewriteFunction:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "PathRewriteFunction"
+      Name:
+        Fn::Sub: "${AWS::StackName}-path-rewrite"
+      ProtectedPaths:
+        Fn::Join:
+          - ","
+          -
+            Ref: "ProtectedPaths"
+      S3WWWRoot:
+        Ref: "S3WWWRoot"
+  LambdaEdgeExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+                - "edgelambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "LambdaEdgeExecutionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+  CookieSigningFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AWS::StackName}-cookie-signing"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/cookie-signing.zip"
+      Handler: "lambda_function.lambda_handler"
+      Description: "Lambda@Edge function for issuing CloudFront signed cookies with JWT authentication"
+      Runtime: "python3.12"
+      Timeout: 5
+      MemorySize: 128
+      Role:
+        Fn::GetAtt:
+          - "LambdaEdgeExecutionRole"
+          - "Arn"
+  LambdaCodeUpdater:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "LambdaCodeUpdate"
+      FunctionName:
+        Fn::Sub: "${AWS::StackName}-cookie-signing"
+      DomainName:
+        Ref: "DomainName"
+      KeyPairId:
+        Fn::GetAtt:
+          - "CloudFrontPublicKey"
+          - "PublicKeyId"
+      CookieExpirationDays:
+        Ref: "CookieExpirationDays"
+      ProtectedPaths:
+        Fn::Join:
+          - ","
+          -
+            Ref: "ProtectedPaths"
+      ProtectedPathGroupMap:
+        Ref: "ProtectedPathGroupMap"
+      PrivateKeyParameterName:
+        Fn::If:
+          - "ManageSigningKeyMaterial"
+          -
+            Fn::GetAtt:
+              - "SigningKeyMaterial"
+              - "PrivateKeyParameterName"
+          -
+            Fn::Sub: "/cloudfront/private-key/${KmsKeyId}"
+      KmsKeyId:
+        Fn::If:
+          - "ManageSigningKeyMaterial"
+          -
+            Fn::GetAtt:
+              - "SigningKeyMaterial"
+              - "KmsKeyId"
+          -
+            Ref: "KmsKeyId"
+      CognitoUserPoolId:
+        Ref: "CognitoUserPoolId"
+      CognitoAppClientIds:
+        Fn::Join:
+          - ","
+          -
+            Ref: "CognitoAppClientIds"
+    DependsOn:
+      - "CookieSigningFunction"
+  CloudFrontDistributionUpdate:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "DistributionUpdate"
+      DistributionId:
+        Ref: "CloudFrontDistribution"
+      ProtectedPaths:
+        Fn::Join:
+          - ","
+          -
+            Ref: "ProtectedPaths"
+      ViewerRequestFunctionArn:
+        Fn::GetAtt:
+          - "ViewerRequestFunction"
+          - "FunctionARN"
+      PathRewriteFunctionArn:
+        Fn::GetAtt:
+          - "PathRewriteFunction"
+          - "FunctionARN"
+      NoCachePolicyId:
+        Fn::GetAtt:
+          - "NoCachePolicy"
+          - "ResponseHeadersPolicyId"
+      OriginAccessControlId:
+        Fn::GetAtt:
+          - "OriginAccessControl"
+          - "OriginAccessControlId"
+  CloudFrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Aliases:
+          -
+            Ref: "DomainName"
+        Origins:
+          -
+            Id: "S3Origin"
+            DomainName:
+              Fn::GetAtt:
+                - "StaticSiteBucket"
+                - "RegionalDomainName"
+            S3OriginConfig:
+
+            OriginAccessControlId:
+              Fn::GetAtt:
+                - "OriginAccessControl"
+                - "OriginAccessControlId"
+        DefaultCacheBehavior:
+          TargetOriginId: "S3Origin"
+          ViewerProtocolPolicy: "redirect-to-https"
+          CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+          OriginRequestPolicyId: "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf"
+          Compress: true
+          FunctionAssociations:
+            -
+              EventType: "viewer-request"
+              FunctionARN:
+                Fn::GetAtt:
+                  - "ViewerRequestFunction"
+                  - "FunctionARN"
+        CacheBehaviors:
+          -
+            PathPattern: "/issue-cookie*"
+            TargetOriginId: "S3Origin"
+            ViewerProtocolPolicy: "redirect-to-https"
+            CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+            AllowedMethods:
+              - "GET"
+              - "HEAD"
+            CachedMethods:
+              - "GET"
+              - "HEAD"
+            Compress: false
+            LambdaFunctionAssociations:
+              -
+                EventType: "viewer-request"
+                LambdaFunctionARN:
+                  Fn::GetAtt:
+                    - "LambdaCodeUpdater"
+                    - "VersionArn"
+          -
+            PathPattern: "/restricted*"
+            TargetOriginId: "S3Origin"
+            ViewerProtocolPolicy: "redirect-to-https"
+            CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+            OriginRequestPolicyId: "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf"
+            ResponseHeadersPolicyId:
+              Fn::GetAtt:
+                - "NoCachePolicy"
+                - "ResponseHeadersPolicyId"
+            Compress: true
+            TrustedKeyGroups:
+              -
+                Fn::GetAtt:
+                  - "CloudFrontKeyGroup"
+                  - "KeyGroupId"
+            FunctionAssociations:
+              -
+                EventType: "viewer-request"
+                FunctionARN:
+                  Fn::GetAtt:
+                    - "PathRewriteFunction"
+                    - "FunctionARN"
+        Enabled: true
+        DefaultRootObject: "index.html"
+        HttpVersion: "http2"
+        PriceClass: "PriceClass_100"
+        ViewerCertificate:
+          AcmCertificateArn:
+            Ref: "CertificateArn"
+          SslSupportMethod: "sni-only"
+          MinimumProtocolVersion: "TLSv1.2_2021"
+        Logging:
+          Fn::If:
+            - "EnableLogging"
+            -
+              Bucket:
+                Fn::GetAtt:
+                  - "StaticSiteBucket"
+                  - "DomainName"
+              Prefix: "cloudfront-logs/"
+              IncludeCookies: true
+            -
+              Ref: "AWS::NoValue"
+  StaticSiteBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket:
+        Ref: "StaticSiteBucket"
+      PolicyDocument:
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "cloudfront.amazonaws.com"
+            Action:
+              - "s3:GetObject"
+              - "s3:ListBucket"
+            Resource:
+              -
+                Fn::Sub: "arn:aws:s3:::${StaticSiteBucket}"
+              -
+                Fn::Sub: "arn:aws:s3:::${StaticSiteBucket}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn:
+                  Fn::Sub: "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "delivery.logs.amazonaws.com"
+            Action:
+              - "s3:PutObject"
+            Resource:
+              Fn::Sub: "arn:aws:s3:::${StaticSiteBucket}/cloudfront-logs/*"
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: "bucket-owner-full-control"
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "delivery.logs.amazonaws.com"
+            Action:
+              - "s3:GetBucketAcl"
+            Resource:
+              Fn::Sub: "arn:aws:s3:::${StaticSiteBucket}"
+  StaticSiteBucketCleaner:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "BucketCleaner"
+      BucketName:
+        Ref: "StaticSiteBucket"
+  LicenseRefreshFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "LicenseRefreshFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:PutObject"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:s3:::${StaticSiteBucket}/${S3WWWRoot}/wp-content/uploads/hub-for-wpsuiteio/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:GetParameter"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/site-guardian/site-key"
+  LicenseRefreshFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AWS::StackName}-license-refresh"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/license-refresh.zip"
+      Handler: "license_refresher.lambda_handler"
+      Description: "Refreshes config.enc and lic.jws in the site bucket from the WP Suite API."
+      Runtime: "python3.12"
+      Timeout: 30
+      MemorySize: 256
+      Role:
+        Fn::GetAtt:
+          - "LicenseRefreshFunctionRole"
+          - "Arn"
+      Environment:
+        Variables:
+          SITE_BUCKET_NAME:
+            Ref: "StaticSiteBucket"
+          SITE_WWWROOT:
+            Ref: "S3WWWRoot"
+          WPSUITE_ACCOUNT_ID:
+            Ref: "WpsuiteAccountId"
+          WPSUITE_SITE_ID:
+            Ref: "WpsuiteSiteId"
+          WPSUITE_API_BASE_URL:
+            Ref: "WpsuiteApiBaseUrl"
+          SITE_KEY_PARAMETER_NAME:
+            Fn::Sub: "/${AppName}/site-guardian/site-key"
+    Condition: "EnableWeeklyLicenseRefresh"
+  LicenseRefreshFunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AWS::StackName}-license-refresh"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+    Condition: "EnableWeeklyLicenseRefresh"
+  LicenseRefreshSchedule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Weekly WP Suite site config refresh schedule"
+      ScheduleExpression:
+        Ref: "LicenseRefreshScheduleExpression"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "LicenseRefreshFunction"
+              - "Arn"
+          Id: "LicenseRefreshFunctionTarget"
+    Condition: "EnableWeeklyLicenseRefresh"
+  LicenseRefreshPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "LicenseRefreshFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "LicenseRefreshSchedule"
+          - "Arn"
+    Condition: "EnableWeeklyLicenseRefresh"
+  HostedZoneLookup:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "HostedZoneLookup"
+      DomainName:
+        Ref: "DomainName"
+    Condition: "CreateDNS"
+  WWWDNSRecord:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId:
+        Fn::GetAtt:
+          - "HostedZoneLookup"
+          - "HostedZoneId"
+      Name:
+        Fn::Sub: "www.${DomainName}"
+      Type: "A"
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt:
+            - "CloudFrontDistribution"
+            - "DomainName"
+        HostedZoneId: "Z2FDTNDATAQYW2"
+    Condition: "CreateDNS"
+  ApexDNSRecord:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId:
+        Fn::GetAtt:
+          - "HostedZoneLookup"
+          - "HostedZoneId"
+      Name:
+        Ref: "DomainName"
+      Type: "A"
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt:
+            - "CloudFrontDistribution"
+            - "DomainName"
+        HostedZoneId: "Z2FDTNDATAQYW2"
+    Condition: "CreateDNS"
+Outputs:
+  TemplateFamily:
+    Description: "Template family identifier."
+    Value: "wpsuite-static-site-guardian"
+  TemplateVersion:
+    Description: "Template version used for this nested stack."
+    Value:
+      Ref: "TemplateVersion"
+  S3BucketName:
+    Description: "S3 Bucket name for static site hosting."
+    Value:
+      Ref: "StaticSiteBucket"
+  S3BucketUrl:
+    Description: "S3 Bucket URL for static site hosting."
+    Value:
+      Fn::Sub: "https://${StaticSiteBucket}.s3.${AWS::Region}.amazonaws.com"
+  CloudFrontDistributionId:
+    Description: "CloudFront Distribution ID."
+    Value:
+      Ref: "CloudFrontDistribution"
+  CloudFrontDistributionDomain:
+    Description: "CloudFront Distribution Domain Name."
+    Value:
+      Fn::GetAtt:
+        - "CloudFrontDistribution"
+        - "DomainName"
+  LambdaEdgeFunctionArn:
+    Description: "Lambda@Edge Function ARN."
+    Value:
+      Fn::GetAtt:
+        - "LambdaCodeUpdater"
+        - "VersionArn"
+  CloudFrontKeyGroupId:
+    Description: "CloudFront Key Group ID for signed cookies."
+    Value:
+      Fn::GetAtt:
+        - "CloudFrontKeyGroup"
+        - "KeyGroupId"
+  ResolvedKmsKeyId:
+    Description: "Resolved KMS key ID."
+    Value:
+      Fn::If:
+        - "ManageSigningKeyMaterial"
+        -
+          Fn::GetAtt:
+            - "SigningKeyMaterial"
+            - "KmsKeyId"
+        -
+          Ref: "KmsKeyId"
+  PrivateKeyParameterName:
+    Description: "SSM parameter name that stores the private signing key."
+    Value:
+      Fn::If:
+        - "ManageSigningKeyMaterial"
+        -
+          Fn::GetAtt:
+            - "SigningKeyMaterial"
+            - "PrivateKeyParameterName"
+        -
+          Fn::Sub: "/cloudfront/private-key/${KmsKeyId}"
+  NoCachePolicyId:
+    Description: "CloudFront Response Headers Policy ID."
+    Value:
+      Fn::GetAtt:
+        - "NoCachePolicy"
+        - "ResponseHeadersPolicyId"
+  Route53HostedZoneId:
+    Description: "Route53 Hosted Zone ID for the domain."
+    Value:
+      Fn::GetAtt:
+        - "HostedZoneLookup"
+        - "HostedZoneId"
+    Condition: "CreateDNS"
+  SiteKeyParameterName:
+    Description: "SSM SecureString parameter that stores the WP Suite site key."
+    Value:
+      Fn::Sub: "/${AppName}/site-guardian/site-key"
+    Condition: "EnableWeeklyLicenseRefresh"
+  LicenseRefreshFunctionArn:
+    Description: "Lambda ARN of the scheduled WP Suite license refresher."
+    Value:
+      Fn::GetAtt:
+        - "LicenseRefreshFunction"
+        - "Arn"
+    Condition: "EnableWeeklyLicenseRefresh"
