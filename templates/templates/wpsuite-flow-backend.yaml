@@ -1327,8 +1327,7 @@ Resources:
       Description: "WAF protection for WP Suite Flow API"
       Scope: "REGIONAL"
       DefaultAction:
-        Allow:
-
+        Allow: {}
       VisibilityConfig:
         SampledRequestsEnabled: true
         CloudWatchMetricsEnabled: true
@@ -1348,8 +1347,7 @@ Resources:
                       - "BlockedIpSet"
                       - "Arn"
               Action:
-                Block:
-
+                Block: {}
               VisibilityConfig:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
@@ -1378,16 +1376,14 @@ Resources:
                       ByteMatchStatement:
                         SearchString: "/admin"
                         FieldToMatch:
-                          UriPath:
-
+                          UriPath: {}
                         TextTransformations:
                           -
                             Priority: 0
                             Type: "NONE"
                         PositionalConstraint: "STARTS_WITH"
               Action:
-                Block:
-
+                Block: {}
               VisibilityConfig:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
@@ -1416,16 +1412,14 @@ Resources:
                       ByteMatchStatement:
                         SearchString: "/frontend"
                         FieldToMatch:
-                          UriPath:
-
+                          UriPath: {}
                         TextTransformations:
                           -
                             Priority: 0
                             Type: "NONE"
                         PositionalConstraint: "STARTS_WITH"
               Action:
-                Block:
-
+                Block: {}
               VisibilityConfig:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
@@ -1437,8 +1431,7 @@ Resources:
           Name: "AWSManagedRulesCommonRuleSet"
           Priority: 400
           OverrideAction:
-            None:
-
+            None: {}
           Statement:
             ManagedRuleGroupStatement:
               VendorName: "AWS"
@@ -1447,28 +1440,23 @@ Resources:
                 -
                   Name: "SizeRestrictions_BODY"
                   ActionToUse:
-                    Count:
-
+                    Count: {}
                 -
                   Name: "GenericLFI_BODY"
                   ActionToUse:
-                    Count:
-
+                    Count: {}
                 -
                   Name: "GenericRFI_BODY"
                   ActionToUse:
-                    Count:
-
+                    Count: {}
                 -
                   Name: "EC2MetaDataSSRF_BODY"
                   ActionToUse:
-                    Count:
-
+                    Count: {}
                 -
                   Name: "CrossSiteScripting_BODY"
                   ActionToUse:
-                    Count:
-
+                    Count: {}
           VisibilityConfig:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
@@ -1478,8 +1466,7 @@ Resources:
           Name: "AWSManagedRulesKnownBadInputsRuleSet"
           Priority: 500
           OverrideAction:
-            None:
-
+            None: {}
           Statement:
             ManagedRuleGroupStatement:
               VendorName: "AWS"
@@ -1493,8 +1480,7 @@ Resources:
           Name: "AWSManagedRulesAmazonIpReputationList"
           Priority: 600
           OverrideAction:
-            None:
-
+            None: {}
           Statement:
             ManagedRuleGroupStatement:
               VendorName: "AWS"
@@ -1515,16 +1501,14 @@ Resources:
                 ByteMatchStatement:
                   SearchString: "/frontend"
                   FieldToMatch:
-                    UriPath:
-
+                    UriPath: {}
                   TextTransformations:
                     -
                       Priority: 0
                       Type: "NONE"
                   PositionalConstraint: "STARTS_WITH"
           Action:
-            Block:
-
+            Block: {}
           VisibilityConfig:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
@@ -1541,16 +1525,14 @@ Resources:
                 ByteMatchStatement:
                   SearchString: "/admin"
                   FieldToMatch:
-                    UriPath:
-
+                    UriPath: {}
                   TextTransformations:
                     -
                       Priority: 0
                       Type: "NONE"
                   PositionalConstraint: "STARTS_WITH"
           Action:
-            Block:
-
+            Block: {}
           VisibilityConfig:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true

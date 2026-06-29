@@ -657,8 +657,7 @@ Resources:
               Fn::GetAtt:
                 - "StaticSiteBucket"
                 - "RegionalDomainName"
-            S3OriginConfig:
-
+            S3OriginConfig: {}
             OriginAccessControlId:
               Fn::GetAtt:
                 - "OriginAccessControl"

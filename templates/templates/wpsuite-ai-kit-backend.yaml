@@ -1610,8 +1610,7 @@ Resources:
       Description: "WAF protection for REST API endpoints with endpoint-based IP filtering"
       Scope: "REGIONAL"
       DefaultAction:
-        Allow:
-
+        Allow: {}
       VisibilityConfig:
         SampledRequestsEnabled: true
         CloudWatchMetricsEnabled: true
@@ -1631,8 +1630,7 @@ Resources:
                       - "BlockedIPSet"
                       - "IPSetArn"
               Action:
-                Block:
-
+                Block: {}
               VisibilityConfig:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
@@ -1661,16 +1659,14 @@ Resources:
                       ByteMatchStatement:
                         SearchString: "/admin"
                         FieldToMatch:
-                          UriPath:
-
+                          UriPath: {}
                         TextTransformations:
                           -
                             Priority: 0
                             Type: "NONE"
                         PositionalConstraint: "STARTS_WITH"
               Action:
-                Block:
-
+                Block: {}
               VisibilityConfig:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
@@ -1699,16 +1695,14 @@ Resources:
                       ByteMatchStatement:
                         SearchString: "/frontend"
                         FieldToMatch:
-                          UriPath:
-
+                          UriPath: {}
                         TextTransformations:
                           -
                             Priority: 0
                             Type: "NONE"
                         PositionalConstraint: "STARTS_WITH"
               Action:
-                Block:
-
+                Block: {}
               VisibilityConfig:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
@@ -1720,8 +1714,7 @@ Resources:
           Name: "AWSManagedRulesCommonRuleSet"
           Priority: 400
           OverrideAction:
-            None:
-
+            None: {}
           Statement:
             ManagedRuleGroupStatement:
               VendorName: "AWS"
@@ -1735,8 +1728,7 @@ Resources:
           Name: "AWSManagedRulesKnownBadInputsRuleSet"
           Priority: 500
           OverrideAction:
-            None:
-
+            None: {}
           Statement:
             ManagedRuleGroupStatement:
               VendorName: "AWS"
@@ -1750,8 +1742,7 @@ Resources:
           Name: "AWSManagedRulesAmazonIpReputationList"
           Priority: 600
           OverrideAction:
-            None:
-
+            None: {}
           Statement:
             ManagedRuleGroupStatement:
               VendorName: "AWS"
@@ -1772,16 +1763,14 @@ Resources:
                 ByteMatchStatement:
                   SearchString: "/frontend"
                   FieldToMatch:
-                    UriPath:
-
+                    UriPath: {}
                   TextTransformations:
                     -
                       Priority: 0
                       Type: "NONE"
                   PositionalConstraint: "STARTS_WITH"
           Action:
-            Block:
-
+            Block: {}
           VisibilityConfig:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
@@ -1798,16 +1787,14 @@ Resources:
                 ByteMatchStatement:
                   SearchString: "/admin"
                   FieldToMatch:
-                    UriPath:
-
+                    UriPath: {}
                   TextTransformations:
                     -
                       Priority: 0
                       Type: "NONE"
                   PositionalConstraint: "STARTS_WITH"
           Action:
-            Block:
-
+            Block: {}
           VisibilityConfig:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
