@@ -989,6 +989,14 @@ Resources:
             - "DomainName"
         HostedZoneId: "Z2FDTNDATAQYW2"
     Condition: "CreateDNS"
+  MonitoringDashboard:
+    Type: "AWS::CloudWatch::Dashboard"
+    Properties:
+      DashboardName:
+        Fn::Sub: "${AWS::StackName}-monitoring"
+      DashboardBody:
+        Fn::Sub: "{\n  \"widgets\": [\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/Lambda\",\n            \"Invocations\",\n            \"FunctionName\",\n            \"${CookieSigningFunction}\"\n          ],\n          [\n            \".\",\n            \"Errors\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"Duration\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Function Metrics (us-east-1)\"\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 12,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/CloudFront\",\n            \"Requests\",\n            \"DistributionId\",\n            \"${CloudFrontDistribution}\"\n          ],\n          [\n            \".\",\n            \"BytesDownloaded\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"4xxErrorRate\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"5xxErrorRate\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"${AWS::Region}\",\n        \"title\": \"CloudFront Distribution Metrics\"\n      }\n    },\n    {\n      \"type\": \"log\",\n      \"x\": 0,\n      \"y\": 6,\n      \"width\": 24,\n      \"height\": 6,\n      \"properties\": {\n        \"query\": \"SOURCE '/aws/lambda/us-east-1.${CookieSigningFunction}'\\n| fields @timestamp, @message\\n| filter @message like /ERROR/\\n| sort @timestamp desc\\n| limit 100\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Error Logs\",\n        \"view\": \"table\"\n      }\n    }\n  ]\n}"
+    Condition: "EnableLogging"
 Outputs:
   TemplateFamily:
     Description: "Template family identifier."
@@ -1062,6 +1070,10 @@ Outputs:
         - "HostedZoneLookup"
         - "HostedZoneId"
     Condition: "CreateDNS"
+  SetupInstructions:
+    Description: "Next steps to complete the setup."
+    Value:
+      Fn::Sub: "1. Upload your static WordPress files to S3 bucket: ${StaticSiteBucket}/${S3WWWRoot}\n2. Include custom error pages (if configured): ${NotFoundPagePath} and ${ForbiddenPagePath}\n3. DNS Configuration: Check CreateDNSRecords parameter (${CreateDNSRecords})\n4. Configure Cognito User Pool and App Clients for JWT authentication\n5. Test cookie issuance via main domain: https://${DomainName}/issue-cookie?action=signin\n6. Verify protected paths redirect unauthenticated users to ${SigninPagePath}\n7. Test error pages by accessing non-existent URLs\n8. If weekly refresh is enabled, confirm config.enc and lic.jws appear under ${S3WWWRoot}/wp-content/uploads/hub-for-wpsuiteio/\n\nS3 Bucket: ${StaticSiteBucket}\nS3 WWWRoot Prefix: ${S3WWWRoot}\nCloudFront Domain: ${CloudFrontDistribution.DomainName}\nCookie Endpoint: https://${DomainName}/issue-cookie\nAuthentication: JWT Bearer token required for cookie issuance"
   SiteKeyParameterName:
     Description: "SSM SecureString parameter that stores the WP Suite site key."
     Value:
@@ -1074,3 +1086,8 @@ Outputs:
         - "LicenseRefreshFunction"
         - "Arn"
     Condition: "EnableWeeklyLicenseRefresh"
+  MonitoringDashboardUrl:
+    Description: "CloudWatch Dashboard URL for monitoring."
+    Value:
+      Fn::Sub: "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${AWS::StackName}-monitoring"
+    Condition: "EnableLogging"

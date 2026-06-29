@@ -3356,6 +3356,34 @@ Resources:
             Fn::Sub: "/aws/lambda/${AppName}-${Environment}-custom-resource-manager"
       RetentionInDays:
         Ref: "LogRetentionDays"
+  ChatModelResolver:
+    Type: "Custom::ModelResolver"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      AppName:
+        Ref: "AppName"
+      Environment:
+        Ref: "Environment"
+      ModelId:
+        Ref: "ModelId"
+      ModelType: "chat"
+  FrontendModelResolver:
+    Type: "Custom::ModelResolver"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      AppName:
+        Ref: "AppName"
+      Environment:
+        Ref: "Environment"
+      ModelId:
+        Ref: "FrontendModelId"
+      ModelType: "frontend"
   KnowledgeBaseSyncFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
