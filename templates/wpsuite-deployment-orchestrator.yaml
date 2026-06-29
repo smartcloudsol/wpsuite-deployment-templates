@@ -15,7 +15,6 @@ Parameters:
     Description: "S3 key prefix for the reviewed WP Suite CloudFormation templates. The nested templates are resolved below this prefix."
   WpSuiteDeploymentSecretArn:
     Type: "String"
-    Default: "arn:aws:secretsmanager:us-east-1:000000000000:secret:wpsuite-placeholder-000000"
     Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
     NoEcho: true
   DeploymentContextMode:
