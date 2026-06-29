@@ -8,30 +8,10 @@ Parameters:
   ArtifactRootPrefix:
     Type: "String"
     Description: "Buyer-owned S3 prefix containing staged WP Suite artifacts."
-  RuntimeConfigKey:
-    Type: "String"
-    Default: ""
-    Description: "Runtime configuration object key staged by WP Suite."
-  ManifestKey:
-    Type: "String"
-    Default: ""
-    Description: "Artifact manifest object key staged by WP Suite."
-  ManifestChecksum:
-    Type: "String"
-    Default: ""
-    Description: "SHA-256 checksum of the staged artifact manifest."
-  DeploymentVersion:
-    Type: "String"
-    Default: "1.0.0"
-    Description: "Application version used to locate Lambda, docs, and template artifacts in S3."
   ArtifactBucketName:
     Type: "String"
     Default: "wpsuite-artifacts"
     Description: "S3 bucket that stores the published deployment artifacts for this application."
-  ArtifactKeyPrefix:
-    Type: "String"
-    Default: "wpsuite-flow"
-    Description: "S3 key prefix under the artifact bucket for this Flow application."
   AppName:
     Type: "String"
     Default: "wpsuite-flow"
@@ -1058,7 +1038,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/custom-resource.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-flow/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/custom-resource.zip"
       Handler: "index.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -1788,7 +1776,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/forms-api.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-flow/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/forms-api.zip"
       Handler: "index.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -2264,7 +2260,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/workflow-dispatcher.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-flow/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/workflow-dispatcher.zip"
       Handler: "index.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -2491,7 +2495,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/email-sender.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-flow/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/email-sender.zip"
       Handler: "index.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -2690,7 +2702,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/webhook-dispatcher.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-flow/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/webhook-dispatcher.zip"
       Handler: "index.handler"
       Runtime: "nodejs24.x"
       Architectures:

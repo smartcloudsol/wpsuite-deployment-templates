@@ -8,42 +8,10 @@ Parameters:
   ArtifactRootPrefix:
     Type: "String"
     Description: "Buyer-owned S3 prefix containing staged WP Suite artifacts."
-  RuntimeConfigKey:
-    Type: "String"
-    Default: ""
-    Description: "Runtime configuration object key staged by WP Suite."
-  ManifestKey:
-    Type: "String"
-    Default: ""
-    Description: "Artifact manifest object key staged by WP Suite."
-  ManifestChecksum:
-    Type: "String"
-    Default: ""
-    Description: "SHA-256 checksum of the staged artifact manifest."
-  CognitoUserPoolId:
-    Type: "String"
-    Default: ""
-    Description: "Cognito User Pool ID passed by the root orchestration template."
-  CognitoUserPoolClientId:
-    Type: "String"
-    Default: ""
-    Description: "Cognito User Pool client ID passed by the root orchestration template."
-  CognitoIdentityPoolId:
-    Type: "String"
-    Default: ""
-    Description: "Cognito Identity Pool ID passed by the root orchestration template."
-  DeploymentVersion:
-    Type: "String"
-    Default: "1.0.0"
-    Description: "Application version used to locate Lambda, layer, docs, and template artifacts in S3."
   ArtifactBucketName:
     Type: "String"
     Default: "wpsuite-artifacts"
     Description: "S3 bucket that stores the published deployment artifacts for this application."
-  ArtifactKeyPrefix:
-    Type: "String"
-    Default: "wpsuite-ai-kit"
-    Description: "S3 key prefix under the artifact bucket for this AI Kit application."
   AppName:
     Type: "String"
     Default: "wpsuite-ai-kit"
@@ -1050,7 +1018,7 @@ Resources:
       RestApiId:
         Ref: "RestApi"
       Description:
-        Fn::Sub: "Deployment ${DeploymentVersion} - API Schema v${ApiSchemaVersion}"
+        Fn::Sub: "Template ${TemplateVersion} - API Schema v${ApiSchemaVersion}"
     DependsOn:
       - "ApiAuthorizerAttachment"
   ApiStage:
@@ -2329,12 +2297,20 @@ Resources:
       LayerName:
         Fn::Sub: "${AppName}-${Environment}-common-dependencies"
       Description:
-        Fn::Sub: "Shared dependencies for WP Suite AI Kit Lambda functions (v${DeploymentVersion})"
+        Fn::Sub: "Shared dependencies for WP Suite AI Kit Lambda functions (${TemplateVersion})"
       Content:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/layers/common-layer.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/"
+              -
+                Ref: "TemplateVersion"
+              - "/layers/common-layer.zip"
       CompatibleRuntimes:
         - "nodejs24.x"
       CompatibleArchitectures:
@@ -2493,7 +2469,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/ai-handler.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/ai-handler.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -2723,7 +2707,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/ai-agent-dispatcher.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/ai-agent-dispatcher.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -2934,7 +2926,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/ai-email-intake-dispatcher.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/ai-email-intake-dispatcher.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -3259,7 +3259,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/custom-resource.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/custom-resource.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -3435,7 +3443,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/kb-sync.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/kb-sync.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:

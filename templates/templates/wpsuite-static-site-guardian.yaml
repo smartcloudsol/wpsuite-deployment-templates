@@ -8,30 +8,10 @@ Parameters:
   ArtifactRootPrefix:
     Type: "String"
     Description: "Buyer-owned S3 prefix containing staged WP Suite artifacts."
-  RuntimeConfigKey:
-    Type: "String"
-    Default: ""
-    Description: "Runtime configuration object key staged by WP Suite."
-  ManifestKey:
-    Type: "String"
-    Default: ""
-    Description: "Artifact manifest object key staged by WP Suite."
-  ManifestChecksum:
-    Type: "String"
-    Default: ""
-    Description: "SHA-256 checksum of the staged artifact manifest."
-  DeploymentVersion:
-    Type: "String"
-    Default: "1.0.0"
-    Description: "Application version used to locate Lambda and documentation artifacts in S3."
   ArtifactBucketName:
     Type: "String"
     Default: "wpsuite-artifacts"
     Description: "S3 bucket that stores the published deployment artifacts for this application."
-  ArtifactKeyPrefix:
-    Type: "String"
-    Default: "wpsuite-site-guardian"
-    Description: "S3 key prefix under the artifact bucket for this application."
   AppName:
     Type: "String"
     Default: "wpsuite-site-guardian"
@@ -48,10 +28,6 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Cognito User Pool ID for JWT issuer validation."
-  CognitoUserPoolClientId:
-    Type: "String"
-    Default: ""
-    Description: "Cognito User Pool client ID passed by the root orchestration template."
   CognitoAppClientIds:
     Type: "CommaDelimitedList"
     Default: ""
@@ -376,7 +352,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/cloudfront-manager.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-site-guardian/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/cloudfront-manager.zip"
       Handler: "cloudfront_manager.lambda_handler"
       Description: "Manages CloudFront resources not supported by native CloudFormation"
       Runtime: "python3.12"
@@ -559,7 +543,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/cookie-signing.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-site-guardian/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/cookie-signing.zip"
       Handler: "lambda_function.lambda_handler"
       Description: "Lambda@Edge function for issuing CloudFront signed cookies with JWT authentication"
       Runtime: "python3.12"
@@ -749,6 +741,44 @@ Resources:
               IncludeCookies: true
             -
               Ref: "AWS::NoValue"
+        CustomErrorResponses:
+          Fn::If:
+            - "HasNotFoundPage"
+            -
+              Fn::If:
+                - "HasForbiddenPage"
+                -
+                  -
+                    ErrorCode: 404
+                    ResponseCode: 404
+                    ResponsePagePath:
+                      Fn::Sub: "/${S3WWWRoot}${NotFoundPagePath}"
+                    ErrorCachingMinTTL: 300
+                  -
+                    ErrorCode: 403
+                    ResponseCode: 403
+                    ResponsePagePath:
+                      Fn::Sub: "/${S3WWWRoot}${ForbiddenPagePath}"
+                    ErrorCachingMinTTL: 300
+                -
+                  -
+                    ErrorCode: 404
+                    ResponseCode: 404
+                    ResponsePagePath:
+                      Fn::Sub: "/${S3WWWRoot}${NotFoundPagePath}"
+                    ErrorCachingMinTTL: 300
+            -
+              Fn::If:
+                - "HasForbiddenPage"
+                -
+                  -
+                    ErrorCode: 403
+                    ResponseCode: 403
+                    ResponsePagePath:
+                      Fn::Sub: "/${S3WWWRoot}${ForbiddenPagePath}"
+                    ErrorCachingMinTTL: 300
+                -
+                  Ref: "AWS::NoValue"
   StaticSiteBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
@@ -846,7 +876,15 @@ Resources:
         S3Bucket:
           Ref: "ArtifactBucketName"
         S3Key:
-          Fn::Sub: "${ArtifactKeyPrefix}/${DeploymentVersion}/functions/license-refresh.zip"
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-site-guardian/"
+              -
+                Ref: "TemplateVersion"
+              - "/functions/license-refresh.zip"
       Handler: "license_refresher.lambda_handler"
       Description: "Refreshes config.enc and lic.jws in the site bucket from the WP Suite API."
       Runtime: "python3.12"

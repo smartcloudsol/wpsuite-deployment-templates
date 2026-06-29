@@ -5,32 +5,12 @@ Parameters:
     Type: "String"
     Default: "v1.0.0"
     Description: "Immutable WP Suite deployment template version."
-  RuntimeConfigKey:
-    Type: "String"
-    Default: ""
-    Description: "Runtime configuration object key staged by WP Suite."
-  ManifestKey:
-    Type: "String"
-    Default: ""
-    Description: "Artifact manifest object key staged by WP Suite."
-  ManifestChecksum:
-    Type: "String"
-    Default: ""
-    Description: "SHA-256 checksum of the staged artifact manifest."
   ArtifactRootPrefix:
     Type: "String"
-    Description: "Buyer-owned S3 prefix containing staged artifacts. Used as the Marketplace replacement for ArtifactKeyPrefix/DeploymentVersion."
-  DeploymentVersion:
-    Type: "String"
-    Default: "1.0.0"
-    Description: "Application version used by the legacy artifact contract."
+    Description: "Buyer-owned S3 prefix containing staged artifacts."
   ArtifactBucketName:
     Type: "String"
     Description: "S3 bucket that stores staged artifacts for this application."
-  ArtifactKeyPrefix:
-    Type: "String"
-    Default: "wpsuite-cognito"
-    Description: "Legacy artifact key prefix. In Marketplace mode this is derived by the root stack."
   AppName:
     Type: "String"
     Default: "wpsuite-cognito"
@@ -520,13 +500,6 @@ Conditions:
         Fn::Equals:
           -
             Ref: "IdentityPoolName"
-          - ""
-  HasEmailFromAddress:
-    Fn::Not:
-      -
-        Fn::Equals:
-          -
-            Ref: "EmailFromAddress"
           - ""
   CondRequireEmailAttribute:
     Fn::Equals:
@@ -1846,6 +1819,10 @@ Resources:
             Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
     Condition: "CondAttachCustomEmailSender"
 Outputs:
+  TemplateVersion:
+    Description: "Template version used for this nested stack."
+    Value:
+      Ref: "TemplateVersion"
   UserPoolId:
     Description: "Cognito User Pool ID."
     Value:

@@ -944,7 +944,7 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       Code:
-        ZipFile: "\nconst https = require(\"https\");\nconst url = require(\"url\");\nconst { SecretsManagerClient, GetSecretValueCommand } = require(\"@aws-sdk/client-secrets-manager\");\n\nfunction requestJson(endpoint, body) {\n  return new Promise((resolve, reject) => {\n    const parsed = new url.URL(endpoint);\n    const payload = JSON.stringify(body);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"POST\",\n      headers: {\n        \"content-type\": \"application/json\",\n        \"content-length\": Buffer.byteLength(payload)\n      }\n    }, (res) => {\n      let data = \"\";\n      res.on(\"data\", (chunk) => { data += chunk; });\n      res.on(\"end\", () => {\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error(\"WP Suite backend returned \" + res.statusCode));\n          return;\n        }\n        resolve(data ? JSON.parse(data) : {});\n      });\n    });\n    req.on(\"error\", reject);\n    req.write(payload);\n    req.end();\n  });\n}\n\nfunction sendResponse(event, context, status, data, physicalResourceId, reason) {\n  return new Promise((resolve, reject) => {\n    const body = JSON.stringify({\n      Status: status,\n      Reason: reason || (\"See CloudWatch Log Stream: \" + context.logStreamName),\n      PhysicalResourceId: physicalResourceId || context.logStreamName,\n      StackId: event.StackId,\n      RequestId: event.RequestId,\n      LogicalResourceId: event.LogicalResourceId,\n      NoEcho: false,\n      Data: data || {}\n    });\n    const parsed = new url.URL(event.ResponseURL);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"PUT\",\n      headers: {\n        \"content-type\": \"\",\n        \"content-length\": Buffer.byteLength(body)\n      }\n    }, (res) => {\n      res.resume();\n      res.on(\"end\", resolve);\n    });\n    req.on(\"error\", reject);\n    req.write(body);\n    req.end();\n  });\n}\n\nasync function deploymentContext(props) {\n  if (props.DeploymentContextMode === \"direct\") {\n    if (!props.DeploymentId || !props.DeploymentNonce) {\n      throw new Error(\"Direct WP Suite deployment context is incomplete\");\n    }\n    return {\n      deploymentId: props.DeploymentId,\n      nonce: props.DeploymentNonce,\n      expectedAwsAccountId: props.ExpectedAwsAccountId || \"\"\n    };\n  }\n\n  if (!props.DeploymentSecretArn) {\n    throw new Error(\"WP Suite deployment secret ARN is missing\");\n  }\n\n  const secrets = new SecretsManagerClient({});\n  const secret = await secrets.send(new GetSecretValueCommand({\n    SecretId: props.DeploymentSecretArn\n  }));\n  if (!secret.SecretString) {\n    throw new Error(\"WP Suite deployment secret is empty\");\n  }\n\n  const parsed = JSON.parse(secret.SecretString);\n  if (!parsed.deploymentId || !parsed.nonce) {\n    throw new Error(\"WP Suite deployment secret is missing required fields\");\n  }\n  return parsed;\n}\n\nexports.handler = async (event, context) => {\n  const physicalResourceId = event.PhysicalResourceId || \"wpsuite-artifact-stager\";\n  try {\n    if (event.RequestType === \"Delete\") {\n      await sendResponse(event, context, \"SUCCESS\", {}, physicalResourceId);\n      return;\n    }\n\n    const props = event.ResourceProperties || {};\n    const deployment = await deploymentContext(props);\n    const currentAwsAccountId = context.invokedFunctionArn.split(\":\")[4];\n    const response = await requestJson(props.BackendStageArtifactUrl, {\n      requestType: event.RequestType,\n      stackId: event.StackId,\n      requestId: event.RequestId,\n      deploymentId: deployment.deploymentId,\n      nonce: deployment.nonce,\n      awsAccountId: deployment.expectedAwsAccountId || currentAwsAccountId,\n      templateVersion: props.TemplateVersion,\n      topology: props.Topology,\n      stagingBucket: props.TargetBucketName,\n      stagingPrefix: props.TargetPrefix,\n      targetBucketName: props.TargetBucketName,\n      targetPrefix: props.TargetPrefix,\n      artifactIngressRoleArn: props.ArtifactIngressRoleArn,\n      artifactIngressExternalId: props.ArtifactIngressExternalId,\n      region: process.env.AWS_REGION\n    });\n\n    await sendResponse(event, context, \"SUCCESS\", {\n      ArtifactRootPrefix: response.artifactRootPrefix || props.TargetPrefix,\n      TemplateVersion: response.templateVersion || props.TemplateVersion,\n      RuntimeConfigKey: response.runtimeConfigKey || \"\",\n      ManifestKey: response.manifestKey || \"\",\n      ManifestChecksum: response.manifestChecksum || \"\"\n    }, physicalResourceId);\n  } catch (error) {\n    await sendResponse(event, context, \"FAILED\", {}, physicalResourceId, error.message);\n  }\n};\n"
+        ZipFile: "\nconst https = require(\"https\");\nconst url = require(\"url\");\nconst { SecretsManagerClient, GetSecretValueCommand } = require(\"@aws-sdk/client-secrets-manager\");\n\nfunction requestJson(endpoint, body) {\n  return new Promise((resolve, reject) => {\n    const parsed = new url.URL(endpoint);\n    const payload = JSON.stringify(body);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"POST\",\n      headers: {\n        \"content-type\": \"application/json\",\n        \"content-length\": Buffer.byteLength(payload)\n      }\n    }, (res) => {\n      let data = \"\";\n      res.on(\"data\", (chunk) => { data += chunk; });\n      res.on(\"end\", () => {\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error(\"WP Suite backend returned \" + res.statusCode));\n          return;\n        }\n        resolve(data ? JSON.parse(data) : {});\n      });\n    });\n    req.on(\"error\", reject);\n    req.write(payload);\n    req.end();\n  });\n}\n\nfunction sendResponse(event, context, status, data, physicalResourceId, reason) {\n  return new Promise((resolve, reject) => {\n    const body = JSON.stringify({\n      Status: status,\n      Reason: reason || (\"See CloudWatch Log Stream: \" + context.logStreamName),\n      PhysicalResourceId: physicalResourceId || context.logStreamName,\n      StackId: event.StackId,\n      RequestId: event.RequestId,\n      LogicalResourceId: event.LogicalResourceId,\n      NoEcho: false,\n      Data: data || {}\n    });\n    const parsed = new url.URL(event.ResponseURL);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"PUT\",\n      headers: {\n        \"content-type\": \"\",\n        \"content-length\": Buffer.byteLength(body)\n      }\n    }, (res) => {\n      res.resume();\n      res.on(\"end\", resolve);\n    });\n    req.on(\"error\", reject);\n    req.write(body);\n    req.end();\n  });\n}\n\nasync function deploymentContext(props) {\n  if (props.DeploymentContextMode === \"direct\") {\n    if (!props.DeploymentId || !props.DeploymentNonce) {\n      throw new Error(\"Direct WP Suite deployment context is incomplete\");\n    }\n    return {\n      deploymentId: props.DeploymentId,\n      nonce: props.DeploymentNonce,\n      expectedAwsAccountId: props.ExpectedAwsAccountId || \"\"\n    };\n  }\n\n  if (!props.DeploymentSecretArn) {\n    throw new Error(\"WP Suite deployment secret ARN is missing\");\n  }\n\n  const secrets = new SecretsManagerClient({});\n  const secret = await secrets.send(new GetSecretValueCommand({\n    SecretId: props.DeploymentSecretArn\n  }));\n  if (!secret.SecretString) {\n    throw new Error(\"WP Suite deployment secret is empty\");\n  }\n\n  const parsed = JSON.parse(secret.SecretString);\n  if (!parsed.deploymentId || !parsed.nonce) {\n    throw new Error(\"WP Suite deployment secret is missing required fields\");\n  }\n  return parsed;\n}\n\nexports.handler = async (event, context) => {\n  const physicalResourceId = event.PhysicalResourceId || \"wpsuite-artifact-stager\";\n  try {\n    if (event.RequestType === \"Delete\") {\n      await sendResponse(event, context, \"SUCCESS\", {}, physicalResourceId);\n      return;\n    }\n\n    const props = event.ResourceProperties || {};\n    const deployment = await deploymentContext(props);\n    const currentAwsAccountId = context.invokedFunctionArn.split(\":\")[4];\n    const response = await requestJson(props.BackendStageArtifactUrl, {\n      requestType: event.RequestType,\n      stackId: event.StackId,\n      requestId: event.RequestId,\n      deploymentId: deployment.deploymentId,\n      nonce: deployment.nonce,\n      awsAccountId: deployment.expectedAwsAccountId || currentAwsAccountId,\n      templateVersion: props.TemplateVersion,\n      topology: props.Topology,\n      stagingBucket: props.TargetBucketName,\n      stagingPrefix: props.TargetPrefix,\n      targetBucketName: props.TargetBucketName,\n      targetPrefix: props.TargetPrefix,\n      artifactIngressRoleArn: props.ArtifactIngressRoleArn,\n      artifactIngressExternalId: props.ArtifactIngressExternalId,\n      region: process.env.AWS_REGION\n    });\n\n    await sendResponse(event, context, \"SUCCESS\", {\n      ArtifactRootPrefix: response.artifactRootPrefix || props.TargetPrefix,\n      TemplateVersion: response.templateVersion || props.TemplateVersion\n    }, physicalResourceId);\n  } catch (error) {\n    await sendResponse(event, context, \"FAILED\", {}, physicalResourceId, error.message);\n  }\n};\n"
       Handler: "index.handler"
       MemorySize: 256
       Role:
@@ -1012,18 +1012,6 @@ Resources:
           Fn::GetAtt:
             - "ArtifactStager"
             - "ArtifactRootPrefix"
-        RuntimeConfigKey:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "RuntimeConfigKey"
-        ManifestKey:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ManifestKey"
-        ManifestChecksum:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ManifestChecksum"
         LogRetentionDays:
           Ref: "LogRetentionDays"
         AppName:
@@ -1132,62 +1120,12 @@ Resources:
           Fn::GetAtt:
             - "ArtifactStager"
             - "ArtifactRootPrefix"
-        RuntimeConfigKey:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "RuntimeConfigKey"
-        ManifestKey:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ManifestKey"
-        ManifestChecksum:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ManifestChecksum"
         LogRetentionDays:
           Ref: "LogRetentionDays"
-        DeploymentVersion:
-          Ref: "TemplateVersion"
-        ArtifactKeyPrefix:
-          Fn::Join:
-            - ""
-            -
-              -
-                Fn::GetAtt:
-                  - "ArtifactStager"
-                  - "ArtifactRootPrefix"
-              - "wpsuite-ai-kit"
         AppName:
           Ref: "AiKitAppName"
         Environment:
           Ref: "AiKitEnvironment"
-        CognitoUserPoolId:
-          Fn::If:
-            - "CondCreateIdentity"
-            -
-              Fn::GetAtt:
-                - "CognitoNestedStack"
-                - "Outputs.UserPoolId"
-            -
-              Ref: "ExistingUserPoolId"
-        CognitoUserPoolClientId:
-          Fn::If:
-            - "CondCreateIdentity"
-            -
-              Fn::GetAtt:
-                - "CognitoNestedStack"
-                - "Outputs.UserPoolClientId"
-            -
-              Ref: "ExistingUserPoolClientId"
-        CognitoIdentityPoolId:
-          Fn::If:
-            - "CondCreateIdentity"
-            -
-              Fn::GetAtt:
-                - "CognitoNestedStack"
-                - "Outputs.IdentityPoolId"
-            -
-              Ref: "ExistingIdentityPoolId"
         FrontendApiAuthMode:
           Ref: "AiKitFrontendApiAuthMode"
         AdminApiAuthMode:
@@ -1330,31 +1268,8 @@ Resources:
           Fn::GetAtt:
             - "ArtifactStager"
             - "ArtifactRootPrefix"
-        RuntimeConfigKey:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "RuntimeConfigKey"
-        ManifestKey:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ManifestKey"
-        ManifestChecksum:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ManifestChecksum"
         LogRetentionDays:
           Ref: "FlowLogRetentionDays"
-        DeploymentVersion:
-          Ref: "TemplateVersion"
-        ArtifactKeyPrefix:
-          Fn::Join:
-            - ""
-            -
-              -
-                Fn::GetAtt:
-                  - "ArtifactStager"
-                  - "ArtifactRootPrefix"
-              - "wpsuite-flow"
         AppName:
           Ref: "FlowAppName"
         Environment:
@@ -1450,31 +1365,8 @@ Resources:
           Fn::GetAtt:
             - "ArtifactStager"
             - "ArtifactRootPrefix"
-        RuntimeConfigKey:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "RuntimeConfigKey"
-        ManifestKey:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ManifestKey"
-        ManifestChecksum:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ManifestChecksum"
         LogRetentionDays:
           Ref: "StaticGuardianLogRetentionDays"
-        DeploymentVersion:
-          Ref: "TemplateVersion"
-        ArtifactKeyPrefix:
-          Fn::Join:
-            - ""
-            -
-              -
-                Fn::GetAtt:
-                  - "ArtifactStager"
-                  - "ArtifactRootPrefix"
-              - "wpsuite-site-guardian"
         AppName:
           Ref: "StaticGuardianAppName"
         DomainName:
@@ -1490,15 +1382,6 @@ Resources:
                 - "Outputs.UserPoolId"
             -
               Ref: "ExistingUserPoolId"
-        CognitoUserPoolClientId:
-          Fn::If:
-            - "CondCreateIdentity"
-            -
-              Fn::GetAtt:
-                - "CognitoNestedStack"
-                - "Outputs.UserPoolClientId"
-            -
-              Ref: "ExistingUserPoolClientId"
         CognitoAppClientIds:
           Fn::If:
             - "CondCreateIdentity"
