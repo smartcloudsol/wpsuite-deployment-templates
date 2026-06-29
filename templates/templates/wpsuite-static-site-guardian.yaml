@@ -22,7 +22,6 @@ Parameters:
     Description: "Custom domain for CloudFront distribution."
   CertificateArn:
     Type: "String"
-    Default: ""
     Description: "ARN of the SSL certificate in ACM us-east-1."
   CognitoUserPoolId:
     Type: "String"

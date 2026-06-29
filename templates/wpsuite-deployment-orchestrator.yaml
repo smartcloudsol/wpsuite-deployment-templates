@@ -15,7 +15,7 @@ Parameters:
     Description: "S3 key prefix for the reviewed WP Suite CloudFormation templates. The nested templates are resolved below this prefix."
   WpSuiteDeploymentSecretArn:
     Type: "String"
-    Default: ""
+    Default: "arn:aws:secretsmanager:us-east-1:000000000000:secret:wpsuite-placeholder-000000"
     Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
     NoEcho: true
   DeploymentContextMode:
@@ -1105,8 +1105,6 @@ Resources:
             Prefix:
               Ref: "MPS3KeyPrefix"
             TemplatePath: "templates/wpsuite-cognito.yaml"
-    DependsOn:
-      - "ArtifactStager"
     Condition: "CondDeployCognito"
   AiKitBackendNestedStack:
     Type: "AWS::CloudFormation::Stack"
@@ -1253,8 +1251,6 @@ Resources:
             Prefix:
               Ref: "MPS3KeyPrefix"
             TemplatePath: "templates/wpsuite-ai-kit-backend.yaml"
-    DependsOn:
-      - "ArtifactStager"
     Condition: "CondDeployAiKitBackend"
   FlowBackendNestedStack:
     Type: "AWS::CloudFormation::Stack"
@@ -1350,8 +1346,6 @@ Resources:
             Prefix:
               Ref: "MPS3KeyPrefix"
             TemplatePath: "templates/wpsuite-flow-backend.yaml"
-    DependsOn:
-      - "ArtifactStager"
     Condition: "CondDeployFlowBackend"
   StaticGuardianNestedStack:
     Type: "AWS::CloudFormation::Stack"
@@ -1438,8 +1432,6 @@ Resources:
             Prefix:
               Ref: "MPS3KeyPrefix"
             TemplatePath: "templates/wpsuite-static-site-guardian.yaml"
-    DependsOn:
-      - "ArtifactStager"
     Condition: "CondDeployStaticGuardian"
   DeploymentOutputReporterFunction:
     Type: "AWS::Lambda::Function"
@@ -1664,8 +1656,6 @@ Resources:
                   - "StaticGuardianNestedStack"
                   - "Outputs.PrivateKeyParameterName"
               - ""
-    DependsOn:
-      - "ArtifactStager"
 Outputs:
   ArtifactBucketName:
     Description: "Buyer-owned bucket that contains staged WP Suite deployment artifacts."

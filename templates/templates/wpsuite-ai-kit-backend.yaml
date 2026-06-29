@@ -471,11 +471,6 @@ Conditions:
       -
         Ref: "CreateS3Trigger"
       - "true"
-  EnableGuardrails:
-    Fn::Equals:
-      -
-        Ref: "GuardrailsEnabled"
-      - "true"
   UseAdminCognito:
     Fn::Equals:
       -
@@ -1430,137 +1425,92 @@ Resources:
       Endpoints:
         -
           Fn::If:
-            - "HasAnyFrontend"
+            - "HasSummarizerBackendEnabled"
             -
-              Fn::If:
-                - "HasSummarizerBackendEnabled"
-                -
-                  Path: "/frontend/summarize"
-                  Method: "POST"
-                  IntegrationUri:
-                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
-                -
-                  Ref: "AWS::NoValue"
+              Path: "/frontend/summarize"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
             -
               Ref: "AWS::NoValue"
         -
           Fn::If:
-            - "HasAnyFrontend"
+            - "HasChatbotBackendEnabled"
             -
-              Fn::If:
-                - "HasChatbotBackendEnabled"
-                -
-                  Path: "/frontend/kb/metadata-options"
-                  Method: "GET"
-                  IntegrationUri:
-                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
-                -
-                  Ref: "AWS::NoValue"
+              Path: "/frontend/kb/metadata-options"
+              Method: "GET"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
             -
               Ref: "AWS::NoValue"
         -
           Fn::If:
-            - "HasAnyFrontend"
+            - "HasChatbotBackendEnabled"
             -
-              Fn::If:
-                - "HasChatbotBackendEnabled"
-                -
-                  Path: "/frontend/prompt"
-                  Method: "POST"
-                  IntegrationUri:
-                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
-                -
-                  Ref: "AWS::NoValue"
+              Path: "/frontend/prompt"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
             -
               Ref: "AWS::NoValue"
         -
           Fn::If:
-            - "HasAnyFrontend"
+            - "HasChatbotBackendEnabled"
             -
-              Fn::If:
-                - "HasChatbotBackendEnabled"
-                -
-                  Path: "/frontend/generate-upload-url"
-                  Method: "GET"
-                  IntegrationUri:
-                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
-                -
-                  Ref: "AWS::NoValue"
+              Path: "/frontend/generate-upload-url"
+              Method: "GET"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
             -
               Ref: "AWS::NoValue"
         -
           Fn::If:
-            - "HasAnyFrontend"
+            - "HasLanguageAIBackendEnabled"
             -
-              Fn::If:
-                - "HasLanguageAIBackendEnabled"
-                -
-                  Path: "/frontend/write"
-                  Method: "POST"
-                  IntegrationUri:
-                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
-                -
-                  Ref: "AWS::NoValue"
+              Path: "/frontend/write"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
             -
               Ref: "AWS::NoValue"
         -
           Fn::If:
-            - "HasAnyFrontend"
+            - "HasLanguageAIBackendEnabled"
             -
-              Fn::If:
-                - "HasLanguageAIBackendEnabled"
-                -
-                  Path: "/frontend/rewrite"
-                  Method: "POST"
-                  IntegrationUri:
-                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
-                -
-                  Ref: "AWS::NoValue"
+              Path: "/frontend/rewrite"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
             -
               Ref: "AWS::NoValue"
         -
           Fn::If:
-            - "HasAnyFrontend"
+            - "HasLanguageAIBackendEnabled"
             -
-              Fn::If:
-                - "HasLanguageAIBackendEnabled"
-                -
-                  Path: "/frontend/translate"
-                  Method: "POST"
-                  IntegrationUri:
-                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
-                -
-                  Ref: "AWS::NoValue"
+              Path: "/frontend/translate"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
             -
               Ref: "AWS::NoValue"
         -
           Fn::If:
-            - "HasAnyFrontend"
+            - "HasLanguageAIBackendEnabled"
             -
-              Fn::If:
-                - "HasLanguageAIBackendEnabled"
-                -
-                  Path: "/frontend/proofread"
-                  Method: "POST"
-                  IntegrationUri:
-                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
-                -
-                  Ref: "AWS::NoValue"
+              Path: "/frontend/proofread"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
             -
               Ref: "AWS::NoValue"
         -
           Fn::If:
-            - "HasAnyFrontend"
+            - "HasLanguageAIBackendEnabled"
             -
-              Fn::If:
-                - "HasLanguageAIBackendEnabled"
-                -
-                  Path: "/frontend/detect-language"
-                  Method: "POST"
-                  IntegrationUri:
-                    Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
-                -
-                  Ref: "AWS::NoValue"
+              Path: "/frontend/detect-language"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
             -
               Ref: "AWS::NoValue"
     DependsOn:
@@ -2846,8 +2796,6 @@ Resources:
         Fn::GetAtt:
           - "AiAgentDispatcherEventRule"
           - "Arn"
-    DependsOn:
-      - "AiAgentDispatcherEventRule"
   AiEmailIntakeDispatcherLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -3138,7 +3086,6 @@ Resources:
                   - "apigateway:PATCH"
                   - "apigateway:DELETE"
                   - "apigateway:SetWebACL"
-                  - "apigateway:RemoveWebACL"
                 Resource:
                   -
                     Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/account"
@@ -3461,6 +3408,7 @@ Resources:
                   Fn::GetAtt:
                     - "KBSyncStateTable"
                     - "Arn"
+    Condition: "S3TriggerEnabled"
   KnowledgeBaseSyncFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -3644,6 +3592,7 @@ Resources:
               - "lambda:InvokeFunction"
             Resource:
               Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
+    Condition: "S3TriggerEnabled"
   KBSyncScheduleRole:
     Type: "AWS::IAM::Role"
     Properties:

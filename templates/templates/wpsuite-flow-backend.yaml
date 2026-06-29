@@ -863,7 +863,6 @@ Resources:
                   - "apigateway:PATCH"
                   - "apigateway:DELETE"
                   - "apigateway:SetWebACL"
-                  - "apigateway:RemoveWebACL"
                 Resource:
                   -
                     Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/account"
@@ -2376,8 +2375,6 @@ Resources:
         Fn::GetAtt:
           - "WorkflowDispatcherEventRule"
           - "Arn"
-    DependsOn:
-      - "WorkflowDispatcherEventRule"
   EmailSenderLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -2605,8 +2602,6 @@ Resources:
         Fn::GetAtt:
           - "EmailSenderEventRule"
           - "Arn"
-    DependsOn:
-      - "EmailSenderEventRule"
   WebhookDispatcherLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -2818,8 +2813,6 @@ Resources:
         Fn::GetAtt:
           - "WebhookDispatcherEventRule"
           - "Arn"
-    DependsOn:
-      - "WebhookDispatcherEventRule"
   WebhookDispatcherFunctionKmsPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
