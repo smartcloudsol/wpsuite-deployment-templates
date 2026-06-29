@@ -3,7 +3,7 @@ Description: "WP Suite Site Guardian nested template for Marketplace Deployment 
 Parameters:
   TemplateVersion:
     Type: "String"
-    Default: "v0.1.0"
+    Default: "v1.0.0"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"

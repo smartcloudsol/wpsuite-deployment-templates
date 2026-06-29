@@ -3,7 +3,7 @@ Description: "WP Suite Cognito nested template for Marketplace Deployment Access
 Parameters:
   TemplateVersion:
     Type: "String"
-    Default: "v0.1.0"
+    Default: "v1.0.0"
     Description: "Immutable WP Suite deployment template version."
   RuntimeConfigKey:
     Type: "String"
@@ -22,7 +22,7 @@ Parameters:
     Description: "Buyer-owned S3 prefix containing staged artifacts. Used as the Marketplace replacement for ArtifactKeyPrefix/DeploymentVersion."
   DeploymentVersion:
     Type: "String"
-    Default: "0.1.0"
+    Default: "1.0.0"
     Description: "Application version used by the legacy artifact contract."
   ArtifactBucketName:
     Type: "String"

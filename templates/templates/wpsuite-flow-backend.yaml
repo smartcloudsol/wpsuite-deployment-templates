@@ -3,7 +3,7 @@ Description: "WP Suite Flow backend nested template for Marketplace Deployment A
 Parameters:
   TemplateVersion:
     Type: "String"
-    Default: "v0.1.0"
+    Default: "v1.0.0"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
