@@ -11,8 +11,8 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.0/templates"
-    Description: "S3 key prefix for the reviewed WP Suite CloudFormation templates. The nested templates are resolved below this prefix."
+    Default: "releases/v1.0.0/templates/templates"
+    Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
     Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
@@ -1103,7 +1103,7 @@ Resources:
               Ref: "MPS3BucketRegion"
             Prefix:
               Ref: "MPS3KeyPrefix"
-            TemplatePath: "templates/wpsuite-cognito.yaml"
+            TemplatePath: "wpsuite-cognito.yaml"
     Condition: "CondDeployCognito"
   AiKitBackendNestedStack:
     Type: "AWS::CloudFormation::Stack"
@@ -1249,7 +1249,7 @@ Resources:
               Ref: "MPS3BucketRegion"
             Prefix:
               Ref: "MPS3KeyPrefix"
-            TemplatePath: "templates/wpsuite-ai-kit-backend.yaml"
+            TemplatePath: "wpsuite-ai-kit-backend.yaml"
     Condition: "CondDeployAiKitBackend"
   FlowBackendNestedStack:
     Type: "AWS::CloudFormation::Stack"
@@ -1344,7 +1344,7 @@ Resources:
               Ref: "MPS3BucketRegion"
             Prefix:
               Ref: "MPS3KeyPrefix"
-            TemplatePath: "templates/wpsuite-flow-backend.yaml"
+            TemplatePath: "wpsuite-flow-backend.yaml"
     Condition: "CondDeployFlowBackend"
   StaticGuardianNestedStack:
     Type: "AWS::CloudFormation::Stack"
@@ -1430,7 +1430,7 @@ Resources:
               Ref: "MPS3BucketRegion"
             Prefix:
               Ref: "MPS3KeyPrefix"
-            TemplatePath: "templates/wpsuite-static-site-guardian.yaml"
+            TemplatePath: "wpsuite-static-site-guardian.yaml"
     Condition: "CondDeployStaticGuardian"
   DeploymentOutputReporterFunction:
     Type: "AWS::Lambda::Function"
