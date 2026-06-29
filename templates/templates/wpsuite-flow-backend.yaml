@@ -942,52 +942,6 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
-                  - "s3:ListBucket"
-                  - "s3:ListBucketVersions"
-                  - "s3:ListBucketMultipartUploads"
-                Resource:
-                  -
-                    Fn::If:
-                      - "CreateTemplatesBucket"
-                      -
-                        Fn::GetAtt:
-                          - "TemplatesBucket"
-                          - "Arn"
-                      -
-                        Ref: "AWS::NoValue"
-                  -
-                    Fn::If:
-                      - "CreatePayloadBucket"
-                      -
-                        Fn::GetAtt:
-                          - "PayloadBucket"
-                          - "Arn"
-                      -
-                        Ref: "AWS::NoValue"
-              -
-                Effect: "Allow"
-                Action:
-                  - "s3:DeleteObject"
-                  - "s3:DeleteObjectVersion"
-                  - "s3:AbortMultipartUpload"
-                Resource:
-                  -
-                    Fn::If:
-                      - "CreateTemplatesBucket"
-                      -
-                        Fn::Sub: "${TemplatesBucket.Arn}/*"
-                      -
-                        Ref: "AWS::NoValue"
-                  -
-                    Fn::If:
-                      - "CreatePayloadBucket"
-                      -
-                        Fn::Sub: "${PayloadBucket.Arn}/*"
-                      -
-                        Ref: "AWS::NoValue"
-              -
-                Effect: "Allow"
-                Action:
                   - "iam:PassRole"
                 Resource:
                   -
@@ -1003,22 +957,98 @@ Resources:
                           - "Arn"
                       -
                         Ref: "AWS::NoValue"
-              -
-                Effect: "Allow"
-                Action:
-                  - "kms:Decrypt"
-                  - "kms:DescribeKey"
-                  - "kms:Encrypt"
-                  - "kms:GenerateDataKey"
-                Resource:
-                  Fn::If:
-                    - "CreateKmsKey"
-                    -
-                      Fn::GetAtt:
-                        - "SecretsKmsKey"
-                        - "Arn"
-                    -
-                      Ref: "AWS::NoValue"
+  CustomResourceManagerTemplatesBucketCleanupPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "CustomResourceManagerTemplatesBucketCleanupPolicy"
+      Roles:
+        -
+          Ref: "CustomResourceManagerFunctionRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:ListBucket"
+              - "s3:ListBucketVersions"
+              - "s3:ListBucketMultipartUploads"
+            Resource:
+              Fn::GetAtt:
+                - "TemplatesBucket"
+                - "Arn"
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:DeleteObject"
+              - "s3:DeleteObjectVersion"
+              - "s3:AbortMultipartUpload"
+            Resource:
+              Fn::Sub:
+                - "${BucketArn}/*"
+                -
+                  BucketArn:
+                    Fn::GetAtt:
+                      - "TemplatesBucket"
+                      - "Arn"
+    Condition: "CreateTemplatesBucket"
+  CustomResourceManagerPayloadBucketCleanupPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "CustomResourceManagerPayloadBucketCleanupPolicy"
+      Roles:
+        -
+          Ref: "CustomResourceManagerFunctionRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:ListBucket"
+              - "s3:ListBucketVersions"
+              - "s3:ListBucketMultipartUploads"
+            Resource:
+              Fn::GetAtt:
+                - "PayloadBucket"
+                - "Arn"
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:DeleteObject"
+              - "s3:DeleteObjectVersion"
+              - "s3:AbortMultipartUpload"
+            Resource:
+              Fn::Sub:
+                - "${BucketArn}/*"
+                -
+                  BucketArn:
+                    Fn::GetAtt:
+                      - "PayloadBucket"
+                      - "Arn"
+    Condition: "CreatePayloadBucket"
+  CustomResourceManagerFunctionKmsPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "CustomResourceManagerFunctionKmsPolicy"
+      Roles:
+        -
+          Ref: "CustomResourceManagerFunctionRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+            Resource:
+              Fn::GetAtt:
+                - "SecretsKmsKey"
+                - "Arn"
+    Condition: "CreateKmsKey"
   CustomResourceManagerFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -1727,22 +1757,28 @@ Resources:
                   - "events:PutEvents"
                   - "ssm:GetParameter"
                 Resource: "*"
-              -
-                Effect: "Allow"
-                Action:
-                  - "kms:Decrypt"
-                  - "kms:DescribeKey"
-                  - "kms:Encrypt"
-                  - "kms:GenerateDataKey"
-                Resource:
-                  Fn::If:
-                    - "CreateKmsKey"
-                    -
-                      Fn::GetAtt:
-                        - "SecretsKmsKey"
-                        - "Arn"
-                    -
-                      Ref: "AWS::NoValue"
+  FormsApiFunctionKmsPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "FormsApiFunctionKmsPolicy"
+      Roles:
+        -
+          Ref: "FormsApiFunctionRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+            Resource:
+              Fn::GetAtt:
+                - "SecretsKmsKey"
+                - "Arn"
+    Condition: "CreateKmsKey"
   FormsApiFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2645,22 +2681,6 @@ Resources:
                   - "ssm:GetParameter"
                   - "events:PutEvents"
                 Resource: "*"
-              -
-                Effect: "Allow"
-                Action:
-                  - "kms:Decrypt"
-                  - "kms:DescribeKey"
-                  - "kms:Encrypt"
-                  - "kms:GenerateDataKey"
-                Resource:
-                  Fn::If:
-                    - "CreateKmsKey"
-                    -
-                      Fn::GetAtt:
-                        - "SecretsKmsKey"
-                        - "Arn"
-                    -
-                      Ref: "AWS::NoValue"
   WebhookDispatcherFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2780,6 +2800,28 @@ Resources:
           - "Arn"
     DependsOn:
       - "WebhookDispatcherEventRule"
+  WebhookDispatcherFunctionKmsPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "WebhookDispatcherFunctionKmsPolicy"
+      Roles:
+        -
+          Ref: "WebhookDispatcherFunctionRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+            Resource:
+              Fn::GetAtt:
+                - "SecretsKmsKey"
+                - "Arn"
+    Condition: "CreateKmsKey"
 Outputs:
   TemplateFamily:
     Description: "Template family identifier."

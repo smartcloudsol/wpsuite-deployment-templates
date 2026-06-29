@@ -280,10 +280,15 @@ Resources:
                   - "cloudfront:UpdateResponseHeadersPolicy"
                   - "cloudfront:DeleteResponseHeadersPolicy"
                   - "cloudfront:GetResponseHeadersPolicy"
-                  - "cloudfront:UpdateDistribution"
                   - "cloudfront:GetDistribution"
                   - "cloudfront:GetDistributionConfig"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "cloudfront:UpdateDistribution"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*"
               -
                 Effect: "Allow"
                 Action:

@@ -1,5 +1,13 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite Cognito nested template for Marketplace Deployment Access"
+Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - "W2030"
+  wpsuite:
+    cfnLintSuppressions:
+      W2030: "SubjectTemplateForgotPassword is an email subject template, not a password or secret."
 Parameters:
   TemplateVersion:
     Type: "String"
