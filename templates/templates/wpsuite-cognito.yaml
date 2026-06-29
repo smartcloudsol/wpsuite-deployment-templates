@@ -1,13 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite Cognito nested template for Marketplace Deployment Access"
-Metadata:
-  cfn-lint:
-    config:
-      ignore_checks:
-        - "W2030"
-  wpsuite:
-    cfnLintSuppressions:
-      W2030: "SubjectTemplateForgotPassword is an email subject template, not a password or secret."
 Parameters:
   TemplateVersion:
     Type: "String"
@@ -46,7 +38,7 @@ Parameters:
     Description: "Short application name used as the prefix for generated AWS resource names."
   LogRetentionDays:
     Type: "Number"
-    Default: 14
+    Default: "14"
     AllowedValues:
       - "1"
       - "3"
@@ -258,10 +250,10 @@ Parameters:
     Type: "String"
     Default: "Your confirmation code"
     Description: "Subject line for the resend confirmation code email."
-  SubjectTemplateForgotPassword:
+  SubjectTemplateAccountRecovery:
     Type: "String"
     Default: "Reset your password"
-    Description: "Subject line for the forgot password email."
+    Description: "Subject line for the account recovery email."
   SubjectTemplateAdminCreate:
     Type: "String"
     Default: "Your account has been created"
@@ -1625,7 +1617,7 @@ Resources:
           SUBJECT_RESEND_CODE:
             Ref: "SubjectTemplateResendCode"
           SUBJECT_FORGOT_PASSWORD:
-            Ref: "SubjectTemplateForgotPassword"
+            Ref: "SubjectTemplateAccountRecovery"
           SUBJECT_ADMIN_CREATE:
             Ref: "SubjectTemplateAdminCreate"
           SUBJECT_VERIFY_ATTRIBUTE:
