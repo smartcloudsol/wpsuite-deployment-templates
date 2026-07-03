@@ -6,7 +6,9 @@ This repository intentionally contains only the public deployment definitions th
 
 ## What is included
 
-- `templates/wpsuite-deployment-orchestrator.yaml` — the root CloudFormation template used by the Marketplace deployment flow.
+- `templates/wpsuite-deployment-orchestrator.yaml` — the minimal root CloudFormation template used by AWS Marketplace Quick Launch.
+- `templates/wpsuite-deployment-orchestrator-direct.yaml` — the full-parameter root template used by WP Suite console / agency-credit CloudFormation launches.
+- `templates/templates/*-wrapper.yaml` — Marketplace wrapper templates that read deployment configuration from the AWS Marketplace deployment secret and forward it to the real nested templates.
 - `templates/templates/wpsuite-cognito.yaml` — optional Cognito and identity foundation.
 - `templates/templates/wpsuite-ai-kit-backend.yaml` — optional AI Kit backend resources.
 - `templates/templates/wpsuite-flow-backend.yaml` — optional Flow backend resources.
@@ -29,7 +31,10 @@ This repository does not include:
 
 ## Deployment model
 
-The deployment wizard collects configuration, then launches the root CloudFormation template. The root stack conditionally creates nested stacks based on the selected components.
+The deployment wizard collects configuration, then either publishes the configuration
+as an AWS Marketplace deployment parameter for Quick Launch or opens a direct
+CloudFormation launch URL for agency-credit launches. The root stack
+conditionally creates nested stacks based on the selected components.
 
 The public templates let buyers and reviewers inspect:
 

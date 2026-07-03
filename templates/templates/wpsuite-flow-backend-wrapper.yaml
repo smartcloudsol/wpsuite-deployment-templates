@@ -1,0 +1,591 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "WP Suite Flow backend Marketplace deployment wrapper template"
+Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  MPS3BucketName:
+    Type: "String"
+    Description: "Public S3 bucket that contains the reviewed WP Suite CloudFormation templates."
+  MPS3BucketRegion:
+    Type: "String"
+    Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
+  MPS3KeyPrefix:
+    Type: "String"
+    Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
+  WpSuiteDeploymentSecretArn:
+    Type: "String"
+    Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
+    NoEcho: true
+  DeploymentContextMode:
+    Type: "String"
+    Default: "direct"
+    AllowedValues:
+      - "marketplace_secret"
+      - "direct"
+    Description: "How this wrapper receives the WP Suite deployment context."
+  TemplateVersion:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter TemplateVersion."
+  ArtifactBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ArtifactBucketName."
+  ArtifactRootPrefix:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ArtifactRootPrefix."
+  LogRetentionDays:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter LogRetentionDays."
+  Enabled:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter Enabled."
+  AppName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AppName."
+  Environment:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter Environment."
+  FrontendApiAuthMode:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter FrontendApiAuthMode."
+  AdminApiAuthMode:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AdminApiAuthMode."
+  AdminCognitoUserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AdminCognitoUserPoolId."
+  AdminCognitoAuthScopes:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AdminCognitoAuthScopes."
+  PayloadBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter PayloadBucketName."
+  TemplatesBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter TemplatesBucketName."
+  FromEmail:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter FromEmail."
+  EnableRecaptcha:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableRecaptcha."
+  RecaptchaMode:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter RecaptchaMode."
+  RecaptchaProjectId:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter RecaptchaProjectId."
+  RecaptchaSiteKey:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter RecaptchaSiteKey."
+  RecaptchaSecretKey:
+    Type: "String"
+    Description: "Forwarded WP Suite nested stack parameter RecaptchaSecretKey."
+    NoEcho: true
+  RecaptchaScoreThreshold:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter RecaptchaScoreThreshold."
+  EnableWAF:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableWAF."
+  EnableKmsForSecrets:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableKmsForSecrets."
+  DataRetentionDays:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter DataRetentionDays."
+  PayloadPrefix:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter PayloadPrefix."
+  TemplatesPrefix:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter TemplatesPrefix."
+  DefaultWebhookSigningSecret:
+    Type: "String"
+    Description: "Forwarded WP Suite nested stack parameter DefaultWebhookSigningSecret."
+    NoEcho: true
+  ApiCustomDomainName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ApiCustomDomainName."
+  AcmCertificateArn:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AcmCertificateArn."
+  EnableRoute53:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableRoute53."
+  EnableGuardDutyMalwareProtection:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableGuardDutyMalwareProtection."
+  LambdaMemorySize:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter LambdaMemorySize."
+  LambdaTimeout:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter LambdaTimeout."
+  LogLevel:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter LogLevel."
+  PublicAllowedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter PublicAllowedIPs."
+  AdminAllowedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AdminAllowedIPs."
+  BlockedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter BlockedIPs."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+Conditions:
+  CondUseMarketplaceSecret:
+    Fn::Equals:
+      -
+        Ref: "DeploymentContextMode"
+      - "marketplace_secret"
+Resources:
+  WrappedNestedStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        PrmTagValue:
+          Ref: "PrmTagValue"
+        TemplateVersion:
+          Ref: "TemplateVersion"
+        ArtifactBucketName:
+          Ref: "ArtifactBucketName"
+        ArtifactRootPrefix:
+          Ref: "ArtifactRootPrefix"
+        LogRetentionDays:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowLogRetentionDays}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "LogRetentionDays"
+        Enabled:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployFlowBackend}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "Enabled"
+        AppName:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowAppName}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AppName"
+        Environment:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnvironment}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "Environment"
+        FrontendApiAuthMode:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowFrontendApiAuthMode}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "FrontendApiAuthMode"
+        AdminApiAuthMode:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowAdminApiAuthMode}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AdminApiAuthMode"
+        AdminCognitoUserPoolId:
+          Ref: "AdminCognitoUserPoolId"
+        AdminCognitoAuthScopes:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowAdminCognitoAuthScopes}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AdminCognitoAuthScopes"
+        PayloadBucketName:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowPayloadBucketName}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "PayloadBucketName"
+        TemplatesBucketName:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowTemplatesBucketName}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "TemplatesBucketName"
+        FromEmail:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowFromEmail}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "FromEmail"
+        EnableRecaptcha:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnableRecaptcha}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableRecaptcha"
+        RecaptchaMode:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaMode}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "RecaptchaMode"
+        RecaptchaProjectId:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaProjectId}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "RecaptchaProjectId"
+        RecaptchaSiteKey:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaSiteKey}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "RecaptchaSiteKey"
+        RecaptchaSecretKey:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaSecretKey}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "RecaptchaSecretKey"
+        RecaptchaScoreThreshold:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaScoreThreshold}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "RecaptchaScoreThreshold"
+        EnableWAF:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnableWAF}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableWAF"
+        EnableKmsForSecrets:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnableKmsForSecrets}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableKmsForSecrets"
+        DataRetentionDays:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowDataRetentionDays}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "DataRetentionDays"
+        PayloadPrefix:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowPayloadPrefix}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "PayloadPrefix"
+        TemplatesPrefix:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowTemplatesPrefix}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "TemplatesPrefix"
+        DefaultWebhookSigningSecret:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowDefaultWebhookSigningSecret}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "DefaultWebhookSigningSecret"
+        ApiCustomDomainName:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowApiCustomDomainName}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "ApiCustomDomainName"
+        AcmCertificateArn:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowAcmCertificateArn}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AcmCertificateArn"
+        EnableRoute53:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnableRoute53}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableRoute53"
+        EnableGuardDutyMalwareProtection:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnableGuardDutyMalwareProtection}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableGuardDutyMalwareProtection"
+        LambdaMemorySize:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowLambdaMemorySize}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "LambdaMemorySize"
+        LambdaTimeout:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowLambdaTimeout}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "LambdaTimeout"
+        LogLevel:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowLogLevel}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "LogLevel"
+        PublicAllowedIPs:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowPublicAllowedIPs}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "PublicAllowedIPs"
+        AdminAllowedIPs:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowAdminAllowedIPs}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AdminAllowedIPs"
+        BlockedIPs:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowBlockedIPs}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "BlockedIPs"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      TemplateURL:
+        Fn::Sub:
+          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
+          -
+            Bucket:
+              Ref: "MPS3BucketName"
+            Region:
+              Ref: "MPS3BucketRegion"
+            Prefix:
+              Ref: "MPS3KeyPrefix"
+            TemplatePath: "wpsuite-flow-backend.yaml"
+Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
+  ApiUrl:
+    Description: "Forwarded ApiUrl output from wpsuite-flow-backend.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.ApiUrl"
+  TemplatesBucketOutput:
+    Description: "Forwarded TemplatesBucketOutput output from wpsuite-flow-backend.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.TemplatesBucketOutput"
+  PayloadBucketOutput:
+    Description: "Forwarded PayloadBucketOutput output from wpsuite-flow-backend.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.PayloadBucketOutput"

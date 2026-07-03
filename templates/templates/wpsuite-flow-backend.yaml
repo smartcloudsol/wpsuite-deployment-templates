@@ -6,9 +6,16 @@ Parameters:
     Default: "pc:5d8wq5hg1d54kb933ntenntiu"
     AllowedPattern: "^pc:[a-z0-9]+$"
     Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  Enabled:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.2"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -214,6 +221,11 @@ Mappings:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
+  TemplateEnabled:
+    Fn::Equals:
+      -
+        Ref: "Enabled"
+      - "true"
   UseCustomDomain:
     Fn::Not:
       -
@@ -348,6 +360,186 @@ Conditions:
           -
             Ref: "DefaultWebhookSigningSecret"
           - ""
+  ApiDomainNameTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseCustomDomain"
+  AdminAuthorizerTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseAdminCognito"
+  SecretsKmsKeyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateKmsKey"
+  SecretsKmsAliasTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateKmsKey"
+  TemplatesBucketTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateTemplatesBucket"
+  PayloadBucketTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreatePayloadBucket"
+  TemplatesBucketCleanerTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateTemplatesBucket"
+  PayloadBucketCleanerTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreatePayloadBucket"
+  CustomResourceManagerTemplatesBucketCleanupPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateTemplatesBucket"
+  CustomResourceManagerPayloadBucketCleanupPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreatePayloadBucket"
+  CustomResourceManagerFunctionKmsPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateKmsKey"
+  RecaptchaSecretParameterTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableRecaptchaProtection"
+  DefaultWebhookSigningSecretParameterTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasDefaultWebhookSigningSecret"
+  GuardDutyMalwareProtectionRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "GuardDutyMalwareProtectionEnabled"
+  GuardDutyMalwareProtectionPlanTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "GuardDutyMalwareProtectionEnabled"
+  PublicAllowedIpSetTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasPublicAllowedIPs"
+  AdminAllowedIpSetTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasAdminAllowedIPs"
+  BlockedIpSetTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasBlockedIPs"
+  WebAclTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "WAFEnabled"
+  FormsApiFunctionKmsPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateKmsKey"
+  ApiBasePathMappingTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseCustomDomain"
+  HostedZoneLookupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseRoute53"
+  DnsRecordATemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseRoute53"
+  DnsRecordAAAATemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseRoute53"
+  WebAclAssociationTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "WAFEnabled"
+  WebhookDispatcherFunctionKmsPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateKmsKey"
+  OutputRecaptchaSecretParameterNameTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableRecaptchaProtection"
+  OutputCustomDomainUrlTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseCustomDomain"
+  OutputRegionalDomainNameTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseCustomDomain"
+  OutputRegionalHostedZoneIdTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseCustomDomain"
 Resources:
   ApiGatewayCloudWatchLogsRole:
     Type: "AWS::IAM::Role"
@@ -368,6 +560,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   ApiGatewayAccountConfig:
     Type: "Custom::ApiGatewayAccount"
     Properties:
@@ -379,6 +572,7 @@ Resources:
         Fn::GetAtt:
           - "ApiGatewayCloudWatchLogsRole"
           - "Arn"
+    Condition: "TemplateEnabled"
   RestApi:
     Type: "AWS::ApiGateway::RestApi"
     Properties:
@@ -396,6 +590,7 @@ Resources:
             Ref: "PrmTagValue"
     DependsOn:
       - "ApiGatewayAccountConfig"
+    Condition: "TemplateEnabled"
   ApiDomainName:
     Type: "AWS::ApiGateway::DomainName"
     Properties:
@@ -412,7 +607,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "UseCustomDomain"
+    Condition: "ApiDomainNameTemplateEnabledCondition"
   AdminAuthorizer:
     Type: "Custom::ApiAuthorizer"
     Properties:
@@ -429,7 +624,7 @@ Resources:
       ProviderARNs:
         -
           Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${AdminCognitoUserPoolId}"
-    Condition: "UseAdminCognito"
+    Condition: "AdminAuthorizerTemplateEnabledCondition"
   DeadLetterQueue:
     Type: "AWS::SQS::Queue"
     Properties:
@@ -441,6 +636,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   SecretsKmsKey:
     Type: "AWS::KMS::Key"
     Properties:
@@ -506,7 +702,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CreateKmsKey"
+    Condition: "SecretsKmsKeyTemplateEnabledCondition"
   SecretsKmsAlias:
     Type: "AWS::KMS::Alias"
     Properties:
@@ -514,7 +710,7 @@ Resources:
         Fn::Sub: "alias/${AppName}-${Environment}-secrets"
       TargetKeyId:
         Ref: "SecretsKmsKey"
-    Condition: "CreateKmsKey"
+    Condition: "SecretsKmsAliasTemplateEnabledCondition"
   TemplatesBucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -541,7 +737,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CreateTemplatesBucket"
+    Condition: "TemplatesBucketTemplateEnabledCondition"
   PayloadBucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -568,7 +764,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CreatePayloadBucket"
+    Condition: "PayloadBucketTemplateEnabledCondition"
   TemplatesBucketCleaner:
     Type: "Custom::BucketCleaner"
     Properties:
@@ -578,7 +774,7 @@ Resources:
           - "Arn"
       BucketName:
         Ref: "TemplatesBucket"
-    Condition: "CreateTemplatesBucket"
+    Condition: "TemplatesBucketCleanerTemplateEnabledCondition"
   PayloadBucketCleaner:
     Type: "Custom::BucketCleaner"
     Properties:
@@ -588,7 +784,7 @@ Resources:
           - "Arn"
       BucketName:
         Ref: "PayloadBucket"
-    Condition: "CreatePayloadBucket"
+    Condition: "PayloadBucketCleanerTemplateEnabledCondition"
   SubmissionsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -669,6 +865,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   SubmissionEventsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -694,6 +891,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   TemplatesTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -737,6 +935,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   WorkflowDefinitionsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -780,6 +979,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   FormDefinitionsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -823,6 +1023,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   WebhookEndpointsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -866,6 +1067,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   ProcessMapsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -909,6 +1111,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CustomResourceManagerFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1020,6 +1223,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CustomResourceManagerTemplatesBucketCleanupPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -1054,7 +1258,7 @@ Resources:
                     Fn::GetAtt:
                       - "TemplatesBucket"
                       - "Arn"
-    Condition: "CreateTemplatesBucket"
+    Condition: "CustomResourceManagerTemplatesBucketCleanupPolicyTemplateEnabledCondition"
   CustomResourceManagerPayloadBucketCleanupPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -1089,7 +1293,7 @@ Resources:
                     Fn::GetAtt:
                       - "PayloadBucket"
                       - "Arn"
-    Condition: "CreatePayloadBucket"
+    Condition: "CustomResourceManagerPayloadBucketCleanupPolicyTemplateEnabledCondition"
   CustomResourceManagerFunctionKmsPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -1111,7 +1315,7 @@ Resources:
               Fn::GetAtt:
                 - "SecretsKmsKey"
                 - "Arn"
-    Condition: "CreateKmsKey"
+    Condition: "CustomResourceManagerFunctionKmsPolicyTemplateEnabledCondition"
   CustomResourceManagerFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -1126,10 +1330,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-flow/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/custom-resource.zip"
+              - "wpsuite-flow/functions/custom-resource.zip"
       Handler: "index.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -1205,6 +1406,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CustomResourceManagerLogGroupManager:
     Type: "Custom::LogGroupManager"
     Properties:
@@ -1216,6 +1418,7 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-${Environment}-custom-resource-manager"
       RetentionInDays:
         Ref: "LogRetentionDays"
+    Condition: "TemplateEnabled"
   RecaptchaSecretParameter:
     Type: "Custom::SSMParameter"
     Properties:
@@ -1234,7 +1437,7 @@ Resources:
             Ref: "SecretsKmsKey"
           -
             Ref: "AWS::NoValue"
-    Condition: "EnableRecaptchaProtection"
+    Condition: "RecaptchaSecretParameterTemplateEnabledCondition"
   DefaultWebhookSigningSecretParameter:
     Type: "Custom::SSMParameter"
     Properties:
@@ -1253,7 +1456,7 @@ Resources:
             Ref: "SecretsKmsKey"
           -
             Ref: "AWS::NoValue"
-    Condition: "HasDefaultWebhookSigningSecret"
+    Condition: "DefaultWebhookSigningSecretParameterTemplateEnabledCondition"
   GuardDutyMalwareProtectionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1326,7 +1529,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "GuardDutyMalwareProtectionEnabled"
+    Condition: "GuardDutyMalwareProtectionRoleTemplateEnabledCondition"
   GuardDutyMalwareProtectionPlan:
     Type: "Custom::GuardDutyMalwareProtectionPlan"
     Properties:
@@ -1359,7 +1562,7 @@ Resources:
           Key: "Environment"
           Value:
             Ref: "Environment"
-    Condition: "GuardDutyMalwareProtectionEnabled"
+    Condition: "GuardDutyMalwareProtectionPlanTemplateEnabledCondition"
   PublicAllowedIpSet:
     Type: "Custom::WafIPSet"
     Properties:
@@ -1376,7 +1579,7 @@ Resources:
           - ","
           -
             Ref: "PublicAllowedIPs"
-    Condition: "HasPublicAllowedIPs"
+    Condition: "PublicAllowedIpSetTemplateEnabledCondition"
   AdminAllowedIpSet:
     Type: "Custom::WafIPSet"
     Properties:
@@ -1393,7 +1596,7 @@ Resources:
           - ","
           -
             Ref: "AdminAllowedIPs"
-    Condition: "HasAdminAllowedIPs"
+    Condition: "AdminAllowedIpSetTemplateEnabledCondition"
   BlockedIpSet:
     Type: "Custom::WafIPSet"
     Properties:
@@ -1410,7 +1613,7 @@ Resources:
           - ","
           -
             Ref: "BlockedIPs"
-    Condition: "HasBlockedIPs"
+    Condition: "BlockedIpSetTemplateEnabledCondition"
   WebAcl:
     Type: "Custom::WafWebACL"
     Properties:
@@ -1634,7 +1837,7 @@ Resources:
             CloudWatchMetricsEnabled: true
             MetricName:
               Fn::Sub: "${AppName}-${Environment}-admin-rate-limit"
-    Condition: "WAFEnabled"
+    Condition: "WebAclTemplateEnabledCondition"
   FormsApiLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -1647,6 +1850,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   FormsApiFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1832,6 +2036,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   FormsApiFunctionKmsPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -1853,7 +2058,7 @@ Resources:
               Fn::GetAtt:
                 - "SecretsKmsKey"
                 - "Arn"
-    Condition: "CreateKmsKey"
+    Condition: "FormsApiFunctionKmsPolicyTemplateEnabledCondition"
   FormsApiFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -1868,10 +2073,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-flow/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/forms-api.zip"
+              - "wpsuite-flow/functions/forms-api.zip"
       Handler: "index.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -1965,6 +2167,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   FormsApiInvokePermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -1974,6 +2177,7 @@ Resources:
       Principal: "apigateway.amazonaws.com"
       SourceArn:
         Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*/*"
+    Condition: "TemplateEnabled"
   ApiRoutes:
     Type: "Custom::ApiRoutes"
     Properties:
@@ -2128,6 +2332,7 @@ Resources:
           method: "DELETE"
     DependsOn:
       - "FormsApiInvokePermission"
+    Condition: "TemplateEnabled"
   ApiBasePathMapping:
     Type: "Custom::ApiBasePathMapping"
     Properties:
@@ -2143,7 +2348,7 @@ Resources:
       BasePath: ""
     DependsOn:
       - "ApiRoutes"
-    Condition: "UseCustomDomain"
+    Condition: "ApiBasePathMappingTemplateEnabledCondition"
   HostedZoneLookup:
     Type: "Custom::HostedZoneLookup"
     Properties:
@@ -2153,7 +2358,7 @@ Resources:
           - "Arn"
       DomainName:
         Ref: "ApiCustomDomainName"
-    Condition: "UseRoute53"
+    Condition: "HostedZoneLookupTemplateEnabledCondition"
   DnsRecordA:
     Type: "AWS::Route53::RecordSet"
     Properties:
@@ -2180,7 +2385,7 @@ Resources:
             - "RegionalHostedZoneId"
     DependsOn:
       - "ApiBasePathMapping"
-    Condition: "UseRoute53"
+    Condition: "DnsRecordATemplateEnabledCondition"
   DnsRecordAAAA:
     Type: "AWS::Route53::RecordSet"
     Properties:
@@ -2207,7 +2412,7 @@ Resources:
             - "RegionalHostedZoneId"
     DependsOn:
       - "ApiBasePathMapping"
-    Condition: "UseRoute53"
+    Condition: "DnsRecordAAAATemplateEnabledCondition"
   WebAclAssociation:
     Type: "Custom::WafAssociation"
     Properties:
@@ -2223,7 +2428,7 @@ Resources:
         Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/${RestApi}/stages/prod"
     DependsOn:
       - "ApiRoutes"
-    Condition: "WAFEnabled"
+    Condition: "WebAclAssociationTemplateEnabledCondition"
   WorkflowDispatcherLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -2236,6 +2441,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   WorkflowDispatcherFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2355,6 +2561,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   WorkflowDispatcherFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2369,10 +2576,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-flow/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/workflow-dispatcher.zip"
+              - "wpsuite-flow/functions/workflow-dispatcher.zip"
       Handler: "index.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -2454,6 +2658,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   WorkflowDispatcherEventRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -2481,6 +2686,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   WorkflowDispatcherEventPermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -2492,6 +2698,7 @@ Resources:
         Fn::GetAtt:
           - "WorkflowDispatcherEventRule"
           - "Arn"
+    Condition: "TemplateEnabled"
   EmailSenderLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -2504,6 +2711,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   EmailSenderFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2610,6 +2818,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   EmailSenderFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2624,10 +2833,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-flow/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/email-sender.zip"
+              - "wpsuite-flow/functions/email-sender.zip"
       Handler: "index.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -2709,6 +2915,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   EmailSenderEventRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -2730,6 +2937,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   EmailSenderEventPermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -2741,6 +2949,7 @@ Resources:
         Fn::GetAtt:
           - "EmailSenderEventRule"
           - "Arn"
+    Condition: "TemplateEnabled"
   WebhookDispatcherLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -2753,6 +2962,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   WebhookDispatcherFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2837,6 +3047,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   WebhookDispatcherFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2851,10 +3062,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-flow/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/webhook-dispatcher.zip"
+              - "wpsuite-flow/functions/webhook-dispatcher.zip"
       Handler: "index.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -2942,6 +3150,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   WebhookDispatcherEventRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -2963,6 +3172,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   WebhookDispatcherEventPermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -2974,6 +3184,7 @@ Resources:
         Fn::GetAtt:
           - "WebhookDispatcherEventRule"
           - "Arn"
+    Condition: "TemplateEnabled"
   WebhookDispatcherFunctionKmsPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -2995,7 +3206,7 @@ Resources:
               Fn::GetAtt:
                 - "SecretsKmsKey"
                 - "Arn"
-    Condition: "CreateKmsKey"
+    Condition: "WebhookDispatcherFunctionKmsPolicyTemplateEnabledCondition"
 Outputs:
   PrmProductCode:
     Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
@@ -3015,50 +3226,62 @@ Outputs:
     Description: "Flow API URL."
     Value:
       Fn::If:
-        - "UseCustomDomain"
+        - "TemplateEnabled"
         -
-          Fn::Sub: "https://${ApiCustomDomainName}"
-        -
-          Fn::Sub: "https://${RestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+          Fn::If:
+            - "UseCustomDomain"
+            -
+              Fn::Sub: "https://${ApiCustomDomainName}"
+            -
+              Fn::Sub: "https://${RestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+        - ""
   TemplatesBucketOutput:
     Description: "Resolved templates bucket name."
     Value:
       Fn::If:
-        - "UseProvidedTemplatesBucket"
+        - "TemplateEnabled"
         -
-          Ref: "TemplatesBucketName"
-        -
-          Ref: "TemplatesBucket"
+          Fn::If:
+            - "UseProvidedTemplatesBucket"
+            -
+              Ref: "TemplatesBucketName"
+            -
+              Ref: "TemplatesBucket"
+        - ""
   PayloadBucketOutput:
     Description: "Resolved payload bucket name."
     Value:
       Fn::If:
-        - "UseProvidedPayloadBucket"
+        - "TemplateEnabled"
         -
-          Ref: "PayloadBucketName"
-        -
-          Ref: "PayloadBucket"
+          Fn::If:
+            - "UseProvidedPayloadBucket"
+            -
+              Ref: "PayloadBucketName"
+            -
+              Ref: "PayloadBucket"
+        - ""
   RecaptchaSecretParameterName:
     Description: "reCAPTCHA secret parameter name."
     Value:
       Ref: "RecaptchaSecretParameter"
-    Condition: "EnableRecaptchaProtection"
+    Condition: "OutputRecaptchaSecretParameterNameTemplateEnabledCondition"
   CustomDomainUrl:
     Description: "Custom domain URL."
     Value:
       Fn::Sub: "https://${ApiCustomDomainName}"
-    Condition: "UseCustomDomain"
+    Condition: "OutputCustomDomainUrlTemplateEnabledCondition"
   RegionalDomainName:
     Description: "API Gateway regional domain name."
     Value:
       Fn::GetAtt:
         - "ApiDomainName"
         - "RegionalDomainName"
-    Condition: "UseCustomDomain"
+    Condition: "OutputRegionalDomainNameTemplateEnabledCondition"
   RegionalHostedZoneId:
     Description: "API Gateway regional hosted zone ID."
     Value:
       Fn::GetAtt:
         - "ApiDomainName"
         - "RegionalHostedZoneId"
-    Condition: "UseCustomDomain"
+    Condition: "OutputRegionalHostedZoneIdTemplateEnabledCondition"

@@ -6,9 +6,16 @@ Parameters:
     Default: "pc:5d8wq5hg1d54kb933ntenntiu"
     AllowedPattern: "^pc:[a-z0-9]+$"
     Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  Enabled:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.2"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -377,6 +384,11 @@ Mappings:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
+  TemplateEnabled:
+    Fn::Equals:
+      -
+        Ref: "Enabled"
+      - "true"
   UseCustomDomain:
     Fn::Not:
       -
@@ -640,6 +652,264 @@ Conditions:
         Condition: "HasChatbotBackendEnabled"
       -
         Condition: "HasLanguageAIBackendEnabled"
+  RecaptchaKmsKeyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableRecaptchaProtection"
+  RecaptchaKmsKeyAliasTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableRecaptchaProtection"
+  FrontendCognitoAuthTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseFrontendCognito"
+  AdminCognitoAuthTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseAdminCognito"
+  ApiMethodSettingsTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasAnyFrontend"
+  AiHandlerInvokePermissionFrontendTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasChatbotBackendEnabled"
+  ApiDomainNameTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseCustomDomain"
+  ApiBasePathMappingTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseCustomDomain"
+  PublicAllowedIPSetTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasPublicAllowedIPs"
+  AdminAllowedIPSetTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasAdminAllowedIPs"
+  BlockedIPSetTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasBlockedIPs"
+  WebACLTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "WAFEnabled"
+  WebACLAssociationTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "WAFEnabled"
+  DocsBucketTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateNewDocsBucket"
+  DocsBucketCleanerTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateNewDocsBucket"
+  KnowledgeBaseTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateNewKnowledgeBase"
+  KnowledgeBaseDataSourceTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateNewKnowledgeBase"
+  KnowledgeBaseBootstrapTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateNewKnowledgeBase"
+  KBSyncStateTableTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "S3TriggerEnabled"
+  RecaptchaSecretParameterTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableRecaptchaProtection"
+  AiEmailIntakeDispatcherInvokePermissionWorkMailTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasWorkMailOrganizationId"
+  AiEmailIntakeDispatcherInvokePermissionS3TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasEmailIntakeSesBucketName"
+  KnowledgeBaseSyncFunctionLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "S3TriggerEnabled"
+  KnowledgeBaseSyncFunctionRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "S3TriggerEnabled"
+  KnowledgeBaseSyncFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "S3TriggerEnabled"
+  S3NotificationSetupForNewBucketTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "S3TriggerEnabledWithNewBucket"
+  S3NotificationSetupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "S3TriggerEnabledWithProvidedBucket"
+  KBSyncSchedulePolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "S3TriggerEnabled"
+  KBSyncScheduleRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "S3TriggerEnabled"
+  AlertsTopicTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  HostedZoneLookupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseRoute53"
+  HostedZoneIdSelectorTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseRoute53"
+  DnsRecordATemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseRoute53"
+  DnsRecordAAAATemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseRoute53"
+  OutputCustomDomainUrlTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseCustomDomain"
+  OutputRegionalDomainNameTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseCustomDomain"
+  OutputRegionalHostedZoneIdTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseCustomDomain"
+  OutputRecaptchaKmsKeyArnTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableRecaptchaProtection"
+  OutputDataSourceIdTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateNewKnowledgeBase"
+  OutputAlertsTopicArnTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  OutputAlertsTopicNameTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  OutputWebACLIdTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "WAFEnabled"
+  OutputWebACLArnTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "WAFEnabled"
 Resources:
   AiHandlerFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
@@ -653,6 +923,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   RestApiLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -665,6 +936,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   RestApiExecutionLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -677,6 +949,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   RecaptchaKmsKey:
     Type: "AWS::KMS::Key"
     Properties:
@@ -729,7 +1002,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "EnableRecaptchaProtection"
+    Condition: "RecaptchaKmsKeyTemplateEnabledCondition"
   RecaptchaKmsKeyAlias:
     Type: "AWS::KMS::Alias"
     Properties:
@@ -737,7 +1010,7 @@ Resources:
         Fn::Sub: "alias/${AppName}-${Environment}-recaptcha-key"
       TargetKeyId:
         Ref: "RecaptchaKmsKey"
-    Condition: "EnableRecaptchaProtection"
+    Condition: "RecaptchaKmsKeyAliasTemplateEnabledCondition"
   ApiGatewayCloudWatchLogsRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -757,6 +1030,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   ApiGatewayAccountConfig:
     Type: "Custom::ApiGatewayAccount"
     Properties:
@@ -768,6 +1042,7 @@ Resources:
         Fn::GetAtt:
           - "ApiGatewayCloudWatchLogsRole"
           - "Arn"
+    Condition: "TemplateEnabled"
   RestApi:
     Type: "AWS::ApiGateway::RestApi"
     Properties:
@@ -785,6 +1060,7 @@ Resources:
             Ref: "PrmTagValue"
     DependsOn:
       - "ApiGatewayAccountConfig"
+    Condition: "TemplateEnabled"
   FrontendCognitoAuth:
     Type: "Custom::ApiAuthorizer"
     Properties:
@@ -802,7 +1078,7 @@ Resources:
         -
           Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${FrontendCognitoUserPoolId}"
       AuthorizerResultTtlInSeconds: 300
-    Condition: "UseFrontendCognito"
+    Condition: "FrontendCognitoAuthTemplateEnabledCondition"
   AdminCognitoAuth:
     Type: "Custom::ApiAuthorizer"
     Properties:
@@ -820,7 +1096,7 @@ Resources:
         -
           Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${AdminCognitoUserPoolId}"
       AuthorizerResultTtlInSeconds: 300
-    Condition: "UseAdminCognito"
+    Condition: "AdminCognitoAuthTemplateEnabledCondition"
   ApiAuthorizerAttachment:
     Type: "Custom::ApiAuthorizerAttachment"
     Properties:
@@ -1046,6 +1322,7 @@ Resources:
           Method: "POST"
           IntegrationUri:
             Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+    Condition: "TemplateEnabled"
   RestApiDeployment:
     Type: "AWS::ApiGateway::Deployment"
     Properties:
@@ -1055,6 +1332,7 @@ Resources:
         Fn::Sub: "Template ${TemplateVersion} - API Schema v${ApiSchemaVersion}"
     DependsOn:
       - "ApiAuthorizerAttachment"
+    Condition: "TemplateEnabled"
   ApiStage:
     Type: "AWS::ApiGateway::Stage"
     Properties:
@@ -1438,6 +1716,7 @@ Resources:
             Ref: "PrmTagValue"
     DependsOn:
       - "RestApiExecutionLogGroup"
+    Condition: "TemplateEnabled"
   ApiMethodSettings:
     Type: "Custom::ApiMethodSettings"
     Properties:
@@ -1559,7 +1838,7 @@ Resources:
               Ref: "AWS::NoValue"
     DependsOn:
       - "ApiStage"
-    Condition: "HasAnyFrontend"
+    Condition: "ApiMethodSettingsTemplateEnabledCondition"
   AiHandlerInvokePermissionFrontend:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -1571,7 +1850,7 @@ Resources:
         Ref: "AWS::AccountId"
       SourceArn:
         Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*/*/*"
-    Condition: "HasChatbotBackendEnabled"
+    Condition: "AiHandlerInvokePermissionFrontendTemplateEnabledCondition"
   ApiDomainName:
     Type: "AWS::ApiGateway::DomainName"
     Properties:
@@ -1588,7 +1867,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "UseCustomDomain"
+    Condition: "ApiDomainNameTemplateEnabledCondition"
   ApiBasePathMapping:
     Type: "Custom::ApiBasePathMapping"
     Properties:
@@ -1604,7 +1883,7 @@ Resources:
       BasePath: ""
     DependsOn:
       - "ApiStage"
-    Condition: "UseCustomDomain"
+    Condition: "ApiBasePathMappingTemplateEnabledCondition"
   PublicAllowedIPSet:
     Type: "Custom::WafIPSet"
     Properties:
@@ -1618,7 +1897,7 @@ Resources:
       IPAddressVersion: "IPV4"
       Addresses:
         Ref: "PublicAllowedIPs"
-    Condition: "HasPublicAllowedIPs"
+    Condition: "PublicAllowedIPSetTemplateEnabledCondition"
   AdminAllowedIPSet:
     Type: "Custom::WafIPSet"
     Properties:
@@ -1632,7 +1911,7 @@ Resources:
       IPAddressVersion: "IPV4"
       Addresses:
         Ref: "AdminAllowedIPs"
-    Condition: "HasAdminAllowedIPs"
+    Condition: "AdminAllowedIPSetTemplateEnabledCondition"
   BlockedIPSet:
     Type: "Custom::WafIPSet"
     Properties:
@@ -1646,7 +1925,7 @@ Resources:
       IPAddressVersion: "IPV4"
       Addresses:
         Ref: "BlockedIPs"
-    Condition: "HasBlockedIPs"
+    Condition: "BlockedIPSetTemplateEnabledCondition"
   WebACL:
     Type: "Custom::WafWebACL"
     Properties:
@@ -1849,7 +2128,7 @@ Resources:
             CloudWatchMetricsEnabled: true
             MetricName:
               Fn::Sub: "${AppName}-${Environment}-admin-rate-limit"
-    Condition: "WAFEnabled"
+    Condition: "WebACLTemplateEnabledCondition"
   WebACLAssociation:
     Type: "Custom::WafAssociation"
     Properties:
@@ -1865,7 +2144,7 @@ Resources:
           - "WebACLArn"
     DependsOn:
       - "ApiStage"
-    Condition: "WAFEnabled"
+    Condition: "WebACLAssociationTemplateEnabledCondition"
   DocsBucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -1910,7 +2189,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CreateNewDocsBucket"
+    Condition: "DocsBucketTemplateEnabledCondition"
   DocsBucketCleaner:
     Type: "Custom::BucketCleaner"
     Properties:
@@ -1920,7 +2199,7 @@ Resources:
           - "Arn"
       BucketName:
         Ref: "DocsBucket"
-    Condition: "CreateNewDocsBucket"
+    Condition: "DocsBucketCleanerTemplateEnabledCondition"
   KnowledgeBasePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -1969,6 +2248,7 @@ Resources:
               - "bedrock:Rerank"
               - "aws-marketplace:ViewSubscriptions"
             Resource: "*"
+    Condition: "TemplateEnabled"
   KnowledgeBaseRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1991,6 +2271,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   VectorBucket:
     Type: "Custom::S3VectorsBucket"
     Properties:
@@ -2001,6 +2282,7 @@ Resources:
       BucketName:
         Fn::Sub: "${AppName}-${Environment}-vectors"
       IndexName: "bedrock-knowledge-base-default-index"
+    Condition: "TemplateEnabled"
   KnowledgeBase:
     Type: "Custom::BedrockKnowledgeBase"
     Properties:
@@ -2031,7 +2313,7 @@ Resources:
             Fn::GetAtt:
               - "VectorBucket"
               - "IndexArn"
-    Condition: "CreateNewKnowledgeBase"
+    Condition: "KnowledgeBaseTemplateEnabledCondition"
   KnowledgeBaseDataSource:
     Type: "Custom::BedrockDataSource"
     Properties:
@@ -2068,7 +2350,7 @@ Resources:
               Ref: "MaxTokens"
             overlapPercentage:
               Ref: "OverlapPercentage"
-    Condition: "CreateNewKnowledgeBase"
+    Condition: "KnowledgeBaseDataSourceTemplateEnabledCondition"
   KnowledgeBaseBootstrap:
     Type: "Custom::KbBootstrap"
     Properties:
@@ -2084,7 +2366,7 @@ Resources:
         Fn::GetAtt:
           - "KnowledgeBaseDataSource"
           - "DataSourceId"
-    Condition: "CreateNewKnowledgeBase"
+    Condition: "KnowledgeBaseBootstrapTemplateEnabledCondition"
   QueryTemplateUpload:
     Type: "Custom::S3Upload"
     Properties:
@@ -2103,6 +2385,7 @@ Resources:
         Fn::Sub: "${ConfigPrefix}query-template.txt"
       SourcePath: "/opt/nodejs/templates/query-template.txt"
       ContentType: "text/plain"
+    Condition: "TemplateEnabled"
   RerankTemplateUpload:
     Type: "Custom::S3Upload"
     Properties:
@@ -2121,6 +2404,7 @@ Resources:
         Fn::Sub: "${ConfigPrefix}rerank-template.txt"
       SourcePath: "/opt/nodejs/templates/rerank-template.txt"
       ContentType: "text/plain"
+    Condition: "TemplateEnabled"
   SummaryTemplateUpload:
     Type: "Custom::S3Upload"
     Properties:
@@ -2139,6 +2423,7 @@ Resources:
         Fn::Sub: "${ConfigPrefix}summary-template.txt"
       SourcePath: "/opt/nodejs/templates/summary-template.txt"
       ContentType: "text/plain"
+    Condition: "TemplateEnabled"
   AnswerTemplateUpload:
     Type: "Custom::S3Upload"
     Properties:
@@ -2157,6 +2442,7 @@ Resources:
         Fn::Sub: "${ConfigPrefix}answer-template.txt"
       SourcePath: "/opt/nodejs/templates/answer-template.txt"
       ContentType: "text/plain"
+    Condition: "TemplateEnabled"
   AnswerTemplateAskWhenNoKbUpload:
     Type: "Custom::S3Upload"
     Properties:
@@ -2175,6 +2461,7 @@ Resources:
         Fn::Sub: "${ConfigPrefix}answer-template-ask-when-no-kb.txt"
       SourcePath: "/opt/nodejs/templates/answer-template-ask-when-no-kb.txt"
       ContentType: "text/plain"
+    Condition: "TemplateEnabled"
   AnswerTemplateKbOnlyUpload:
     Type: "Custom::S3Upload"
     Properties:
@@ -2193,6 +2480,7 @@ Resources:
         Fn::Sub: "${ConfigPrefix}answer-template-kb-only.txt"
       SourcePath: "/opt/nodejs/templates/answer-template-kb-only.txt"
       ContentType: "text/plain"
+    Condition: "TemplateEnabled"
   AnswerTemplateKbPreferredUpload:
     Type: "Custom::S3Upload"
     Properties:
@@ -2211,6 +2499,7 @@ Resources:
         Fn::Sub: "${ConfigPrefix}answer-template-kb-preferred.txt"
       SourcePath: "/opt/nodejs/templates/answer-template-kb-preferred.txt"
       ContentType: "text/plain"
+    Condition: "TemplateEnabled"
   AnswerTemplateKbRagUpload:
     Type: "Custom::S3Upload"
     Properties:
@@ -2229,6 +2518,7 @@ Resources:
         Fn::Sub: "${ConfigPrefix}answer-template-kb-rag.txt"
       SourcePath: "/opt/nodejs/templates/answer-template-kb-rag.txt"
       ContentType: "text/plain"
+    Condition: "TemplateEnabled"
   KBSyncStateTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -2251,7 +2541,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "S3TriggerEnabled"
+    Condition: "KBSyncStateTableTemplateEnabledCondition"
   ChatSessionsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -2274,6 +2564,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   ChatMessagesTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -2302,6 +2593,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CommonDependenciesLayer:
     Type: "AWS::Lambda::LayerVersion"
     Properties:
@@ -2318,14 +2610,12 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/"
-              -
-                Ref: "TemplateVersion"
-              - "/layers/common-layer.zip"
+              - "wpsuite-ai-kit/layers/common-layer.zip"
       CompatibleRuntimes:
         - "nodejs24.x"
       CompatibleArchitectures:
         - "arm64"
+    Condition: "TemplateEnabled"
   RecaptchaSecretParameter:
     Type: "Custom::SSMParameter"
     Properties:
@@ -2341,7 +2631,7 @@ Resources:
         Ref: "RecaptchaSecretKey"
       KmsKeyId:
         Ref: "RecaptchaKmsKey"
-    Condition: "EnableRecaptchaProtection"
+    Condition: "RecaptchaSecretParameterTemplateEnabledCondition"
   AiHandlerFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2475,6 +2765,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   AiHandlerFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2490,10 +2781,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/ai-handler.zip"
+              - "wpsuite-ai-kit/functions/ai-handler.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -2631,6 +2919,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   AiAgentDispatcherLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -2643,6 +2932,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   AiAgentDispatcherFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2730,6 +3020,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   AiAgentDispatcherFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2745,10 +3036,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/ai-agent-dispatcher.zip"
+              - "wpsuite-ai-kit/functions/ai-agent-dispatcher.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -2859,6 +3147,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   AiAgentDispatcherEventRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -2880,6 +3169,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   AiAgentDispatcherEventPermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -2891,6 +3181,7 @@ Resources:
         Fn::GetAtt:
           - "AiAgentDispatcherEventRule"
           - "Arn"
+    Condition: "TemplateEnabled"
   AiEmailIntakeDispatcherLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -2903,6 +3194,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   AiEmailIntakeDispatcherFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2969,6 +3261,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   AiEmailIntakeDispatcherFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2984,10 +3277,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/ai-email-intake-dispatcher.zip"
+              - "wpsuite-ai-kit/functions/ai-email-intake-dispatcher.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -3094,6 +3384,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   AiEmailIntakeDispatcherInvokePermissionWorkMail:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -3103,7 +3394,7 @@ Resources:
       Principal: "workmail.amazonaws.com"
       SourceArn:
         Fn::Sub: "arn:${AWS::Partition}:workmail:${AWS::Region}:${AWS::AccountId}:organization/${WorkMailOrganizationId}"
-    Condition: "HasWorkMailOrganizationId"
+    Condition: "AiEmailIntakeDispatcherInvokePermissionWorkMailTemplateEnabledCondition"
   AiEmailIntakeDispatcherInvokePermissionS3:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -3115,7 +3406,7 @@ Resources:
         Ref: "AWS::AccountId"
       SourceArn:
         Fn::Sub: "arn:${AWS::Partition}:s3:::${EmailIntakeSesBucketName}"
-    Condition: "HasEmailIntakeSesBucketName"
+    Condition: "AiEmailIntakeDispatcherInvokePermissionS3TemplateEnabledCondition"
   CustomResourceManagerRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -3308,6 +3599,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CustomResourceManager:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -3328,10 +3620,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/custom-resource.zip"
+              - "wpsuite-ai-kit/functions/custom-resource.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -3411,6 +3700,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CustomResourceManagerLogGroupManager:
     Type: "Custom::LogGroupManager"
     Properties:
@@ -3427,6 +3717,7 @@ Resources:
             Fn::Sub: "/aws/lambda/${AppName}-${Environment}-custom-resource-manager"
       RetentionInDays:
         Ref: "LogRetentionDays"
+    Condition: "TemplateEnabled"
   ChatModelResolver:
     Type: "Custom::ModelResolver"
     Properties:
@@ -3441,6 +3732,7 @@ Resources:
       ModelId:
         Ref: "ModelId"
       ModelType: "chat"
+    Condition: "TemplateEnabled"
   FrontendModelResolver:
     Type: "Custom::ModelResolver"
     Properties:
@@ -3455,6 +3747,7 @@ Resources:
       ModelId:
         Ref: "FrontendModelId"
       ModelType: "frontend"
+    Condition: "TemplateEnabled"
   KnowledgeBaseSyncFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -3467,7 +3760,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "S3TriggerEnabled"
+    Condition: "KnowledgeBaseSyncFunctionLogGroupTemplateEnabledCondition"
   KnowledgeBaseSyncFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -3542,7 +3835,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "S3TriggerEnabled"
+    Condition: "KnowledgeBaseSyncFunctionRoleTemplateEnabledCondition"
   KnowledgeBaseSyncFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -3558,10 +3851,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/kb-sync.zip"
+              - "wpsuite-ai-kit/functions/kb-sync.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -3670,7 +3960,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "S3TriggerEnabled"
+    Condition: "KnowledgeBaseSyncFunctionTemplateEnabledCondition"
   S3NotificationSetupForNewBucket:
     Type: "Custom::S3Notification"
     Properties:
@@ -3694,7 +3984,7 @@ Resources:
                 Name: "prefix"
                 Value:
                   Ref: "InclusionPrefix"
-    Condition: "S3TriggerEnabledWithNewBucket"
+    Condition: "S3NotificationSetupForNewBucketTemplateEnabledCondition"
   S3NotificationSetup:
     Type: "Custom::S3Notification"
     Properties:
@@ -3718,7 +4008,7 @@ Resources:
                 Name: "prefix"
                 Value:
                   Ref: "InclusionPrefix"
-    Condition: "S3TriggerEnabledWithProvidedBucket"
+    Condition: "S3NotificationSetupTemplateEnabledCondition"
   KBSyncSchedulePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
@@ -3733,7 +4023,7 @@ Resources:
               - "lambda:InvokeFunction"
             Resource:
               Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
-    Condition: "S3TriggerEnabled"
+    Condition: "KBSyncSchedulePolicyTemplateEnabledCondition"
   KBSyncScheduleRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -3755,7 +4045,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "S3TriggerEnabled"
+    Condition: "KBSyncScheduleRoleTemplateEnabledCondition"
   AlertsTopic:
     Type: "AWS::SNS::Topic"
     Properties:
@@ -3768,7 +4058,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "AlertsEnabled"
+    Condition: "AlertsTopicTemplateEnabledCondition"
   DeadLetterQueue:
     Type: "AWS::SQS::Queue"
     Properties:
@@ -3781,6 +4071,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   HostedZoneLookup:
     Type: "Custom::HostedZoneLookup"
     Properties:
@@ -3790,7 +4081,7 @@ Resources:
           - "Arn"
       DomainName:
         Ref: "ApiCustomDomainName"
-    Condition: "UseRoute53"
+    Condition: "HostedZoneLookupTemplateEnabledCondition"
   HostedZoneIdSelector:
     Type: "Custom::SelectHostedZoneId"
     Properties:
@@ -3809,7 +4100,7 @@ Resources:
         Fn::GetAtt:
           - "HostedZoneLookup"
           - "HostedZoneId"
-    Condition: "UseRoute53"
+    Condition: "HostedZoneIdSelectorTemplateEnabledCondition"
   DnsRecordA:
     Type: "AWS::Route53::RecordSet"
     Properties:
@@ -3829,7 +4120,7 @@ Resources:
             - "RegionalHostedZoneId"
     DependsOn:
       - "ApiBasePathMapping"
-    Condition: "UseRoute53"
+    Condition: "DnsRecordATemplateEnabledCondition"
   DnsRecordAAAA:
     Type: "AWS::Route53::RecordSet"
     Properties:
@@ -3849,7 +4140,7 @@ Resources:
             - "RegionalHostedZoneId"
     DependsOn:
       - "ApiBasePathMapping"
-    Condition: "UseRoute53"
+    Condition: "DnsRecordAAAATemplateEnabledCondition"
 Outputs:
   PrmProductCode:
     Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
@@ -3877,101 +4168,125 @@ Outputs:
     Description: "Base URL for the API."
     Value:
       Fn::If:
-        - "UseCustomDomain"
+        - "TemplateEnabled"
         -
-          Fn::Sub: "https://${ApiCustomDomainName}"
-        -
-          Fn::Sub: "https://${RestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+          Fn::If:
+            - "UseCustomDomain"
+            -
+              Fn::Sub: "https://${ApiCustomDomainName}"
+            -
+              Fn::Sub: "https://${RestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+        - ""
   ApiId:
     Description: "REST API ID."
     Value:
-      Ref: "RestApi"
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Ref: "RestApi"
+        - ""
   HasAnyFrontend:
     Description: "Has Any Frontend?"
     Value:
       Fn::If:
-        - "HasAnyFrontend"
-        - "true"
-        - "false"
+        - "TemplateEnabled"
+        -
+          Fn::If:
+            - "HasAnyFrontend"
+            - "true"
+            - "false"
+        - ""
   CustomDomainUrl:
     Description: "Custom domain URL for the API."
     Value:
       Fn::Sub: "https://${ApiCustomDomainName}"
-    Condition: "UseCustomDomain"
+    Condition: "OutputCustomDomainUrlTemplateEnabledCondition"
   RegionalDomainName:
     Description: "Regional domain name for DNS configuration."
     Value:
       Fn::GetAtt:
         - "ApiDomainName"
         - "RegionalDomainName"
-    Condition: "UseCustomDomain"
+    Condition: "OutputRegionalDomainNameTemplateEnabledCondition"
   RegionalHostedZoneId:
     Description: "Regional hosted zone ID for DNS configuration."
     Value:
       Fn::GetAtt:
         - "ApiDomainName"
         - "RegionalHostedZoneId"
-    Condition: "UseCustomDomain"
+    Condition: "OutputRegionalHostedZoneIdTemplateEnabledCondition"
   RecaptchaKmsKeyArn:
     Description: "KMS Key ARN for reCAPTCHA secret encryption."
     Value:
       Fn::GetAtt:
         - "RecaptchaKmsKey"
         - "Arn"
-    Condition: "EnableRecaptchaProtection"
+    Condition: "OutputRecaptchaKmsKeyArnTemplateEnabledCondition"
   DocsBucketName:
     Description: "S3 bucket name for knowledge base documents."
     Value:
       Fn::If:
-        - "UseProvidedDocsBucket"
+        - "TemplateEnabled"
         -
-          Ref: "DocsBucketName"
-        -
-          Ref: "DocsBucket"
+          Fn::If:
+            - "UseProvidedDocsBucket"
+            -
+              Ref: "DocsBucketName"
+            -
+              Ref: "DocsBucket"
+        - ""
   KnowledgeBaseId:
     Description: "Bedrock Knowledge Base ID."
     Value:
       Fn::If:
-        - "UseProvidedKnowledgeBase"
+        - "TemplateEnabled"
         -
-          Ref: "KnowledgeBaseId"
-        -
-          Fn::GetAtt:
-            - "KnowledgeBase"
-            - "KnowledgeBaseId"
+          Fn::If:
+            - "UseProvidedKnowledgeBase"
+            -
+              Ref: "KnowledgeBaseId"
+            -
+              Fn::GetAtt:
+                - "KnowledgeBase"
+                - "KnowledgeBaseId"
+        - ""
   VectorStorageType:
     Description: "Vector storage type."
-    Value: "S3_VECTORS"
+    Value:
+      Fn::If:
+        - "TemplateEnabled"
+        - "S3_VECTORS"
+        - ""
   DataSourceId:
     Description: "Knowledge Base Data Source ID."
     Value:
       Fn::GetAtt:
         - "KnowledgeBaseDataSource"
         - "DataSourceId"
-    Condition: "CreateNewKnowledgeBase"
+    Condition: "OutputDataSourceIdTemplateEnabledCondition"
   AlertsTopicArn:
     Description: "SNS Topic ARN for alerts."
     Value:
       Ref: "AlertsTopic"
-    Condition: "AlertsEnabled"
+    Condition: "OutputAlertsTopicArnTemplateEnabledCondition"
   AlertsTopicName:
     Description: "SNS Topic Name for alerts."
     Value:
       Fn::GetAtt:
         - "AlertsTopic"
         - "TopicName"
-    Condition: "AlertsEnabled"
+    Condition: "OutputAlertsTopicNameTemplateEnabledCondition"
   WebACLId:
     Description: "WAF WebACL ID."
     Value:
       Fn::GetAtt:
         - "WebACL"
         - "WebACLId"
-    Condition: "WAFEnabled"
+    Condition: "OutputWebACLIdTemplateEnabledCondition"
   WebACLArn:
     Description: "WAF WebACL ARN."
     Value:
       Fn::GetAtt:
         - "WebACL"
         - "WebACLArn"
-    Condition: "WAFEnabled"
+    Condition: "OutputWebACLArnTemplateEnabledCondition"

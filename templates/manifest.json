@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-03T08:46:11.053Z",
-  "templateVersion": "v1.0.0",
+  "generatedAt": "2026-07-03T16:20:04.003Z",
+  "templateVersion": "v1.0.2",
   "sourceProject": "@wpsuite/deployment-orchestration",
   "sourceGeneratedDirectory": "generated/templates",
   "templates": [
@@ -9,6 +9,12 @@
       "kind": "root",
       "path": "templates/wpsuite-deployment-orchestrator.yaml",
       "description": "WP Suite Deployment Access root orchestration template for AWS Marketplace Quick Launch"
+    },
+    {
+      "name": "wpsuite-deployment-orchestrator-direct.yaml",
+      "kind": "root-direct",
+      "path": "templates/wpsuite-deployment-orchestrator-direct.yaml",
+      "description": "WP Suite Deployment Access direct root orchestration template for WP Suite console launches"
     },
     {
       "name": "wpsuite-cognito.yaml",
@@ -33,6 +39,30 @@
       "kind": "nested",
       "path": "templates/templates/wpsuite-static-site-guardian.yaml",
       "description": "WP Suite Site Guardian nested template for Marketplace Deployment Access"
+    },
+    {
+      "name": "wpsuite-cognito-wrapper.yaml",
+      "kind": "wrapper",
+      "path": "templates/templates/wpsuite-cognito-wrapper.yaml",
+      "description": "WP Suite Cognito Marketplace deployment wrapper template"
+    },
+    {
+      "name": "wpsuite-ai-kit-backend-wrapper.yaml",
+      "kind": "wrapper",
+      "path": "templates/templates/wpsuite-ai-kit-backend-wrapper.yaml",
+      "description": "WP Suite AI Kit backend Marketplace deployment wrapper template"
+    },
+    {
+      "name": "wpsuite-flow-backend-wrapper.yaml",
+      "kind": "wrapper",
+      "path": "templates/templates/wpsuite-flow-backend-wrapper.yaml",
+      "description": "WP Suite Flow backend Marketplace deployment wrapper template"
+    },
+    {
+      "name": "wpsuite-static-site-guardian-wrapper.yaml",
+      "kind": "wrapper",
+      "path": "templates/templates/wpsuite-static-site-guardian-wrapper.yaml",
+      "description": "WP Suite Static Site Guardian Marketplace deployment wrapper template"
     }
   ]
 }

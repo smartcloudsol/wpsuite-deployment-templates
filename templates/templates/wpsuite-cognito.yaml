@@ -6,9 +6,16 @@ Parameters:
     Default: "pc:5d8wq5hg1d54kb933ntenntiu"
     AllowedPattern: "^pc:[a-z0-9]+$"
     Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  Enabled:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.2"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -187,6 +194,22 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Existing Cognito user pool ID to reuse when CreateUserPool is false."
+  ExistingUserPoolClientId:
+    Type: "String"
+    Default: ""
+    Description: "Existing Cognito user pool app client ID to expose when CreateUserPool is false."
+  ExistingIdentityPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Existing Cognito identity pool ID to expose when CreateIdentityPool is false."
+  ExistingAuthenticatedRoleArn:
+    Type: "String"
+    Default: ""
+    Description: "Existing authenticated Cognito identity role ARN to expose when CreateIdentityPool is false."
+  ExistingRegisteredRoleArn:
+    Type: "String"
+    Default: ""
+    Description: "Existing registered Cognito identity role ARN to expose when CreateIdentityPool is false."
   PostLoginRedirectUrl:
     Type: "String"
     Default: "https://example.com/signin"
@@ -337,11 +360,20 @@ Mappings:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
-  CondCreateUserPool:
+  TemplateEnabled:
     Fn::Equals:
       -
-        Ref: "CreateUserPool"
+        Ref: "Enabled"
       - "true"
+  CondCreateUserPool:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateUserPool"
+          - "true"
   CondUseExistingUserPool:
     Fn::And:
       -
@@ -356,10 +388,14 @@ Conditions:
                 Ref: "ExistingUserPoolId"
               - ""
   CondCreateIdentityPool:
-    Fn::Equals:
+    Fn::And:
       -
-        Ref: "CreateIdentityPool"
-      - "true"
+        Condition: "TemplateEnabled"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateIdentityPool"
+          - "true"
   CondCreateIdentityPoolWithNewUserPool:
     Fn::And:
       -
@@ -545,6 +581,78 @@ Conditions:
         Fn::Not:
           -
             Condition: "HasProvidedKmsKeyId"
+  CustomSenderKmsKeyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateCustomSenderKmsKey"
+  CustomSenderKmsAliasTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateCustomSenderKmsKey"
+  UserPoolTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateUserPool"
+  RegisteredRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateIdentityPoolWithNewUserPool"
+  RegisteredGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateUserPool"
+  AdminGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateUserPool"
+  UserPoolClientTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateUserPool"
+  UserPoolDomainTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateDomain"
+  IdentityPoolTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateIdentityPoolWithNewUserPool"
+  AuthenticatedRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateIdentityPoolWithNewUserPool"
+  IdentityPoolRoleAttachmentTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateIdentityPoolWithNewUserPool"
+  EmailTemplateBucketTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateEmailTemplateBucket"
   CondEnableRecaptchaWithSecret:
     Fn::And:
       -
@@ -559,6 +667,192 @@ Conditions:
               -
                 Ref: "RecaptchaSecretKey"
               - ""
+  RecaptchaSecretParameterTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnableRecaptchaWithSecret"
+  EmailTemplateBucketCleanerTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateEmailTemplateBucket"
+  TemplateUploadTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnableEmailSender"
+  HostedZoneLookupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondRegisterAlias"
+  Route53AliasRecordTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondRegisterAlias"
+  SesIdentityManagerTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondAutoCreateSesIdentity"
+  PreSignUpFunctionRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePreSignUp"
+  PreSignUpFunctionLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePreSignUp"
+  PreSignUpFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePreSignUp"
+  PreTokenGenerationFunctionRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePreTokenGeneration"
+  PreTokenGenerationFunctionLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePreTokenGeneration"
+  PreTokenGenerationFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePreTokenGeneration"
+  PostConfirmationFunctionRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePostConfirmation"
+  PostConfirmationFunctionLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePostConfirmation"
+  PostConfirmationFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePostConfirmation"
+  CustomEmailSenderFunctionRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnableEmailSender"
+  CustomEmailSenderFunctionLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnableEmailSender"
+  CustomEmailSenderFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnableEmailSender"
+  TriggerAttachToExistingPoolTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondUseExistingUserPool"
+  PermissionForPreSignUpTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePreSignUp"
+  PermissionForPreTokenGenerationTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePreTokenGeneration"
+  PermissionForPostConfirmationTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePostConfirmation"
+  PermissionForCustomEmailSenderTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondAttachCustomEmailSender"
+  OutputUserPoolDomainTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateDomain"
+  OutputUserPoolDomainAliasTargetTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondRegisterAlias"
+  OutputEmailTemplateBucketNameTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnableEmailSender"
+  OutputSesIdentityValueTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondUseSES"
+  OutputPreSignUpFunctionArnTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePreSignUp"
+  OutputPreTokenGenerationFunctionArnTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePreTokenGeneration"
+  OutputPostConfirmationFunctionArnTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnablePostConfirmation"
+  OutputCustomEmailSenderFunctionArnTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnableEmailSender"
 Resources:
   CustomSenderKmsKey:
     Type: "AWS::KMS::Key"
@@ -614,7 +908,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondCreateCustomSenderKmsKey"
+    Condition: "CustomSenderKmsKeyTemplateEnabledCondition"
   CustomSenderKmsAlias:
     Type: "AWS::KMS::Alias"
     Properties:
@@ -622,7 +916,7 @@ Resources:
         Fn::Sub: "alias/${AppName}-cognito-custom-sender"
       TargetKeyId:
         Ref: "CustomSenderKmsKey"
-    Condition: "CondCreateCustomSenderKmsKey"
+    Condition: "CustomSenderKmsAliasTemplateEnabledCondition"
   UserPool:
     Type: "AWS::Cognito::UserPool"
     Properties:
@@ -761,7 +1055,7 @@ Resources:
       UserPoolTags:
         aws-apn-id:
           Ref: "PrmTagValue"
-    Condition: "CondCreateUserPool"
+    Condition: "UserPoolTemplateEnabledCondition"
   RegisteredRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -797,7 +1091,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondCreateIdentityPoolWithNewUserPool"
+    Condition: "RegisteredRoleTemplateEnabledCondition"
   RegisteredGroup:
     Type: "AWS::Cognito::UserPoolGroup"
     Properties:
@@ -816,7 +1110,7 @@ Resources:
             Ref: "AWS::NoValue"
       UserPoolId:
         Ref: "UserPool"
-    Condition: "CondCreateUserPool"
+    Condition: "RegisteredGroupTemplateEnabledCondition"
   AdminGroup:
     Type: "AWS::Cognito::UserPoolGroup"
     Properties:
@@ -835,7 +1129,7 @@ Resources:
             Ref: "AWS::NoValue"
       UserPoolId:
         Ref: "UserPool"
-    Condition: "CondCreateUserPool"
+    Condition: "AdminGroupTemplateEnabledCondition"
   UserPoolClient:
     Type: "AWS::Cognito::UserPoolClient"
     Properties:
@@ -860,7 +1154,7 @@ Resources:
         - "ALLOW_USER_SRP_AUTH"
         - "ALLOW_REFRESH_TOKEN_AUTH"
         - "ALLOW_USER_AUTH"
-    Condition: "CondCreateUserPool"
+    Condition: "UserPoolClientTemplateEnabledCondition"
   UserPoolDomain:
     Type: "AWS::Cognito::UserPoolDomain"
     Properties:
@@ -877,7 +1171,7 @@ Resources:
         CertificateArn:
           Ref: "UserPoolCustomDomainCertArn"
       ManagedLoginVersion: 2
-    Condition: "CondCreateDomain"
+    Condition: "UserPoolDomainTemplateEnabledCondition"
   IdentityPool:
     Type: "AWS::Cognito::IdentityPool"
     Properties:
@@ -906,7 +1200,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondCreateIdentityPoolWithNewUserPool"
+    Condition: "IdentityPoolTemplateEnabledCondition"
   AuthenticatedRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -940,7 +1234,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondCreateIdentityPoolWithNewUserPool"
+    Condition: "AuthenticatedRoleTemplateEnabledCondition"
   IdentityPoolRoleAttachment:
     Type: "AWS::Cognito::IdentityPoolRoleAttachment"
     Properties:
@@ -951,7 +1245,7 @@ Resources:
           Fn::GetAtt:
             - "AuthenticatedRole"
             - "Arn"
-    Condition: "CondCreateIdentityPoolWithNewUserPool"
+    Condition: "IdentityPoolRoleAttachmentTemplateEnabledCondition"
   EmailTemplateBucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -972,7 +1266,7 @@ Resources:
             Ref: "PrmTagValue"
     UpdateReplacePolicy: "Delete"
     DeletionPolicy: "Delete"
-    Condition: "CondCreateEmailTemplateBucket"
+    Condition: "EmailTemplateBucketTemplateEnabledCondition"
   CognitoCommonLayer:
     Type: "AWS::Lambda::LayerVersion"
     Properties:
@@ -993,6 +1287,7 @@ Resources:
         - "nodejs24.x"
     UpdateReplacePolicy: "Delete"
     DeletionPolicy: "Delete"
+    Condition: "TemplateEnabled"
   CustomResourceFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1102,6 +1397,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CustomResourceFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -1143,6 +1439,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CustomResourceFunctionLogGroupManager:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -1155,6 +1452,7 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-custom-resource"
       RetentionInDays:
         Ref: "LogRetentionDays"
+    Condition: "TemplateEnabled"
   RecaptchaSecretParameter:
     Type: "Custom::SSMParameter"
     Properties:
@@ -1167,7 +1465,7 @@ Resources:
         Fn::Sub: "/${AppName}/recaptcha/secret"
       Value:
         Ref: "RecaptchaSecretKey"
-    Condition: "CondEnableRecaptchaWithSecret"
+    Condition: "RecaptchaSecretParameterTemplateEnabledCondition"
   EmailTemplateBucketCleaner:
     Type: "Custom::BucketCleaner"
     Properties:
@@ -1179,7 +1477,7 @@ Resources:
       BucketName:
         Ref: "EmailTemplateBucket"
       Prefix: "email-templates/"
-    Condition: "CondCreateEmailTemplateBucket"
+    Condition: "EmailTemplateBucketCleanerTemplateEnabledCondition"
   TemplateUpload:
     Type: "Custom::S3TemplateUpload"
     Properties:
@@ -1205,7 +1503,7 @@ Resources:
           -
             Ref: "EmailTemplateBucketName"
       Prefix: "email-templates/"
-    Condition: "CondEnableEmailSender"
+    Condition: "TemplateUploadTemplateEnabledCondition"
   HostedZoneLookup:
     Type: "Custom::HostedZoneLookup"
     Properties:
@@ -1216,7 +1514,7 @@ Resources:
       Action: "HostedZoneLookup"
       DomainName:
         Ref: "UserPoolCustomDomainSubdomain"
-    Condition: "CondRegisterAlias"
+    Condition: "HostedZoneLookupTemplateEnabledCondition"
   Route53AliasRecord:
     Type: "Custom::Route53Alias"
     Properties:
@@ -1233,7 +1531,7 @@ Resources:
         Ref: "UserPoolCustomDomainSubdomain"
       CognitoDomain:
         Ref: "UserPoolCustomDomainSubdomain"
-    Condition: "CondRegisterAlias"
+    Condition: "Route53AliasRecordTemplateEnabledCondition"
   SesIdentityManager:
     Type: "Custom::EnsureSesIdentity"
     Properties:
@@ -1252,7 +1550,7 @@ Resources:
       AutoDetectHostedZone: "true"
       DeleteIdentityOnStackDelete:
         Ref: "DeleteSesIdentityOnStackDelete"
-    Condition: "CondAutoCreateSesIdentity"
+    Condition: "SesIdentityManagerTemplateEnabledCondition"
   PreSignUpFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1305,7 +1603,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnablePreSignUp"
+    Condition: "PreSignUpFunctionRoleTemplateEnabledCondition"
   PreSignUpFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -1318,7 +1616,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnablePreSignUp"
+    Condition: "PreSignUpFunctionLogGroupTemplateEnabledCondition"
   PreSignUpFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -1373,7 +1671,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnablePreSignUp"
+    Condition: "PreSignUpFunctionTemplateEnabledCondition"
   PreTokenGenerationFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1408,7 +1706,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnablePreTokenGeneration"
+    Condition: "PreTokenGenerationFunctionRoleTemplateEnabledCondition"
   PreTokenGenerationFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -1421,7 +1719,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnablePreTokenGeneration"
+    Condition: "PreTokenGenerationFunctionLogGroupTemplateEnabledCondition"
   PreTokenGenerationFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -1463,7 +1761,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnablePreTokenGeneration"
+    Condition: "PreTokenGenerationFunctionTemplateEnabledCondition"
   PostConfirmationFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1510,7 +1808,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnablePostConfirmation"
+    Condition: "PostConfirmationFunctionRoleTemplateEnabledCondition"
   PostConfirmationFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -1523,7 +1821,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnablePostConfirmation"
+    Condition: "PostConfirmationFunctionLogGroupTemplateEnabledCondition"
   PostConfirmationFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -1568,7 +1866,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnablePostConfirmation"
+    Condition: "PostConfirmationFunctionTemplateEnabledCondition"
   CustomEmailSenderFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1626,7 +1924,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnableEmailSender"
+    Condition: "CustomEmailSenderFunctionRoleTemplateEnabledCondition"
   CustomEmailSenderFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -1639,7 +1937,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnableEmailSender"
+    Condition: "CustomEmailSenderFunctionLogGroupTemplateEnabledCondition"
   CustomEmailSenderFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -1716,7 +2014,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "CondEnableEmailSender"
+    Condition: "CustomEmailSenderFunctionTemplateEnabledCondition"
   UserPoolSettingsManager:
     Type: "Custom::ApplyUserPoolSettings"
     Properties:
@@ -1819,6 +2117,7 @@ Resources:
                   - "CustomSenderKmsKey"
                   - "Arn"
           - ""
+    Condition: "TemplateEnabled"
   TriggerAttachToExistingPool:
     Type: "Custom::TriggerAttachment"
     Properties:
@@ -1874,7 +2173,7 @@ Resources:
                   - "CustomSenderKmsKey"
                   - "Arn"
           - ""
-    Condition: "CondUseExistingUserPool"
+    Condition: "TriggerAttachToExistingPoolTemplateEnabledCondition"
   PermissionForPreSignUp:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -1889,7 +2188,7 @@ Resources:
             Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
           -
             Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
-    Condition: "CondEnablePreSignUp"
+    Condition: "PermissionForPreSignUpTemplateEnabledCondition"
   PermissionForPreTokenGeneration:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -1904,7 +2203,7 @@ Resources:
             Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
           -
             Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
-    Condition: "CondEnablePreTokenGeneration"
+    Condition: "PermissionForPreTokenGenerationTemplateEnabledCondition"
   PermissionForPostConfirmation:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -1919,7 +2218,7 @@ Resources:
             Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
           -
             Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
-    Condition: "CondEnablePostConfirmation"
+    Condition: "PermissionForPostConfirmationTemplateEnabledCondition"
   PermissionForCustomEmailSender:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -1934,7 +2233,7 @@ Resources:
             Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
           -
             Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
-    Condition: "CondAttachCustomEmailSender"
+    Condition: "PermissionForCustomEmailSenderTemplateEnabledCondition"
 Outputs:
   PrmProductCode:
     Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
@@ -1970,39 +2269,55 @@ Outputs:
   UserPoolClientId:
     Description: "Cognito User Pool client ID."
     Value:
-      Ref: "UserPoolClient"
-    Condition: "CondCreateUserPool"
+      Fn::If:
+        - "CondCreateUserPool"
+        -
+          Ref: "UserPoolClient"
+        -
+          Ref: "ExistingUserPoolClientId"
   UserPoolDomain:
     Description: "Cognito User Pool custom domain."
     Value:
       Ref: "UserPoolCustomDomainSubdomain"
-    Condition: "CondCreateDomain"
+    Condition: "OutputUserPoolDomainTemplateEnabledCondition"
   UserPoolDomainAliasTarget:
     Description: "Route 53 alias target for the Cognito custom domain."
     Value:
       Fn::GetAtt:
         - "Route53AliasRecord"
         - "AliasTarget"
-    Condition: "CondRegisterAlias"
+    Condition: "OutputUserPoolDomainAliasTargetTemplateEnabledCondition"
   IdentityPoolId:
     Description: "Cognito Identity Pool ID."
     Value:
-      Ref: "IdentityPool"
-    Condition: "CondCreateIdentityPoolWithNewUserPool"
+      Fn::If:
+        - "CondCreateIdentityPoolWithNewUserPool"
+        -
+          Ref: "IdentityPool"
+        -
+          Ref: "ExistingIdentityPoolId"
   AuthenticatedRoleArn:
     Description: "Authenticated Cognito Identity role ARN."
     Value:
-      Fn::GetAtt:
-        - "AuthenticatedRole"
-        - "Arn"
-    Condition: "CondCreateIdentityPoolWithNewUserPool"
+      Fn::If:
+        - "CondCreateIdentityPoolWithNewUserPool"
+        -
+          Fn::GetAtt:
+            - "AuthenticatedRole"
+            - "Arn"
+        -
+          Ref: "ExistingAuthenticatedRoleArn"
   RegisteredRoleArn:
     Description: "Registered Cognito Identity role ARN."
     Value:
-      Fn::GetAtt:
-        - "RegisteredRole"
-        - "Arn"
-    Condition: "CondCreateIdentityPoolWithNewUserPool"
+      Fn::If:
+        - "CondCreateIdentityPoolWithNewUserPool"
+        -
+          Fn::GetAtt:
+            - "RegisteredRole"
+            - "Arn"
+        -
+          Ref: "ExistingRegisteredRoleArn"
   RegisteredGroupName:
     Description: "Default registered group name."
     Value:
@@ -2016,7 +2331,7 @@ Outputs:
           Ref: "EmailTemplateBucket"
         -
           Ref: "EmailTemplateBucketName"
-    Condition: "CondEnableEmailSender"
+    Condition: "OutputEmailTemplateBucketNameTemplateEnabledCondition"
   SesIdentityValue:
     Description: "Resolved SES identity."
     Value:
@@ -2028,32 +2343,32 @@ Outputs:
             - "Identity"
         -
           Ref: "SesIdentity"
-    Condition: "CondUseSES"
+    Condition: "OutputSesIdentityValueTemplateEnabledCondition"
   PreSignUpFunctionArn:
     Description: "Pre sign-up Lambda ARN."
     Value:
       Fn::GetAtt:
         - "PreSignUpFunction"
         - "Arn"
-    Condition: "CondEnablePreSignUp"
+    Condition: "OutputPreSignUpFunctionArnTemplateEnabledCondition"
   PreTokenGenerationFunctionArn:
     Description: "Pre token generation Lambda ARN."
     Value:
       Fn::GetAtt:
         - "PreTokenGenerationFunction"
         - "Arn"
-    Condition: "CondEnablePreTokenGeneration"
+    Condition: "OutputPreTokenGenerationFunctionArnTemplateEnabledCondition"
   PostConfirmationFunctionArn:
     Description: "Post confirmation Lambda ARN."
     Value:
       Fn::GetAtt:
         - "PostConfirmationFunction"
         - "Arn"
-    Condition: "CondEnablePostConfirmation"
+    Condition: "OutputPostConfirmationFunctionArnTemplateEnabledCondition"
   CustomEmailSenderFunctionArn:
     Description: "Custom email sender Lambda ARN."
     Value:
       Fn::GetAtt:
         - "CustomEmailSenderFunction"
         - "Arn"
-    Condition: "CondEnableEmailSender"
+    Condition: "OutputCustomEmailSenderFunctionArnTemplateEnabledCondition"

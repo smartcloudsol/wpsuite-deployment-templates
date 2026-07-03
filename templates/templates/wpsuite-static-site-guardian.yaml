@@ -6,9 +6,16 @@ Parameters:
     Default: "pc:5d8wq5hg1d54kb933ntenntiu"
     AllowedPattern: "^pc:[a-z0-9]+$"
     Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  Enabled:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.2"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -127,6 +134,11 @@ Mappings:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
+  TemplateEnabled:
+    Fn::Equals:
+      -
+        Ref: "Enabled"
+      - "true"
   EnableLogging:
     Fn::Equals:
       -
@@ -192,6 +204,90 @@ Conditions:
         Condition: "HasWpsuiteSiteId"
       -
         Condition: "HasWpsuiteSiteKey"
+  SigningKeyMaterialTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ManageSigningKeyMaterial"
+  SiteKeyParameterTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableWeeklyLicenseRefresh"
+  LicenseRefreshFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableWeeklyLicenseRefresh"
+  LicenseRefreshFunctionLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableWeeklyLicenseRefresh"
+  LicenseRefreshScheduleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableWeeklyLicenseRefresh"
+  LicenseRefreshPermissionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableWeeklyLicenseRefresh"
+  HostedZoneLookupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateDNS"
+  WWWDNSRecordTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateDNS"
+  ApexDNSRecordTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateDNS"
+  MonitoringDashboardTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableLogging"
+  OutputRoute53HostedZoneIdTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateDNS"
+  OutputSiteKeyParameterNameTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableWeeklyLicenseRefresh"
+  OutputLicenseRefreshFunctionArnTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableWeeklyLicenseRefresh"
+  OutputMonitoringDashboardUrlTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableLogging"
 Resources:
   StaticSiteBucket:
     Type: "AWS::S3::Bucket"
@@ -224,6 +320,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CloudFrontResourceManagerRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -361,6 +458,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CloudFrontResourceManager:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -375,10 +473,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-site-guardian/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/cloudfront-manager.zip"
+              - "wpsuite-site-guardian/functions/cloudfront-manager.zip"
       Handler: "cloudfront_manager.lambda_handler"
       Description: "Manages CloudFront resources not supported by native CloudFormation"
       Runtime: "python3.12"
@@ -408,6 +503,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CloudFrontResourceManagerLogGroupManager:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -420,6 +516,7 @@ Resources:
         Fn::Sub: "/aws/lambda/${AWS::StackName}-cloudfront-manager"
       RetentionInDays:
         Ref: "LogRetentionDays"
+    Condition: "TemplateEnabled"
   SigningKeyMaterial:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -430,7 +527,7 @@ Resources:
       ResourceType: "SigningKeyMaterial"
       AppName:
         Ref: "AppName"
-    Condition: "ManageSigningKeyMaterial"
+    Condition: "SigningKeyMaterialTemplateEnabledCondition"
   CloudFrontPublicKey:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -450,6 +547,7 @@ Resources:
               - "PublicKeyContent"
           -
             Ref: "PublicKeyContent"
+    Condition: "TemplateEnabled"
   CloudFrontKeyGroup:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -464,6 +562,7 @@ Resources:
         Fn::GetAtt:
           - "CloudFrontPublicKey"
           - "PublicKeyId"
+    Condition: "TemplateEnabled"
   OriginAccessControl:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -474,6 +573,7 @@ Resources:
       ResourceType: "OriginAccessControl"
       Name:
         Fn::Sub: "${AWS::StackName}-OAC"
+    Condition: "TemplateEnabled"
   NoCachePolicy:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -484,6 +584,7 @@ Resources:
       ResourceType: "ResponsePolicy"
       Name:
         Fn::Sub: "${AWS::StackName}-NoCachePolicy"
+    Condition: "TemplateEnabled"
   SiteKeyParameter:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -496,7 +597,7 @@ Resources:
         Fn::Sub: "/${AppName}/site-guardian/site-key"
       Value:
         Ref: "WpsuiteSiteKey"
-    Condition: "EnableWeeklyLicenseRefresh"
+    Condition: "SiteKeyParameterTemplateEnabledCondition"
   ViewerRequestFunction:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -516,6 +617,7 @@ Resources:
         Ref: "SigninPagePath"
       S3WWWRoot:
         Ref: "S3WWWRoot"
+    Condition: "TemplateEnabled"
   PathRewriteFunction:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -533,6 +635,7 @@ Resources:
             Ref: "ProtectedPaths"
       S3WWWRoot:
         Ref: "S3WWWRoot"
+    Condition: "TemplateEnabled"
   LambdaEdgeExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -564,6 +667,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   CookieSigningFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -578,10 +682,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-site-guardian/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/cookie-signing.zip"
+              - "wpsuite-site-guardian/functions/cookie-signing.zip"
       Handler: "lambda_function.lambda_handler"
       Description: "Lambda@Edge function for issuing CloudFront signed cookies with JWT authentication"
       Runtime: "python3.12"
@@ -596,6 +697,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   LambdaCodeUpdater:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -648,6 +750,7 @@ Resources:
             Ref: "CognitoAppClientIds"
     DependsOn:
       - "CookieSigningFunction"
+    Condition: "TemplateEnabled"
   CloudFrontDistributionUpdate:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -679,6 +782,7 @@ Resources:
         Fn::GetAtt:
           - "OriginAccessControl"
           - "OriginAccessControlId"
+    Condition: "TemplateEnabled"
   CloudFrontDistribution:
     Type: "AWS::CloudFront::Distribution"
     Properties:
@@ -818,6 +922,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   StaticSiteBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
@@ -860,6 +965,7 @@ Resources:
               - "s3:GetBucketAcl"
             Resource:
               Fn::Sub: "arn:aws:s3:::${StaticSiteBucket}"
+    Condition: "TemplateEnabled"
   StaticSiteBucketCleaner:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -870,6 +976,7 @@ Resources:
       ResourceType: "BucketCleaner"
       BucketName:
         Ref: "StaticSiteBucket"
+    Condition: "TemplateEnabled"
   LicenseRefreshFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -911,6 +1018,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
   LicenseRefreshFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -925,10 +1033,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-site-guardian/"
-              -
-                Ref: "TemplateVersion"
-              - "/functions/license-refresh.zip"
+              - "wpsuite-site-guardian/functions/license-refresh.zip"
       Handler: "license_refresher.lambda_handler"
       Description: "Refreshes config.enc and lic.jws in the site bucket from the WP Suite API."
       Runtime: "python3.12"
@@ -959,7 +1064,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "EnableWeeklyLicenseRefresh"
+    Condition: "LicenseRefreshFunctionTemplateEnabledCondition"
   LicenseRefreshFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -972,7 +1077,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "EnableWeeklyLicenseRefresh"
+    Condition: "LicenseRefreshFunctionLogGroupTemplateEnabledCondition"
   LicenseRefreshSchedule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -992,7 +1097,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "EnableWeeklyLicenseRefresh"
+    Condition: "LicenseRefreshScheduleTemplateEnabledCondition"
   LicenseRefreshPermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -1004,7 +1109,7 @@ Resources:
         Fn::GetAtt:
           - "LicenseRefreshSchedule"
           - "Arn"
-    Condition: "EnableWeeklyLicenseRefresh"
+    Condition: "LicenseRefreshPermissionTemplateEnabledCondition"
   HostedZoneLookup:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -1015,7 +1120,7 @@ Resources:
       ResourceType: "HostedZoneLookup"
       DomainName:
         Ref: "DomainName"
-    Condition: "CreateDNS"
+    Condition: "HostedZoneLookupTemplateEnabledCondition"
   WWWDNSRecord:
     Type: "AWS::Route53::RecordSet"
     Properties:
@@ -1032,7 +1137,7 @@ Resources:
             - "CloudFrontDistribution"
             - "DomainName"
         HostedZoneId: "Z2FDTNDATAQYW2"
-    Condition: "CreateDNS"
+    Condition: "WWWDNSRecordTemplateEnabledCondition"
   ApexDNSRecord:
     Type: "AWS::Route53::RecordSet"
     Properties:
@@ -1049,7 +1154,7 @@ Resources:
             - "CloudFrontDistribution"
             - "DomainName"
         HostedZoneId: "Z2FDTNDATAQYW2"
-    Condition: "CreateDNS"
+    Condition: "ApexDNSRecordTemplateEnabledCondition"
   MonitoringDashboard:
     Type: "AWS::CloudWatch::Dashboard"
     Properties:
@@ -1057,7 +1162,7 @@ Resources:
         Fn::Sub: "${AWS::StackName}-monitoring"
       DashboardBody:
         Fn::Sub: "{\n  \"widgets\": [\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/Lambda\",\n            \"Invocations\",\n            \"FunctionName\",\n            \"${CookieSigningFunction}\"\n          ],\n          [\n            \".\",\n            \"Errors\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"Duration\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Function Metrics (us-east-1)\"\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 12,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/CloudFront\",\n            \"Requests\",\n            \"DistributionId\",\n            \"${CloudFrontDistribution}\"\n          ],\n          [\n            \".\",\n            \"BytesDownloaded\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"4xxErrorRate\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"5xxErrorRate\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"${AWS::Region}\",\n        \"title\": \"CloudFront Distribution Metrics\"\n      }\n    },\n    {\n      \"type\": \"log\",\n      \"x\": 0,\n      \"y\": 6,\n      \"width\": 24,\n      \"height\": 6,\n      \"properties\": {\n        \"query\": \"SOURCE '/aws/lambda/us-east-1.${CookieSigningFunction}'\\n| fields @timestamp, @message\\n| filter @message like /ERROR/\\n| sort @timestamp desc\\n| limit 100\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Error Logs\",\n        \"view\": \"table\"\n      }\n    }\n  ]\n}"
-    Condition: "EnableLogging"
+    Condition: "MonitoringDashboardTemplateEnabledCondition"
 Outputs:
   PrmProductCode:
     Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
@@ -1076,86 +1181,126 @@ Outputs:
   S3BucketName:
     Description: "S3 Bucket name for static site hosting."
     Value:
-      Ref: "StaticSiteBucket"
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Ref: "StaticSiteBucket"
+        - ""
   S3BucketUrl:
     Description: "S3 Bucket URL for static site hosting."
     Value:
-      Fn::Sub: "https://${StaticSiteBucket}.s3.${AWS::Region}.amazonaws.com"
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::Sub: "https://${StaticSiteBucket}.s3.${AWS::Region}.amazonaws.com"
+        - ""
   CloudFrontDistributionId:
     Description: "CloudFront Distribution ID."
     Value:
-      Ref: "CloudFrontDistribution"
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Ref: "CloudFrontDistribution"
+        - ""
   CloudFrontDistributionDomain:
     Description: "CloudFront Distribution Domain Name."
     Value:
-      Fn::GetAtt:
-        - "CloudFrontDistribution"
-        - "DomainName"
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::GetAtt:
+            - "CloudFrontDistribution"
+            - "DomainName"
+        - ""
   LambdaEdgeFunctionArn:
     Description: "Lambda@Edge Function ARN."
     Value:
-      Fn::GetAtt:
-        - "LambdaCodeUpdater"
-        - "VersionArn"
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::GetAtt:
+            - "LambdaCodeUpdater"
+            - "VersionArn"
+        - ""
   CloudFrontKeyGroupId:
     Description: "CloudFront Key Group ID for signed cookies."
     Value:
-      Fn::GetAtt:
-        - "CloudFrontKeyGroup"
-        - "KeyGroupId"
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::GetAtt:
+            - "CloudFrontKeyGroup"
+            - "KeyGroupId"
+        - ""
   ResolvedKmsKeyId:
     Description: "Resolved KMS key ID."
     Value:
       Fn::If:
-        - "ManageSigningKeyMaterial"
+        - "TemplateEnabled"
         -
-          Fn::GetAtt:
-            - "SigningKeyMaterial"
-            - "KmsKeyId"
-        -
-          Ref: "KmsKeyId"
+          Fn::If:
+            - "ManageSigningKeyMaterial"
+            -
+              Fn::GetAtt:
+                - "SigningKeyMaterial"
+                - "KmsKeyId"
+            -
+              Ref: "KmsKeyId"
+        - ""
   PrivateKeyParameterName:
     Description: "SSM parameter name that stores the private signing key."
     Value:
       Fn::If:
-        - "ManageSigningKeyMaterial"
+        - "TemplateEnabled"
         -
-          Fn::GetAtt:
-            - "SigningKeyMaterial"
-            - "PrivateKeyParameterName"
-        -
-          Fn::Sub: "/cloudfront/private-key/${KmsKeyId}"
+          Fn::If:
+            - "ManageSigningKeyMaterial"
+            -
+              Fn::GetAtt:
+                - "SigningKeyMaterial"
+                - "PrivateKeyParameterName"
+            -
+              Fn::Sub: "/cloudfront/private-key/${KmsKeyId}"
+        - ""
   NoCachePolicyId:
     Description: "CloudFront Response Headers Policy ID."
     Value:
-      Fn::GetAtt:
-        - "NoCachePolicy"
-        - "ResponseHeadersPolicyId"
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::GetAtt:
+            - "NoCachePolicy"
+            - "ResponseHeadersPolicyId"
+        - ""
   Route53HostedZoneId:
     Description: "Route53 Hosted Zone ID for the domain."
     Value:
       Fn::GetAtt:
         - "HostedZoneLookup"
         - "HostedZoneId"
-    Condition: "CreateDNS"
+    Condition: "OutputRoute53HostedZoneIdTemplateEnabledCondition"
   SetupInstructions:
     Description: "Next steps to complete the setup."
     Value:
-      Fn::Sub: "1. Upload your static WordPress files to S3 bucket: ${StaticSiteBucket}/${S3WWWRoot}\n2. Include custom error pages (if configured): ${NotFoundPagePath} and ${ForbiddenPagePath}\n3. DNS Configuration: Check CreateDNSRecords parameter (${CreateDNSRecords})\n4. Configure Cognito User Pool and App Clients for JWT authentication\n5. Test cookie issuance via main domain: https://${DomainName}/issue-cookie?action=signin\n6. Verify protected paths redirect unauthenticated users to ${SigninPagePath}\n7. Test error pages by accessing non-existent URLs\n8. If weekly refresh is enabled, confirm config.enc and lic.jws appear under ${S3WWWRoot}/wp-content/uploads/hub-for-wpsuiteio/\n\nS3 Bucket: ${StaticSiteBucket}\nS3 WWWRoot Prefix: ${S3WWWRoot}\nCloudFront Domain: ${CloudFrontDistribution.DomainName}\nCookie Endpoint: https://${DomainName}/issue-cookie\nAuthentication: JWT Bearer token required for cookie issuance"
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::Sub: "1. Upload your static WordPress files to S3 bucket: ${StaticSiteBucket}/${S3WWWRoot}\n2. Include custom error pages (if configured): ${NotFoundPagePath} and ${ForbiddenPagePath}\n3. DNS Configuration: Check CreateDNSRecords parameter (${CreateDNSRecords})\n4. Configure Cognito User Pool and App Clients for JWT authentication\n5. Test cookie issuance via main domain: https://${DomainName}/issue-cookie?action=signin\n6. Verify protected paths redirect unauthenticated users to ${SigninPagePath}\n7. Test error pages by accessing non-existent URLs\n8. If weekly refresh is enabled, confirm config.enc and lic.jws appear under ${S3WWWRoot}/wp-content/uploads/hub-for-wpsuiteio/\n\nS3 Bucket: ${StaticSiteBucket}\nS3 WWWRoot Prefix: ${S3WWWRoot}\nCloudFront Domain: ${CloudFrontDistribution.DomainName}\nCookie Endpoint: https://${DomainName}/issue-cookie\nAuthentication: JWT Bearer token required for cookie issuance"
+        - ""
   SiteKeyParameterName:
     Description: "SSM SecureString parameter that stores the WP Suite site key."
     Value:
       Fn::Sub: "/${AppName}/site-guardian/site-key"
-    Condition: "EnableWeeklyLicenseRefresh"
+    Condition: "OutputSiteKeyParameterNameTemplateEnabledCondition"
   LicenseRefreshFunctionArn:
     Description: "Lambda ARN of the scheduled WP Suite license refresher."
     Value:
       Fn::GetAtt:
         - "LicenseRefreshFunction"
         - "Arn"
-    Condition: "EnableWeeklyLicenseRefresh"
+    Condition: "OutputLicenseRefreshFunctionArnTemplateEnabledCondition"
   MonitoringDashboardUrl:
     Description: "CloudWatch Dashboard URL for monitoring."
     Value:
       Fn::Sub: "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${AWS::StackName}-monitoring"
-    Condition: "EnableLogging"
+    Condition: "OutputMonitoringDashboardUrlTemplateEnabledCondition"

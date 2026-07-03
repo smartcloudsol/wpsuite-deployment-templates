@@ -1,0 +1,480 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "WP Suite Static Site Guardian Marketplace deployment wrapper template"
+Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  MPS3BucketName:
+    Type: "String"
+    Description: "Public S3 bucket that contains the reviewed WP Suite CloudFormation templates."
+  MPS3BucketRegion:
+    Type: "String"
+    Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
+  MPS3KeyPrefix:
+    Type: "String"
+    Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
+  WpSuiteDeploymentSecretArn:
+    Type: "String"
+    Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
+    NoEcho: true
+  DeploymentContextMode:
+    Type: "String"
+    Default: "direct"
+    AllowedValues:
+      - "marketplace_secret"
+      - "direct"
+    Description: "How this wrapper receives the WP Suite deployment context."
+  TemplateVersion:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter TemplateVersion."
+  ArtifactBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ArtifactBucketName."
+  ArtifactRootPrefix:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ArtifactRootPrefix."
+  LogRetentionDays:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter LogRetentionDays."
+  Enabled:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter Enabled."
+  AppName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AppName."
+  DomainName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter DomainName."
+  CertificateArn:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter CertificateArn."
+  CognitoUserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter CognitoUserPoolId."
+  CognitoAppClientIds:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter CognitoAppClientIds."
+  ProtectedPaths:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ProtectedPaths."
+  SigninPagePath:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter SigninPagePath."
+  S3BucketName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter S3BucketName."
+  S3WWWRoot:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter S3WWWRoot."
+  CreateDNSRecords:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter CreateDNSRecords."
+  ManageSigningKeys:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ManageSigningKeys."
+  ProtectedPathGroupMap:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ProtectedPathGroupMap."
+  CookieExpirationDays:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter CookieExpirationDays."
+  PublicKeyContent:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter PublicKeyContent."
+  KmsKeyId:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter KmsKeyId."
+  EnableDetailedLogging:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableDetailedLogging."
+  NotFoundPagePath:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter NotFoundPagePath."
+  ForbiddenPagePath:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ForbiddenPagePath."
+  WpsuiteAccountId:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter WpsuiteAccountId."
+  WpsuiteSiteId:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter WpsuiteSiteId."
+  WpsuiteSiteKey:
+    Type: "String"
+    Description: "Forwarded WP Suite nested stack parameter WpsuiteSiteKey."
+    NoEcho: true
+  WpsuiteApiBaseUrl:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter WpsuiteApiBaseUrl."
+  LicenseRefreshScheduleExpression:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter LicenseRefreshScheduleExpression."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+Conditions:
+  CondUseMarketplaceSecret:
+    Fn::Equals:
+      -
+        Ref: "DeploymentContextMode"
+      - "marketplace_secret"
+Resources:
+  WrappedNestedStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        PrmTagValue:
+          Ref: "PrmTagValue"
+        TemplateVersion:
+          Ref: "TemplateVersion"
+        ArtifactBucketName:
+          Ref: "ArtifactBucketName"
+        ArtifactRootPrefix:
+          Ref: "ArtifactRootPrefix"
+        LogRetentionDays:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianLogRetentionDays}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "LogRetentionDays"
+        Enabled:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployStaticGuardian}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "Enabled"
+        AppName:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianAppName}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AppName"
+        DomainName:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianDomainName}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "DomainName"
+        CertificateArn:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianCertificateArn}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "CertificateArn"
+        CognitoUserPoolId:
+          Ref: "CognitoUserPoolId"
+        CognitoAppClientIds:
+          Ref: "CognitoAppClientIds"
+        ProtectedPaths:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianProtectedPaths}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "ProtectedPaths"
+        SigninPagePath:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianSigninPagePath}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "SigninPagePath"
+        S3BucketName:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianS3BucketName}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "S3BucketName"
+        S3WWWRoot:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianS3WWWRoot}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "S3WWWRoot"
+        CreateDNSRecords:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianCreateDNSRecords}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "CreateDNSRecords"
+        ManageSigningKeys:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianManageSigningKeys}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "ManageSigningKeys"
+        ProtectedPathGroupMap:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianProtectedPathGroupMap}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "ProtectedPathGroupMap"
+        CookieExpirationDays:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianCookieExpirationDays}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "CookieExpirationDays"
+        PublicKeyContent:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianPublicKeyContent}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "PublicKeyContent"
+        KmsKeyId:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianKmsKeyId}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "KmsKeyId"
+        EnableDetailedLogging:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianEnableDetailedLogging}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableDetailedLogging"
+        NotFoundPagePath:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianNotFoundPagePath}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "NotFoundPagePath"
+        ForbiddenPagePath:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianForbiddenPagePath}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "ForbiddenPagePath"
+        WpsuiteAccountId:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianWpsuiteAccountId}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "WpsuiteAccountId"
+        WpsuiteSiteId:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianWpsuiteSiteId}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "WpsuiteSiteId"
+        WpsuiteSiteKey:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianWpsuiteSiteKey}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "WpsuiteSiteKey"
+        WpsuiteApiBaseUrl:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianWpsuiteApiBaseUrl}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "WpsuiteApiBaseUrl"
+        LicenseRefreshScheduleExpression:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianLicenseRefreshScheduleExpression}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "LicenseRefreshScheduleExpression"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      TemplateURL:
+        Fn::Sub:
+          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
+          -
+            Bucket:
+              Ref: "MPS3BucketName"
+            Region:
+              Ref: "MPS3BucketRegion"
+            Prefix:
+              Ref: "MPS3KeyPrefix"
+            TemplatePath: "wpsuite-static-site-guardian.yaml"
+Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
+  S3BucketName:
+    Description: "Forwarded S3BucketName output from wpsuite-static-site-guardian.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.S3BucketName"
+  CloudFrontDistributionId:
+    Description: "Forwarded CloudFrontDistributionId output from wpsuite-static-site-guardian.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.CloudFrontDistributionId"
+  CloudFrontDistributionDomain:
+    Description: "Forwarded CloudFrontDistributionDomain output from wpsuite-static-site-guardian.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.CloudFrontDistributionDomain"
+  LambdaEdgeFunctionArn:
+    Description: "Forwarded LambdaEdgeFunctionArn output from wpsuite-static-site-guardian.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.LambdaEdgeFunctionArn"
+  CloudFrontKeyGroupId:
+    Description: "Forwarded CloudFrontKeyGroupId output from wpsuite-static-site-guardian.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.CloudFrontKeyGroupId"
+  PrivateKeyParameterName:
+    Description: "Forwarded PrivateKeyParameterName output from wpsuite-static-site-guardian.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.PrivateKeyParameterName"
