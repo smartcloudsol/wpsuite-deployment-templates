@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite Cognito nested template for Marketplace Deployment Access"
 Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
   TemplateVersion:
     Type: "String"
     Default: "v1.0.0"
@@ -327,6 +332,10 @@ Parameters:
       - "phone_number"
       - "email_and_phone"
     Description: "Which attributes must be verified before update."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
   CondCreateUserPool:
     Fn::Equals:
@@ -600,6 +609,11 @@ Resources:
               - "kms:UpdateKeyDescription"
               - "kms:Verify"
             Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondCreateCustomSenderKmsKey"
   CustomSenderKmsAlias:
     Type: "AWS::KMS::Alias"
@@ -744,6 +758,9 @@ Resources:
                     - "Arn"
             -
               Ref: "AWS::NoValue"
+      UserPoolTags:
+        aws-apn-id:
+          Ref: "PrmTagValue"
     Condition: "CondCreateUserPool"
   RegisteredRole:
     Type: "AWS::IAM::Role"
@@ -775,6 +792,11 @@ Resources:
                   - "execute-api:ManageConnections"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:execute-api:*:${AWS::AccountId}:*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondCreateIdentityPoolWithNewUserPool"
   RegisteredGroup:
     Type: "AWS::Cognito::UserPoolGroup"
@@ -879,6 +901,11 @@ Resources:
             Fn::GetAtt:
               - "UserPool"
               - "ProviderName"
+      IdentityPoolTags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondCreateIdentityPoolWithNewUserPool"
   AuthenticatedRole:
     Type: "AWS::IAM::Role"
@@ -908,6 +935,11 @@ Resources:
                 Action:
                   - "cognito-identity:GetCredentialsForIdentity"
                 Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondCreateIdentityPoolWithNewUserPool"
   IdentityPoolRoleAttachment:
     Type: "AWS::Cognito::IdentityPoolRoleAttachment"
@@ -933,6 +965,11 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     UpdateReplacePolicy: "Delete"
     DeletionPolicy: "Delete"
     Condition: "CondCreateEmailTemplateBucket"
@@ -1060,6 +1097,11 @@ Resources:
                   - "ses:DeleteEmailIdentity"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CustomResourceFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -1094,6 +1136,13 @@ Resources:
             Ref: "AWS::Partition"
           AWS_ACCOUNT_ID:
             Ref: "AWS::AccountId"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CustomResourceFunctionLogGroupManager:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -1251,6 +1300,11 @@ Resources:
                   - "ssm:GetParameter"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/recaptcha/secret"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnablePreSignUp"
   PreSignUpFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
@@ -1259,6 +1313,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-pre-signup"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnablePreSignUp"
   PreSignUpFunction:
     Type: "AWS::Lambda::Function"
@@ -1294,6 +1353,8 @@ Resources:
             Ref: "AWS::Partition"
           AWS_ACCOUNT_ID:
             Ref: "AWS::AccountId"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           ENABLE_RECAPTCHA:
             Ref: "EnableRecaptcha"
           RECAPTCHA_MODE:
@@ -1307,6 +1368,11 @@ Resources:
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
           ENABLE_EXTERNAL_IDP_LINKING: "true"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnablePreSignUp"
   PreTokenGenerationFunctionRole:
     Type: "AWS::IAM::Role"
@@ -1337,6 +1403,11 @@ Resources:
                     -
                       LogGroupNamePattern:
                         Fn::Sub: "/aws/lambda/${AppName}-pre-token-generation*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnablePreTokenGeneration"
   PreTokenGenerationFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
@@ -1345,6 +1416,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-pre-token-generation"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnablePreTokenGeneration"
   PreTokenGenerationFunction:
     Type: "AWS::Lambda::Function"
@@ -1380,6 +1456,13 @@ Resources:
             Ref: "AWS::Partition"
           AWS_ACCOUNT_ID:
             Ref: "AWS::AccountId"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnablePreTokenGeneration"
   PostConfirmationFunctionRole:
     Type: "AWS::IAM::Role"
@@ -1422,6 +1505,11 @@ Resources:
                       Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
                     -
                       Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnablePostConfirmation"
   PostConfirmationFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
@@ -1430,6 +1518,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-post-confirmation"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnablePostConfirmation"
   PostConfirmationFunction:
     Type: "AWS::Lambda::Function"
@@ -1465,9 +1558,16 @@ Resources:
             Ref: "AWS::Partition"
           AWS_ACCOUNT_ID:
             Ref: "AWS::AccountId"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           REGISTERED_GROUP_NAME:
             Ref: "RegisteredGroupName"
           VERIFY_EMAIL_ON_CONFIRM: "true"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnablePostConfirmation"
   CustomEmailSenderFunctionRole:
     Type: "AWS::IAM::Role"
@@ -1521,6 +1621,11 @@ Resources:
                     Resource: "*"
                   -
                     Ref: "AWS::NoValue"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnableEmailSender"
   CustomEmailSenderFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
@@ -1529,6 +1634,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-custom-email-sender"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnableEmailSender"
   CustomEmailSenderFunction:
     Type: "AWS::Lambda::Function"
@@ -1564,6 +1674,8 @@ Resources:
             Ref: "AWS::Partition"
           AWS_ACCOUNT_ID:
             Ref: "AWS::AccountId"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           TEMPLATE_BUCKET:
             Fn::If:
               - "CondCreateEmailTemplateBucket"
@@ -1599,6 +1711,11 @@ Resources:
             Ref: "SubjectTemplateAuthentication"
           SUBJECT_ACCOUNT_TAKEOVER:
             Ref: "SubjectTemplateAccountTakeover"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CondEnableEmailSender"
   UserPoolSettingsManager:
     Type: "Custom::ApplyUserPoolSettings"
@@ -1819,6 +1936,13 @@ Resources:
             Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
     Condition: "CondAttachCustomEmailSender"
 Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
   TemplateVersion:
     Description: "Template version used for this nested stack."
     Value:

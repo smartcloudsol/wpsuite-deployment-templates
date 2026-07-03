@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite Site Guardian nested template for Marketplace Deployment Access"
 Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
   TemplateVersion:
     Type: "String"
     Default: "v1.0.0"
@@ -117,6 +122,10 @@ Parameters:
     Type: "String"
     Default: "rate(7 days)"
     Description: "EventBridge schedule expression for refreshing config.enc and lic.jws."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
   EnableLogging:
     Fn::Equals:
@@ -210,6 +219,11 @@ Resources:
               SSEAlgorithm: "AES256"
       VersioningConfiguration:
         Status: "Enabled"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CloudFrontResourceManagerRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -342,6 +356,11 @@ Resources:
                   - "logs:PutRetentionPolicy"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CloudFrontResourceManager:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -371,6 +390,8 @@ Resources:
           - "Arn"
       Environment:
         Variables:
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           STACK_NAME:
             Ref: "AWS::StackName"
           PUBLIC_KEY_CONTENT:
@@ -382,6 +403,11 @@ Resources:
                 Ref: "ProtectedPaths"
           SIGNIN_PAGE_PATH:
             Ref: "SigninPagePath"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CloudFrontResourceManagerLogGroupManager:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -533,6 +559,11 @@ Resources:
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
                 Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CookieSigningFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -560,6 +591,11 @@ Resources:
         Fn::GetAtt:
           - "LambdaEdgeExecutionRole"
           - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   LambdaCodeUpdater:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -777,6 +813,11 @@ Resources:
                     ErrorCachingMinTTL: 300
                 -
                   Ref: "AWS::NoValue"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   StaticSiteBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
@@ -865,6 +906,11 @@ Resources:
                   - "ssm:GetParameter"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/site-guardian/site-key"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   LicenseRefreshFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -894,6 +940,8 @@ Resources:
           - "Arn"
       Environment:
         Variables:
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           SITE_BUCKET_NAME:
             Ref: "StaticSiteBucket"
           SITE_WWWROOT:
@@ -906,6 +954,11 @@ Resources:
             Ref: "WpsuiteApiBaseUrl"
           SITE_KEY_PARAMETER_NAME:
             Fn::Sub: "/${AppName}/site-guardian/site-key"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "EnableWeeklyLicenseRefresh"
   LicenseRefreshFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
@@ -914,6 +967,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AWS::StackName}-license-refresh"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "EnableWeeklyLicenseRefresh"
   LicenseRefreshSchedule:
     Type: "AWS::Events::Rule"
@@ -929,6 +987,11 @@ Resources:
               - "LicenseRefreshFunction"
               - "Arn"
           Id: "LicenseRefreshFunctionTarget"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "EnableWeeklyLicenseRefresh"
   LicenseRefreshPermission:
     Type: "AWS::Lambda::Permission"
@@ -996,6 +1059,13 @@ Resources:
         Fn::Sub: "{\n  \"widgets\": [\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/Lambda\",\n            \"Invocations\",\n            \"FunctionName\",\n            \"${CookieSigningFunction}\"\n          ],\n          [\n            \".\",\n            \"Errors\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"Duration\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Function Metrics (us-east-1)\"\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 12,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/CloudFront\",\n            \"Requests\",\n            \"DistributionId\",\n            \"${CloudFrontDistribution}\"\n          ],\n          [\n            \".\",\n            \"BytesDownloaded\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"4xxErrorRate\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"5xxErrorRate\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"${AWS::Region}\",\n        \"title\": \"CloudFront Distribution Metrics\"\n      }\n    },\n    {\n      \"type\": \"log\",\n      \"x\": 0,\n      \"y\": 6,\n      \"width\": 24,\n      \"height\": 6,\n      \"properties\": {\n        \"query\": \"SOURCE '/aws/lambda/us-east-1.${CookieSigningFunction}'\\n| fields @timestamp, @message\\n| filter @message like /ERROR/\\n| sort @timestamp desc\\n| limit 100\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Error Logs\",\n        \"view\": \"table\"\n      }\n    }\n  ]\n}"
     Condition: "EnableLogging"
 Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
   TemplateFamily:
     Description: "Template family identifier."
     Value: "wpsuite-static-site-guardian"

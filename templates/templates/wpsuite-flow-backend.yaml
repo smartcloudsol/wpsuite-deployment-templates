@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite Flow backend nested template for Marketplace Deployment Access"
 Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
   TemplateVersion:
     Type: "String"
     Default: "v1.0.0"
@@ -204,6 +209,10 @@ Parameters:
     AllowedPattern: "^$|^[A-Z0-9]{10,32}$"
     ConstraintDescription: "Must be a valid hosted zone ID or empty."
     Description: "Route53 hosted zone ID (optional, auto-discovered when empty)"
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
   UseCustomDomain:
     Fn::Not:
@@ -354,6 +363,11 @@ Resources:
       ManagedPolicyArns:
         -
           Fn::Sub: "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   ApiGatewayAccountConfig:
     Type: "Custom::ApiGatewayAccount"
     Properties:
@@ -375,6 +389,11 @@ Resources:
       EndpointConfiguration:
         Types:
           - "REGIONAL"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     DependsOn:
       - "ApiGatewayAccountConfig"
   ApiDomainName:
@@ -388,6 +407,11 @@ Resources:
         Types:
           - "REGIONAL"
       SecurityPolicy: "TLS_1_2"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "UseCustomDomain"
   AdminAuthorizer:
     Type: "Custom::ApiAuthorizer"
@@ -412,6 +436,11 @@ Resources:
       QueueName:
         Fn::Sub: "${AppName}-${Environment}-dlq"
       MessageRetentionPeriod: 1209600
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   SecretsKmsKey:
     Type: "AWS::KMS::Key"
     Properties:
@@ -472,6 +501,11 @@ Resources:
               - "kms:GenerateDataKey"
               - "kms:DescribeKey"
             Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CreateKmsKey"
   SecretsKmsAlias:
     Type: "AWS::KMS::Alias"
@@ -502,6 +536,11 @@ Resources:
             MaxAge: 3600
       VersioningConfiguration:
         Status: "Enabled"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CreateTemplatesBucket"
   PayloadBucket:
     Type: "AWS::S3::Bucket"
@@ -524,6 +563,11 @@ Resources:
             MaxAge: 3600
       VersioningConfiguration:
         Status: "Enabled"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CreatePayloadBucket"
   TemplatesBucketCleaner:
     Type: "Custom::BucketCleaner"
@@ -620,6 +664,11 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "expiresAt"
         Enabled: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   SubmissionEventsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -640,6 +689,11 @@ Resources:
         -
           AttributeName: "SK"
           KeyType: "RANGE"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   TemplatesTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -678,6 +732,11 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   WorkflowDefinitionsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -716,6 +775,11 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   FormDefinitionsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -754,6 +818,11 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   WebhookEndpointsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -792,6 +861,11 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   ProcessMapsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -830,6 +904,11 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CustomResourceManagerFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -936,6 +1015,11 @@ Resources:
                           - "Arn"
                       -
                         Ref: "AWS::NoValue"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CustomResourceManagerTemplatesBucketCleanupPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -1065,6 +1149,8 @@ Resources:
             Ref: "AppName"
           ENVIRONMENT:
             Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           EVENT_BUS_NAME: "default"
           SUBMISSIONS_TABLE:
             Ref: "SubmissionsTable"
@@ -1114,6 +1200,11 @@ Resources:
             Ref: "LogLevel"
           DATA_RETENTION_DAYS:
             Ref: "DataRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CustomResourceManagerLogGroupManager:
     Type: "Custom::LogGroupManager"
     Properties:
@@ -1230,6 +1321,11 @@ Resources:
                   - "kms:DescribeKey"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "GuardDutyMalwareProtectionEnabled"
   GuardDutyMalwareProtectionPlan:
     Type: "Custom::GuardDutyMalwareProtectionPlan"
@@ -1546,6 +1642,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-${Environment}-forms-api"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   FormsApiFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -1726,6 +1827,11 @@ Resources:
                   - "events:PutEvents"
                   - "ssm:GetParameter"
                 Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   FormsApiFunctionKmsPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -1786,6 +1892,8 @@ Resources:
             Ref: "AppName"
           ENVIRONMENT:
             Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           EVENT_BUS_NAME: "default"
           SUBMISSIONS_TABLE:
             Ref: "SubmissionsTable"
@@ -1852,6 +1960,11 @@ Resources:
           Fn::GetAtt:
             - "DeadLetterQueue"
             - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   FormsApiInvokePermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -2118,6 +2231,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-${Environment}-workflow-dispatcher"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   WorkflowDispatcherFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2232,6 +2350,11 @@ Resources:
                 Action:
                   - "events:PutEvents"
                 Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   WorkflowDispatcherFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2270,6 +2393,8 @@ Resources:
             Ref: "AppName"
           ENVIRONMENT:
             Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           EVENT_BUS_NAME: "default"
           SUBMISSIONS_TABLE:
             Ref: "SubmissionsTable"
@@ -2324,6 +2449,11 @@ Resources:
           Fn::GetAtt:
             - "DeadLetterQueue"
             - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   WorkflowDispatcherEventRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -2346,6 +2476,11 @@ Resources:
               - "WorkflowDispatcherFunction"
               - "Arn"
           Id: "WorkflowDispatcherFunction"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   WorkflowDispatcherEventPermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -2364,6 +2499,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-${Environment}-email-sender"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   EmailSenderFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2465,6 +2605,11 @@ Resources:
                   - "ses:SendEmail"
                   - "events:PutEvents"
                 Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   EmailSenderFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2503,6 +2648,8 @@ Resources:
             Ref: "AppName"
           ENVIRONMENT:
             Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           EVENT_BUS_NAME: "default"
           SUBMISSIONS_TABLE:
             Ref: "SubmissionsTable"
@@ -2557,6 +2704,11 @@ Resources:
           Fn::GetAtt:
             - "DeadLetterQueue"
             - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   EmailSenderEventRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -2573,6 +2725,11 @@ Resources:
               - "EmailSenderFunction"
               - "Arn"
           Id: "EmailSenderFunction"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   EmailSenderEventPermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -2591,6 +2748,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-${Environment}-webhook-dispatcher"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   WebhookDispatcherFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2670,6 +2832,11 @@ Resources:
                   - "ssm:GetParameter"
                   - "events:PutEvents"
                 Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   WebhookDispatcherFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2708,6 +2875,8 @@ Resources:
             Ref: "AppName"
           ENVIRONMENT:
             Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           EVENT_BUS_NAME: "default"
           SUBMISSIONS_TABLE:
             Ref: "SubmissionsTable"
@@ -2768,6 +2937,11 @@ Resources:
           Fn::GetAtt:
             - "DeadLetterQueue"
             - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   WebhookDispatcherEventRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -2784,6 +2958,11 @@ Resources:
               - "WebhookDispatcherFunction"
               - "Arn"
           Id: "WebhookDispatcherFunction"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   WebhookDispatcherEventPermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -2818,6 +2997,13 @@ Resources:
                 - "Arn"
     Condition: "CreateKmsKey"
 Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
   TemplateFamily:
     Description: "Template family identifier."
     Value: "wpsuite-flow-backend"

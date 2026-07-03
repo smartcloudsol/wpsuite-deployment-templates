@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite AI Kit backend nested template for Marketplace Deployment Access"
 Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
   TemplateVersion:
     Type: "String"
     Default: "v1.0.0"
@@ -367,6 +372,10 @@ Parameters:
     Type: "Number"
     Default: 14
     Description: "CloudWatch Logs retention in days."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
   UseCustomDomain:
     Fn::Not:
@@ -639,6 +648,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-${Environment}-ai-handler"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   RestApiLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -646,6 +660,11 @@ Resources:
         Fn::Sub: "/aws/apigateway/${AppName}-${Environment}-rest-api"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   RestApiExecutionLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -653,6 +672,11 @@ Resources:
         Fn::Sub: "API-Gateway-Execution-Logs_${RestApi}/prod"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   RecaptchaKmsKey:
     Type: "AWS::KMS::Key"
     Properties:
@@ -700,6 +724,11 @@ Resources:
               - "kms:UpdateKeyDescription"
               - "kms:Verify"
             Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "EnableRecaptchaProtection"
   RecaptchaKmsKeyAlias:
     Type: "AWS::KMS::Alias"
@@ -723,6 +752,11 @@ Resources:
       ManagedPolicyArns:
         -
           Fn::Sub: "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   ApiGatewayAccountConfig:
     Type: "Custom::ApiGatewayAccount"
     Properties:
@@ -744,6 +778,11 @@ Resources:
       EndpointConfiguration:
         Types:
           - "REGIONAL"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     DependsOn:
       - "ApiGatewayAccountConfig"
   FrontendCognitoAuth:
@@ -1392,6 +1431,11 @@ Resources:
           LoggingLevel: "INFO"
           DataTraceEnabled: false
           MetricsEnabled: false
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     DependsOn:
       - "RestApiExecutionLogGroup"
   ApiMethodSettings:
@@ -1539,6 +1583,11 @@ Resources:
         Types:
           - "REGIONAL"
       SecurityPolicy: "TLS_1_2"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "UseCustomDomain"
   ApiBasePathMapping:
     Type: "Custom::ApiBasePathMapping"
@@ -1856,6 +1905,11 @@ Resources:
             NoncurrentVersionExpirationInDays: 1
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 1
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "CreateNewDocsBucket"
   DocsBucketCleaner:
     Type: "Custom::BucketCleaner"
@@ -1932,6 +1986,11 @@ Resources:
       ManagedPolicyArns:
         -
           Ref: "KnowledgeBasePolicy"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   VectorBucket:
     Type: "Custom::S3VectorsBucket"
     Properties:
@@ -2187,6 +2246,11 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "TTL"
         Enabled: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "S3TriggerEnabled"
   ChatSessionsTable:
     Type: "AWS::DynamoDB::Table"
@@ -2205,6 +2269,11 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "TTL"
         Enabled: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   ChatMessagesTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -2228,6 +2297,11 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "TTL"
         Enabled: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CommonDependenciesLayer:
     Type: "AWS::Lambda::LayerVersion"
     Properties:
@@ -2396,6 +2470,11 @@ Resources:
                   - "kms:Decrypt"
                   - "kms:DescribeKey"
                 Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   AiHandlerFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2447,6 +2526,8 @@ Resources:
             Ref: "AppName"
           ENVIRONMENT:
             Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           LOG_LEVEL:
             Fn::If:
               - "IsProduction"
@@ -2545,6 +2626,11 @@ Resources:
                   - "KnowledgeBaseSyncFunction"
                   - "Arn"
               - ""
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   AiAgentDispatcherLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
@@ -2552,6 +2638,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-${Environment}-ai-agent-dispatcher"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   AiAgentDispatcherFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2634,6 +2725,11 @@ Resources:
                         Fn::Sub: "arn:${AWS::Partition}:s3:::${FlowAttachmentBucketName}/${FlowAttachmentPrefix}*"
                       -
                         Ref: "AWS::NoValue"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   AiAgentDispatcherFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2685,6 +2781,8 @@ Resources:
             Ref: "AppName"
           ENVIRONMENT:
             Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           LOG_LEVEL:
             Fn::If:
               - "IsProduction"
@@ -2756,6 +2854,11 @@ Resources:
             Ref: "FlowAttachmentBucketName"
           FLOW_ATTACHMENT_PREFIX:
             Ref: "FlowAttachmentPrefix"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   AiAgentDispatcherEventRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -2772,6 +2875,11 @@ Resources:
               - "AiAgentDispatcherFunction"
               - "Arn"
           Id: "AiAgentDispatcherFunction"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   AiAgentDispatcherEventPermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -2790,6 +2898,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-${Environment}-ai-email-intake-dispatcher"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   AiEmailIntakeDispatcherFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2851,6 +2964,11 @@ Resources:
                         Fn::Sub: "arn:${AWS::Partition}:s3:::${FlowAttachmentBucketName}/${FlowAttachmentPrefix}*"
                       -
                         Ref: "AWS::NoValue"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   AiEmailIntakeDispatcherFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2902,6 +3020,8 @@ Resources:
             Ref: "AppName"
           ENVIRONMENT:
             Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           LOG_LEVEL:
             Fn::If:
               - "IsProduction"
@@ -2969,6 +3089,11 @@ Resources:
             Ref: "FlowAttachmentBucketName"
           FLOW_ATTACHMENT_PREFIX:
             Ref: "FlowAttachmentPrefix"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   AiEmailIntakeDispatcherInvokePermissionWorkMail:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -3178,6 +3303,11 @@ Resources:
                   - "kms:Encrypt"
                   - "kms:GenerateDataKey"
                 Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CustomResourceManager:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -3232,6 +3362,8 @@ Resources:
             Ref: "AppName"
           ENVIRONMENT:
             Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           LOG_LEVEL:
             Fn::If:
               - "IsProduction"
@@ -3274,6 +3406,11 @@ Resources:
                 Ref: "DocsBucketName"
               -
                 Ref: "DocsBucket"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   CustomResourceManagerLogGroupManager:
     Type: "Custom::LogGroupManager"
     Properties:
@@ -3325,6 +3462,11 @@ Resources:
         Fn::Sub: "/aws/lambda/${AppName}-${Environment}-kb-sync"
       RetentionInDays:
         Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "S3TriggerEnabled"
   KnowledgeBaseSyncFunctionRole:
     Type: "AWS::IAM::Role"
@@ -3395,6 +3537,11 @@ Resources:
                   Fn::GetAtt:
                     - "KBSyncStateTable"
                     - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "S3TriggerEnabled"
   KnowledgeBaseSyncFunction:
     Type: "AWS::Lambda::Function"
@@ -3447,6 +3594,8 @@ Resources:
             Ref: "AppName"
           ENVIRONMENT:
             Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           LOG_LEVEL:
             Fn::If:
               - "IsProduction"
@@ -3516,6 +3665,11 @@ Resources:
             Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
           DEBOUNCE_DELAY_SECONDS: "60"
           WAIT_FOR_COMPLETION: "false"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "S3TriggerEnabled"
   S3NotificationSetupForNewBucket:
     Type: "Custom::S3Notification"
@@ -3596,6 +3750,11 @@ Resources:
       ManagedPolicyArns:
         -
           Ref: "KBSyncSchedulePolicy"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "S3TriggerEnabled"
   AlertsTopic:
     Type: "AWS::SNS::Topic"
@@ -3604,6 +3763,11 @@ Resources:
         Fn::Sub: "${AppName}-${Environment}-alerts"
       DisplayName:
         Fn::Sub: "${AppName} Critical Alerts"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
     Condition: "AlertsEnabled"
   DeadLetterQueue:
     Type: "AWS::SQS::Queue"
@@ -3612,6 +3776,11 @@ Resources:
         Fn::Sub: "${AppName}-${Environment}-dlq"
       MessageRetentionPeriod: 1209600
       VisibilityTimeout: 60
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   HostedZoneLookup:
     Type: "Custom::HostedZoneLookup"
     Properties:
@@ -3682,6 +3851,13 @@ Resources:
       - "ApiBasePathMapping"
     Condition: "UseRoute53"
 Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
   TemplateFamily:
     Description: "Template family identifier."
     Value: "wpsuite-ai-kit-backend"

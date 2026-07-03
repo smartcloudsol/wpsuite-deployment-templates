@@ -56,6 +56,18 @@ Before launching a stack, review:
 
 See [IAM permissions overview](docs/iam-permissions.md) for a practical starting point.
 
+## AWS Partner Revenue Measurement
+
+WP Suite Marketplace deployments include AWS Partner Revenue Measurement attribution. Deployment Access resources created in the buyer AWS account are tagged with:
+
+`aws-apn-id = pc:5d8wq5hg1d54kb933ntenntiu`
+
+Buyer-account runtime Lambdas created by the Deployment Access templates also receive:
+
+`AWS_SDK_UA_APP_ID = APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$`
+
+These values are used only for AWS partner revenue attribution and do not affect runtime behavior, permissions, billing, or customer data processing.
+
 ## Versioning
 
 Template bundles are versioned together. The version in `templates/manifest.json` should match the version published to the Marketplace artifact bucket.

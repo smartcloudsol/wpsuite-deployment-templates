@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite Deployment Access root orchestration template for AWS Marketplace Quick Launch"
 Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
   MPS3BucketName:
     Type: "String"
     Default: "wpsuite-artifacts-637423296378-us-east-1-an"
@@ -767,6 +772,10 @@ Parameters:
     Type: "Number"
     Default: 14
     Description: "CloudWatch Logs retention in days for orchestration and nested resources."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
   CondDeployCognito:
     Fn::Equals:
@@ -825,6 +834,11 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   DeploymentArtifactBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
@@ -896,6 +910,10 @@ Resources:
           PolicyName: "WriteDeploymentArtifacts"
       Tags:
         -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+        -
           Key: "WPSuitePurpose"
           Value: "deployment-artifact-ingress"
   ArtifactStagerFunctionRole:
@@ -922,6 +940,11 @@ Resources:
                   - "logs:PutLogEvents"
                 Resource: "*"
           PolicyName: "ArtifactStagerLogs"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
   ArtifactStagerReadDeploymentSecretPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -944,6 +967,10 @@ Resources:
     Properties:
       Code:
         ZipFile: "\nconst https = require(\"https\");\nconst url = require(\"url\");\nconst { SecretsManagerClient, GetSecretValueCommand } = require(\"@aws-sdk/client-secrets-manager\");\n\nfunction requestJson(endpoint, body) {\n  return new Promise((resolve, reject) => {\n    const parsed = new url.URL(endpoint);\n    const payload = JSON.stringify(body);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"POST\",\n      headers: {\n        \"content-type\": \"application/json\",\n        \"content-length\": Buffer.byteLength(payload)\n      }\n    }, (res) => {\n      let data = \"\";\n      res.on(\"data\", (chunk) => { data += chunk; });\n      res.on(\"end\", () => {\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error(\"WP Suite backend returned \" + res.statusCode));\n          return;\n        }\n        resolve(data ? JSON.parse(data) : {});\n      });\n    });\n    req.on(\"error\", reject);\n    req.write(payload);\n    req.end();\n  });\n}\n\nfunction sendResponse(event, context, status, data, physicalResourceId, reason) {\n  return new Promise((resolve, reject) => {\n    const body = JSON.stringify({\n      Status: status,\n      Reason: reason || (\"See CloudWatch Log Stream: \" + context.logStreamName),\n      PhysicalResourceId: physicalResourceId || context.logStreamName,\n      StackId: event.StackId,\n      RequestId: event.RequestId,\n      LogicalResourceId: event.LogicalResourceId,\n      NoEcho: false,\n      Data: data || {}\n    });\n    const parsed = new url.URL(event.ResponseURL);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"PUT\",\n      headers: {\n        \"content-type\": \"\",\n        \"content-length\": Buffer.byteLength(body)\n      }\n    }, (res) => {\n      res.resume();\n      res.on(\"end\", resolve);\n    });\n    req.on(\"error\", reject);\n    req.write(body);\n    req.end();\n  });\n}\n\nasync function deploymentContext(props) {\n  if (props.DeploymentContextMode === \"direct\") {\n    if (!props.DeploymentId || !props.DeploymentNonce) {\n      throw new Error(\"Direct WP Suite deployment context is incomplete\");\n    }\n    return {\n      deploymentId: props.DeploymentId,\n      nonce: props.DeploymentNonce,\n      expectedAwsAccountId: props.ExpectedAwsAccountId || \"\"\n    };\n  }\n\n  if (!props.DeploymentSecretArn) {\n    throw new Error(\"WP Suite deployment secret ARN is missing\");\n  }\n\n  const secrets = new SecretsManagerClient({});\n  const secret = await secrets.send(new GetSecretValueCommand({\n    SecretId: props.DeploymentSecretArn\n  }));\n  if (!secret.SecretString) {\n    throw new Error(\"WP Suite deployment secret is empty\");\n  }\n\n  const parsed = JSON.parse(secret.SecretString);\n  if (!parsed.deploymentId || !parsed.nonce) {\n    throw new Error(\"WP Suite deployment secret is missing required fields\");\n  }\n  return parsed;\n}\n\nexports.handler = async (event, context) => {\n  const physicalResourceId = event.PhysicalResourceId || \"wpsuite-artifact-stager\";\n  try {\n    if (event.RequestType === \"Delete\") {\n      await sendResponse(event, context, \"SUCCESS\", {}, physicalResourceId);\n      return;\n    }\n\n    const props = event.ResourceProperties || {};\n    const deployment = await deploymentContext(props);\n    const currentAwsAccountId = context.invokedFunctionArn.split(\":\")[4];\n    const response = await requestJson(props.BackendStageArtifactUrl, {\n      requestType: event.RequestType,\n      stackId: event.StackId,\n      requestId: event.RequestId,\n      deploymentId: deployment.deploymentId,\n      nonce: deployment.nonce,\n      awsAccountId: deployment.expectedAwsAccountId || currentAwsAccountId,\n      templateVersion: props.TemplateVersion,\n      topology: props.Topology,\n      stagingBucket: props.TargetBucketName,\n      stagingPrefix: props.TargetPrefix,\n      targetBucketName: props.TargetBucketName,\n      targetPrefix: props.TargetPrefix,\n      artifactIngressRoleArn: props.ArtifactIngressRoleArn,\n      artifactIngressExternalId: props.ArtifactIngressExternalId,\n      region: process.env.AWS_REGION\n    });\n\n    await sendResponse(event, context, \"SUCCESS\", {\n      ArtifactRootPrefix: response.artifactRootPrefix || props.TargetPrefix,\n      TemplateVersion: response.templateVersion || props.TemplateVersion\n    }, physicalResourceId);\n  } catch (error) {\n    await sendResponse(event, context, \"FAILED\", {}, physicalResourceId, error.message);\n  }\n};\n"
+      Environment:
+        Variables:
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
       Handler: "index.handler"
       MemorySize: 256
       Role:
@@ -951,6 +978,11 @@ Resources:
           - "ArtifactStagerFunctionRole"
           - "Arn"
       Runtime: "nodejs24.x"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       Timeout: 900
   ArtifactStager:
     Type: "AWS::CloudFormation::CustomResource"
@@ -1013,6 +1045,8 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "LogRetentionDays"
+        PrmTagValue:
+          Ref: "PrmTagValue"
         AppName:
           Ref: "CognitoAppName"
         PostLoginRedirectUrl:
@@ -1093,6 +1127,11 @@ Resources:
           Ref: "CognitoCallbackBaseUrl"
         KmsKeyId:
           Ref: "CognitoKmsKeyId"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -1119,6 +1158,8 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "LogRetentionDays"
+        PrmTagValue:
+          Ref: "PrmTagValue"
         AppName:
           Ref: "AiKitAppName"
         Environment:
@@ -1239,6 +1280,11 @@ Resources:
                 - "Outputs.UserPoolId"
             -
               Ref: "ExistingUserPoolId"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -1265,6 +1311,8 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "FlowLogRetentionDays"
+        PrmTagValue:
+          Ref: "PrmTagValue"
         AppName:
           Ref: "FlowAppName"
         Environment:
@@ -1334,6 +1382,11 @@ Resources:
           Ref: "FlowAdminAllowedIPs"
         BlockedIPs:
           Ref: "FlowBlockedIPs"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -1360,6 +1413,8 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "StaticGuardianLogRetentionDays"
+        PrmTagValue:
+          Ref: "PrmTagValue"
         AppName:
           Ref: "StaticGuardianAppName"
         DomainName:
@@ -1420,6 +1475,11 @@ Resources:
           Ref: "StaticGuardianWpsuiteApiBaseUrl"
         LicenseRefreshScheduleExpression:
           Ref: "StaticGuardianLicenseRefreshScheduleExpression"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -1437,6 +1497,10 @@ Resources:
     Properties:
       Code:
         ZipFile: "\nconst https = require(\"https\");\nconst url = require(\"url\");\nconst { SecretsManagerClient, GetSecretValueCommand } = require(\"@aws-sdk/client-secrets-manager\");\n\nfunction requestJson(endpoint, body) {\n  return new Promise((resolve, reject) => {\n    const parsed = new url.URL(endpoint);\n    const payload = JSON.stringify(body);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"POST\",\n      headers: {\n        \"content-type\": \"application/json\",\n        \"content-length\": Buffer.byteLength(payload)\n      }\n    }, (res) => {\n      let data = \"\";\n      res.on(\"data\", (chunk) => { data += chunk; });\n      res.on(\"end\", () => {\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error(\"WP Suite backend returned \" + res.statusCode + (data ? \": \" + data : \"\")));\n          return;\n        }\n        resolve(data ? JSON.parse(data) : {});\n      });\n    });\n    req.on(\"error\", reject);\n    req.write(payload);\n    req.end();\n  });\n}\n\nfunction sendResponse(event, context, status, data, physicalResourceId, reason) {\n  return new Promise((resolve, reject) => {\n    const body = JSON.stringify({\n      Status: status,\n      Reason: reason || (\"See CloudWatch Log Stream: \" + context.logStreamName),\n      PhysicalResourceId: physicalResourceId || context.logStreamName,\n      StackId: event.StackId,\n      RequestId: event.RequestId,\n      LogicalResourceId: event.LogicalResourceId,\n      NoEcho: false,\n      Data: data || {}\n    });\n    const parsed = new url.URL(event.ResponseURL);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"PUT\",\n      headers: {\n        \"content-type\": \"\",\n        \"content-length\": Buffer.byteLength(body)\n      }\n    }, (res) => {\n      res.resume();\n      res.on(\"end\", resolve);\n    });\n    req.on(\"error\", reject);\n    req.write(body);\n    req.end();\n  });\n}\n\nasync function deploymentContext(props) {\n  if (props.DeploymentContextMode === \"direct\") {\n    if (!props.DeploymentId || !props.DeploymentNonce) {\n      throw new Error(\"Direct WP Suite deployment context is incomplete\");\n    }\n    return {\n      deploymentId: props.DeploymentId,\n      nonce: props.DeploymentNonce\n    };\n  }\n\n  if (!props.DeploymentSecretArn) {\n    throw new Error(\"WP Suite deployment secret ARN is missing\");\n  }\n\n  const secrets = new SecretsManagerClient({});\n  const secret = await secrets.send(new GetSecretValueCommand({\n    SecretId: props.DeploymentSecretArn\n  }));\n  if (!secret.SecretString) {\n    throw new Error(\"WP Suite deployment secret is empty\");\n  }\n\n  const parsed = JSON.parse(secret.SecretString);\n  if (!parsed.deploymentId || !parsed.nonce) {\n    throw new Error(\"WP Suite deployment secret is missing required fields\");\n  }\n  return parsed;\n}\n\nexports.handler = async (event, context) => {\n  const physicalResourceId = event.PhysicalResourceId || \"wpsuite-deployment-output-reporter\";\n  try {\n    if (event.RequestType === \"Delete\") {\n      await sendResponse(event, context, \"SUCCESS\", {}, physicalResourceId);\n      return;\n    }\n\n    const props = event.ResourceProperties || {};\n    const deployment = await deploymentContext(props);\n    const endpoint = String(props.BackendApiBaseUrl || \"\").replace(/\\/$/, \"\") + \"/deployment/\" + encodeURIComponent(deployment.deploymentId) + \"/outputs\";\n    const response = await requestJson(endpoint, {\n      nonce: deployment.nonce,\n      stackId: event.StackId,\n      requestId: event.RequestId,\n      operation: event.RequestType,\n      region: process.env.AWS_REGION,\n      outputs: props.Outputs || {}\n    });\n\n    await sendResponse(event, context, \"SUCCESS\", {\n      DeploymentId: deployment.deploymentId,\n      OutputsHash: response.outputsHash || \"\",\n      CapturedAt: response.capturedAt || \"\"\n    }, physicalResourceId);\n  } catch (error) {\n    await sendResponse(event, context, \"FAILED\", {}, physicalResourceId, error.message);\n  }\n};\n"
+      Environment:
+        Variables:
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
       Handler: "index.handler"
       MemorySize: 256
       Role:
@@ -1444,6 +1508,11 @@ Resources:
           - "ArtifactStagerFunctionRole"
           - "Arn"
       Runtime: "nodejs24.x"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       Timeout: 300
   DeploymentOutputReporter:
     Type: "AWS::CloudFormation::CustomResource"
@@ -1656,6 +1725,13 @@ Resources:
                   - "Outputs.PrivateKeyParameterName"
               - ""
 Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
   ArtifactBucketName:
     Description: "Buyer-owned bucket that contains staged WP Suite deployment artifacts."
     Value:
