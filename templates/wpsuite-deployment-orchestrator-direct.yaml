@@ -16,7 +16,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.2/templates/templates"
+    Default: "releases/v1.0.3/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -53,7 +53,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.2"
+    Default: "v1.0.3"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -861,9 +861,7 @@ Resources:
             Statement:
               -
                 Effect: "Allow"
-                Action:
-                  - "s3:PutObject"
-                  - "s3:PutObjectTagging"
+                Action: "s3:PutObject"
                 Resource:
                   Fn::Sub:
                     - "arn:${AWS::Partition}:s3:::${Bucket}/${Prefix}*"
@@ -875,6 +873,17 @@ Resources:
                 Condition:
                   StringEquals:
                     s3:x-amz-server-side-encryption: "AES256"
+              -
+                Effect: "Allow"
+                Action: "s3:PutObjectTagging"
+                Resource:
+                  Fn::Sub:
+                    - "arn:${AWS::Partition}:s3:::${Bucket}/${Prefix}*"
+                    -
+                      Bucket:
+                        Ref: "DeploymentArtifactBucket"
+                      Prefix:
+                        Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
           PolicyName: "WriteDeploymentArtifacts"
       Tags:
         -

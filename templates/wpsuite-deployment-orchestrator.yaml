@@ -16,7 +16,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.2/templates/templates"
+    Default: "releases/v1.0.3/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -104,9 +104,7 @@ Resources:
             Statement:
               -
                 Effect: "Allow"
-                Action:
-                  - "s3:PutObject"
-                  - "s3:PutObjectTagging"
+                Action: "s3:PutObject"
                 Resource:
                   Fn::Sub:
                     - "arn:${AWS::Partition}:s3:::${Bucket}/${Prefix}*"
@@ -118,6 +116,17 @@ Resources:
                 Condition:
                   StringEquals:
                     s3:x-amz-server-side-encryption: "AES256"
+              -
+                Effect: "Allow"
+                Action: "s3:PutObjectTagging"
+                Resource:
+                  Fn::Sub:
+                    - "arn:${AWS::Partition}:s3:::${Bucket}/${Prefix}*"
+                    -
+                      Bucket:
+                        Ref: "DeploymentArtifactBucket"
+                      Prefix:
+                        Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
           PolicyName: "WriteDeploymentArtifacts"
       Tags:
         -
@@ -208,7 +217,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.2"
+      TemplateVersion: "v1.0.3"
       TargetBucketName:
         Ref: "DeploymentArtifactBucket"
       TargetPrefix:
@@ -609,7 +618,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactStager"
               - "ArtifactRootPrefix"
-          templateVersion: "v1.0.2"
+          templateVersion: "v1.0.3"
         cognito:
           deployed: "false"
           stackId:
