@@ -16,7 +16,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.5/templates/templates"
+    Default: "releases/v1.0.0/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -53,7 +53,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.5"
+    Default: "v1.0.0"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -101,8 +101,8 @@ Parameters:
     Description: "Sign-in path used by Static Site Guardian."
   CognitoAppName:
     Type: "String"
-    Default: "wpsuite-cognito"
-    Description: "Application name for the WP Suite Cognito nested stack."
+    Default: ""
+    Description: "Application name for the WP Suite Cognito nested stack. Leave empty to derive it from the root stack name."
   CognitoPostLoginRedirectUrl:
     Type: "String"
     Default: "https://example.com/signin"
@@ -166,8 +166,8 @@ Parameters:
     Description: "AI Kit chat reCAPTCHA verification cache TTL in seconds."
   AiKitAppName:
     Type: "String"
-    Default: "wpsuite-ai-kit"
-    Description: "Application name for the WP Suite AI Kit nested stack."
+    Default: ""
+    Description: "Application name for the WP Suite AI Kit nested stack. Leave empty to derive it from the root stack name."
   AiKitEnvironment:
     Type: "String"
     Default: "prod"
@@ -237,8 +237,8 @@ Parameters:
     Description: "Enable AWS WAF for AI Kit APIs."
   FlowAppName:
     Type: "String"
-    Default: "wpsuite-flow"
-    Description: "Application name for the WP Suite Flow nested stack."
+    Default: ""
+    Description: "Application name for the WP Suite Flow nested stack. Leave empty to derive it from the root stack name."
   FlowEnvironment:
     Type: "String"
     Default: "prod"
@@ -294,8 +294,8 @@ Parameters:
     Description: "Number of days to retain Flow submission data."
   StaticGuardianAppName:
     Type: "String"
-    Default: "wpsuite-site-guardian"
-    Description: "Application name for the Static Site Guardian nested stack."
+    Default: ""
+    Description: "Application name for the Static Site Guardian nested stack. Leave empty to derive it from the root stack name."
   StaticGuardianS3BucketName:
     Type: "String"
     Default: ""
@@ -777,6 +777,26 @@ Mappings:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
+  CondUseGeneratedCognitoAppName:
+    Fn::Equals:
+      -
+        Ref: "CognitoAppName"
+      - ""
+  CondUseGeneratedAiKitAppName:
+    Fn::Equals:
+      -
+        Ref: "AiKitAppName"
+      - ""
+  CondUseGeneratedFlowAppName:
+    Fn::Equals:
+      -
+        Ref: "FlowAppName"
+      - ""
+  CondUseGeneratedStaticGuardianAppName:
+    Fn::Equals:
+      -
+        Ref: "StaticGuardianAppName"
+      - ""
   CondUseMarketplaceSecret:
     Fn::Equals:
       -
@@ -1073,7 +1093,12 @@ Resources:
         Enabled:
           Ref: "DeployCognito"
         AppName:
-          Ref: "CognitoAppName"
+          Fn::If:
+            - "CondUseGeneratedCognitoAppName"
+            -
+              Fn::Sub: "${AWS::StackName}-cognito"
+            -
+              Ref: "CognitoAppName"
         ExistingUserPoolId:
           Ref: "ExistingUserPoolId"
         ExistingUserPoolClientId:
@@ -1205,7 +1230,12 @@ Resources:
         Enabled:
           Ref: "DeployAiKitBackend"
         AppName:
-          Ref: "AiKitAppName"
+          Fn::If:
+            - "CondUseGeneratedAiKitAppName"
+            -
+              Fn::Sub: "${AWS::StackName}-ai-kit"
+            -
+              Ref: "AiKitAppName"
         Environment:
           Ref: "AiKitEnvironment"
         FrontendApiAuthMode:
@@ -1361,7 +1391,12 @@ Resources:
         Enabled:
           Ref: "DeployFlowBackend"
         AppName:
-          Ref: "FlowAppName"
+          Fn::If:
+            - "CondUseGeneratedFlowAppName"
+            -
+              Fn::Sub: "${AWS::StackName}-flow"
+            -
+              Ref: "FlowAppName"
         Environment:
           Ref: "FlowEnvironment"
         FrontendApiAuthMode:
@@ -1471,7 +1506,12 @@ Resources:
         Enabled:
           Ref: "DeployStaticGuardian"
         AppName:
-          Ref: "StaticGuardianAppName"
+          Fn::If:
+            - "CondUseGeneratedStaticGuardianAppName"
+            -
+              Fn::Sub: "${AWS::StackName}-static-guardian"
+            -
+              Ref: "StaticGuardianAppName"
         DomainName:
           Ref: "StaticGuardianDomainName"
         CertificateArn:

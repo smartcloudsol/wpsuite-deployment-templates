@@ -184,16 +184,7 @@ Resources:
             -
               Ref: "Enabled"
         AppName:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianAppName}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "AppName"
+          Ref: "AppName"
         DomainName:
           Fn::If:
             - "CondUseMarketplaceSecret"

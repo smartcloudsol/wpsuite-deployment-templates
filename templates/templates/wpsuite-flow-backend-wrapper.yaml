@@ -216,16 +216,7 @@ Resources:
             -
               Ref: "Enabled"
         AppName:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowAppName}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "AppName"
+          Ref: "AppName"
         Environment:
           Fn::If:
             - "CondUseMarketplaceSecret"

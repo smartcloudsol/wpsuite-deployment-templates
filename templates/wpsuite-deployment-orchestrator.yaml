@@ -16,7 +16,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.5/templates/templates"
+    Default: "releases/v1.0.0/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -249,7 +249,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.5"
+      TemplateVersion: "v1.0.0"
       TargetBucketName:
         Ref: "DeploymentArtifactBucket"
       TargetPrefix:
@@ -294,7 +294,8 @@ Resources:
         PrmTagValue:
           Ref: "PrmTagValue"
         Enabled: "false"
-        AppName: "wpsuite-cognito"
+        AppName:
+          Fn::Sub: "${AWS::StackName}-cognito"
         ExistingUserPoolId: ""
         ExistingUserPoolClientId: ""
         ExistingIdentityPoolId: ""
@@ -380,7 +381,8 @@ Resources:
         PrmTagValue:
           Ref: "PrmTagValue"
         Enabled: "false"
-        AppName: "wpsuite-ai-kit"
+        AppName:
+          Fn::Sub: "${AWS::StackName}-ai-kit"
         Environment: "prod"
         FrontendApiAuthMode: "NONE"
         AdminApiAuthMode: "IAM"
@@ -482,7 +484,8 @@ Resources:
         PrmTagValue:
           Ref: "PrmTagValue"
         Enabled: "false"
-        AppName: "wpsuite-flow"
+        AppName:
+          Fn::Sub: "${AWS::StackName}-flow"
         Environment: "prod"
         FrontendApiAuthMode: "NONE"
         AdminApiAuthMode: "COGNITO"
@@ -559,7 +562,8 @@ Resources:
         PrmTagValue:
           Ref: "PrmTagValue"
         Enabled: "false"
-        AppName: "wpsuite-site-guardian"
+        AppName:
+          Fn::Sub: "${AWS::StackName}-static-guardian"
         DomainName: ""
         CertificateArn: ""
         CognitoUserPoolId:
@@ -654,7 +658,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactStager"
               - "ArtifactRootPrefix"
-          templateVersion: "v1.0.5"
+          templateVersion: "v1.0.0"
         cognito:
           deployed: "false"
           stackId:

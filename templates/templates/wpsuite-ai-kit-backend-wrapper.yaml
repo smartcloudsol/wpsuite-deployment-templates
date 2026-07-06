@@ -304,16 +304,7 @@ Resources:
             -
               Ref: "Enabled"
         AppName:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitAppName}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "AppName"
+          Ref: "AppName"
         Environment:
           Fn::If:
             - "CondUseMarketplaceSecret"
