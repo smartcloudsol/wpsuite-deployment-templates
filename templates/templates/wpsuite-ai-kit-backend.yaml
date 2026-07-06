@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.3"
+    Default: "v1.0.5"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -2383,6 +2383,15 @@ Resources:
             Ref: "DocsBucket"
       Key:
         Fn::Sub: "${ConfigPrefix}query-template.txt"
+      SourceBucketName:
+        Ref: "ArtifactBucketName"
+      SourceKey:
+        Fn::Join:
+          - ""
+          -
+            -
+              Ref: "ArtifactRootPrefix"
+            - "wpsuite-ai-kit/templates/query-template.txt"
       SourcePath: "/opt/nodejs/templates/query-template.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
@@ -2402,6 +2411,15 @@ Resources:
             Ref: "DocsBucket"
       Key:
         Fn::Sub: "${ConfigPrefix}rerank-template.txt"
+      SourceBucketName:
+        Ref: "ArtifactBucketName"
+      SourceKey:
+        Fn::Join:
+          - ""
+          -
+            -
+              Ref: "ArtifactRootPrefix"
+            - "wpsuite-ai-kit/templates/rerank-template.txt"
       SourcePath: "/opt/nodejs/templates/rerank-template.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
@@ -2421,6 +2439,15 @@ Resources:
             Ref: "DocsBucket"
       Key:
         Fn::Sub: "${ConfigPrefix}summary-template.txt"
+      SourceBucketName:
+        Ref: "ArtifactBucketName"
+      SourceKey:
+        Fn::Join:
+          - ""
+          -
+            -
+              Ref: "ArtifactRootPrefix"
+            - "wpsuite-ai-kit/templates/summary-template.txt"
       SourcePath: "/opt/nodejs/templates/summary-template.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
@@ -2440,6 +2467,15 @@ Resources:
             Ref: "DocsBucket"
       Key:
         Fn::Sub: "${ConfigPrefix}answer-template.txt"
+      SourceBucketName:
+        Ref: "ArtifactBucketName"
+      SourceKey:
+        Fn::Join:
+          - ""
+          -
+            -
+              Ref: "ArtifactRootPrefix"
+            - "wpsuite-ai-kit/templates/answer-template.txt"
       SourcePath: "/opt/nodejs/templates/answer-template.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
@@ -2459,6 +2495,15 @@ Resources:
             Ref: "DocsBucket"
       Key:
         Fn::Sub: "${ConfigPrefix}answer-template-ask-when-no-kb.txt"
+      SourceBucketName:
+        Ref: "ArtifactBucketName"
+      SourceKey:
+        Fn::Join:
+          - ""
+          -
+            -
+              Ref: "ArtifactRootPrefix"
+            - "wpsuite-ai-kit/templates/answer-template-ask-when-no-kb.txt"
       SourcePath: "/opt/nodejs/templates/answer-template-ask-when-no-kb.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
@@ -2478,6 +2523,15 @@ Resources:
             Ref: "DocsBucket"
       Key:
         Fn::Sub: "${ConfigPrefix}answer-template-kb-only.txt"
+      SourceBucketName:
+        Ref: "ArtifactBucketName"
+      SourceKey:
+        Fn::Join:
+          - ""
+          -
+            -
+              Ref: "ArtifactRootPrefix"
+            - "wpsuite-ai-kit/templates/answer-template-kb-only.txt"
       SourcePath: "/opt/nodejs/templates/answer-template-kb-only.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
@@ -2497,6 +2551,15 @@ Resources:
             Ref: "DocsBucket"
       Key:
         Fn::Sub: "${ConfigPrefix}answer-template-kb-preferred.txt"
+      SourceBucketName:
+        Ref: "ArtifactBucketName"
+      SourceKey:
+        Fn::Join:
+          - ""
+          -
+            -
+              Ref: "ArtifactRootPrefix"
+            - "wpsuite-ai-kit/templates/answer-template-kb-preferred.txt"
       SourcePath: "/opt/nodejs/templates/answer-template-kb-preferred.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
@@ -2516,6 +2579,15 @@ Resources:
             Ref: "DocsBucket"
       Key:
         Fn::Sub: "${ConfigPrefix}answer-template-kb-rag.txt"
+      SourceBucketName:
+        Ref: "ArtifactBucketName"
+      SourceKey:
+        Fn::Join:
+          - ""
+          -
+            -
+              Ref: "ArtifactRootPrefix"
+            - "wpsuite-ai-kit/templates/answer-template-kb-rag.txt"
       SourcePath: "/opt/nodejs/templates/answer-template-kb-rag.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
@@ -3539,6 +3611,12 @@ Resources:
                       Fn::GetAtt:
                         - "DocsBucket"
                         - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:s3:::${ArtifactBucketName}/${ArtifactRootPrefix}wpsuite-ai-kit/templates/*"
               -
                 Effect: "Allow"
                 Action:
