@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.9/templates/templates"
+    Default: "releases/v1.0.10/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.9"
+    Default: "v1.0.10"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -79,6 +79,33 @@ Parameters:
       - "true"
       - "false"
     Description: "Deploy WP Suite Static Site Guardian."
+  EnableAlerts:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable shared SNS email alerting for selected WP Suite backends."
+  AlertEmailAddress1:
+    Type: "String"
+    Default: ""
+    Description: "Alert email recipient 1. Leave empty when unused."
+  AlertEmailAddress2:
+    Type: "String"
+    Default: ""
+    Description: "Alert email recipient 2. Leave empty when unused."
+  AlertEmailAddress3:
+    Type: "String"
+    Default: ""
+    Description: "Alert email recipient 3. Leave empty when unused."
+  AlertEmailAddress4:
+    Type: "String"
+    Default: ""
+    Description: "Alert email recipient 4. Leave empty when unused."
+  AlertEmailAddress5:
+    Type: "String"
+    Default: ""
+    Description: "Alert email recipient 5. Leave empty when unused."
   StaticGuardianDomainName:
     Type: "String"
     Default: ""
@@ -458,16 +485,6 @@ Parameters:
     Default: ""
     Description: "AiKit nested stack parameter ConfigPrefix."
     NoEcho: false
-  AiKitFlowAttachmentBucketName:
-    Type: "String"
-    Default: ""
-    Description: "AiKit nested stack parameter FlowAttachmentBucketName."
-    NoEcho: false
-  AiKitFlowAttachmentPrefix:
-    Type: "String"
-    Default: ""
-    Description: "AiKit nested stack parameter FlowAttachmentPrefix."
-    NoEcho: false
   AiKitAgentModelId:
     Type: "String"
     Default: ""
@@ -532,11 +549,6 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "AiKit nested stack parameter EnableRoute53."
-    NoEcho: false
-  AiKitEnableAlerts:
-    Type: "String"
-    Default: ""
-    Description: "AiKit nested stack parameter EnableAlerts."
     NoEcho: false
   AiKitMaxTokens:
     Type: "String"
@@ -1147,6 +1159,125 @@ Resources:
             Prefix:
               Ref: "MPS3KeyPrefix"
             TemplatePath: "wpsuite-cognito-wrapper.yaml"
+  FlowBackendNestedStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        MPS3BucketName:
+          Ref: "MPS3BucketName"
+        MPS3BucketRegion:
+          Ref: "MPS3BucketRegion"
+        MPS3KeyPrefix:
+          Ref: "MPS3KeyPrefix"
+        DeploymentContextMode:
+          Ref: "DeploymentContextMode"
+        WpSuiteDeploymentSecretArn:
+          Ref: "WpSuiteDeploymentSecretArn"
+        TemplateVersion:
+          Fn::GetAtt:
+            - "ArtifactStager"
+            - "TemplateVersion"
+        ArtifactBucketName:
+          Ref: "DeploymentArtifactBucket"
+        ArtifactRootPrefix:
+          Fn::GetAtt:
+            - "ArtifactStager"
+            - "ArtifactRootPrefix"
+        LogRetentionDays:
+          Ref: "FlowLogRetentionDays"
+        Enabled:
+          Ref: "DeployFlowBackend"
+        AppName:
+          Fn::Sub: "${AWS::StackName}-flow"
+        Environment:
+          Ref: "FlowEnvironment"
+        FrontendApiAuthMode:
+          Ref: "FlowFrontendApiAuthMode"
+        AdminApiAuthMode:
+          Ref: "FlowAdminApiAuthMode"
+        AdminCognitoUserPoolId:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.UserPoolId"
+        AdminCognitoAuthScopes:
+          Ref: "FlowAdminCognitoAuthScopes"
+        PayloadBucketName:
+          Ref: "FlowPayloadBucketName"
+        TemplatesBucketName:
+          Ref: "FlowTemplatesBucketName"
+        FromEmail:
+          Ref: "FlowFromEmail"
+        EnableRecaptcha:
+          Ref: "FlowEnableRecaptcha"
+        RecaptchaMode:
+          Ref: "RecaptchaMode"
+        RecaptchaProjectId:
+          Ref: "RecaptchaProjectId"
+        RecaptchaSiteKey:
+          Ref: "RecaptchaSiteKey"
+        RecaptchaSecretKey:
+          Ref: "RecaptchaSecretKey"
+        RecaptchaScoreThreshold:
+          Ref: "RecaptchaScoreThreshold"
+        EnableWAF:
+          Ref: "FlowEnableWAF"
+        EnableKmsForSecrets:
+          Ref: "FlowEnableKmsForSecrets"
+        DataRetentionDays:
+          Ref: "FlowDataRetentionDays"
+        EnableAlerts:
+          Ref: "EnableAlerts"
+        AlertEmailAddress1:
+          Ref: "AlertEmailAddress1"
+        AlertEmailAddress2:
+          Ref: "AlertEmailAddress2"
+        AlertEmailAddress3:
+          Ref: "AlertEmailAddress3"
+        AlertEmailAddress4:
+          Ref: "AlertEmailAddress4"
+        AlertEmailAddress5:
+          Ref: "AlertEmailAddress5"
+        PayloadPrefix:
+          Ref: "FlowPayloadPrefix"
+        TemplatesPrefix:
+          Ref: "FlowTemplatesPrefix"
+        DefaultWebhookSigningSecret:
+          Ref: "FlowDefaultWebhookSigningSecret"
+        ApiCustomDomainName:
+          Ref: "FlowApiCustomDomainName"
+        AcmCertificateArn:
+          Ref: "FlowAcmCertificateArn"
+        EnableRoute53:
+          Ref: "FlowEnableRoute53"
+        EnableGuardDutyMalwareProtection:
+          Ref: "FlowEnableGuardDutyMalwareProtection"
+        LambdaMemorySize:
+          Ref: "FlowLambdaMemorySize"
+        LambdaTimeout:
+          Ref: "FlowLambdaTimeout"
+        LogLevel:
+          Ref: "FlowLogLevel"
+        PublicAllowedIPs:
+          Ref: "FlowPublicAllowedIPs"
+        AdminAllowedIPs:
+          Ref: "FlowAdminAllowedIPs"
+        BlockedIPs:
+          Ref: "FlowBlockedIPs"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
+      TemplateURL:
+        Fn::Sub:
+          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
+          -
+            Bucket:
+              Ref: "MPS3BucketName"
+            Region:
+              Ref: "MPS3BucketRegion"
+            Prefix:
+              Ref: "MPS3KeyPrefix"
+            TemplatePath: "wpsuite-flow-backend-wrapper.yaml"
   AiKitBackendNestedStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
@@ -1215,6 +1346,26 @@ Resources:
           Ref: "RecaptchaChatTtlSeconds"
         EnableWAF:
           Ref: "AiKitEnableWAF"
+        FlowAttachmentBucketName:
+          Fn::GetAtt:
+            - "FlowBackendNestedStack"
+            - "Outputs.PayloadBucketOutput"
+        FlowAttachmentPrefix:
+          Fn::GetAtt:
+            - "FlowBackendNestedStack"
+            - "Outputs.PayloadPrefixOutput"
+        EnableAlerts:
+          Ref: "EnableAlerts"
+        AlertEmailAddress1:
+          Ref: "AlertEmailAddress1"
+        AlertEmailAddress2:
+          Ref: "AlertEmailAddress2"
+        AlertEmailAddress3:
+          Ref: "AlertEmailAddress3"
+        AlertEmailAddress4:
+          Ref: "AlertEmailAddress4"
+        AlertEmailAddress5:
+          Ref: "AlertEmailAddress5"
         DocsBucketName:
           Ref: "AiKitDocsBucketName"
         InclusionPrefix:
@@ -1223,10 +1374,6 @@ Resources:
           Ref: "AiKitTempAssetsPrefix"
         ConfigPrefix:
           Ref: "AiKitConfigPrefix"
-        FlowAttachmentBucketName:
-          Ref: "AiKitFlowAttachmentBucketName"
-        FlowAttachmentPrefix:
-          Ref: "AiKitFlowAttachmentPrefix"
         AgentModelId:
           Ref: "AiKitAgentModelId"
         AgentReasoningEffortLevel:
@@ -1253,8 +1400,6 @@ Resources:
           Ref: "AiKitGuardrailsEnabled"
         EnableRoute53:
           Ref: "AiKitEnableRoute53"
-        EnableAlerts:
-          Ref: "AiKitEnableAlerts"
         MaxTokens:
           Ref: "AiKitMaxTokens"
         OverlapPercentage:
@@ -1300,113 +1445,6 @@ Resources:
             Prefix:
               Ref: "MPS3KeyPrefix"
             TemplatePath: "wpsuite-ai-kit-backend-wrapper.yaml"
-  FlowBackendNestedStack:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      Parameters:
-        MPS3BucketName:
-          Ref: "MPS3BucketName"
-        MPS3BucketRegion:
-          Ref: "MPS3BucketRegion"
-        MPS3KeyPrefix:
-          Ref: "MPS3KeyPrefix"
-        DeploymentContextMode:
-          Ref: "DeploymentContextMode"
-        WpSuiteDeploymentSecretArn:
-          Ref: "WpSuiteDeploymentSecretArn"
-        TemplateVersion:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "TemplateVersion"
-        ArtifactBucketName:
-          Ref: "DeploymentArtifactBucket"
-        ArtifactRootPrefix:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ArtifactRootPrefix"
-        LogRetentionDays:
-          Ref: "FlowLogRetentionDays"
-        Enabled:
-          Ref: "DeployFlowBackend"
-        AppName:
-          Fn::Sub: "${AWS::StackName}-flow"
-        Environment:
-          Ref: "FlowEnvironment"
-        FrontendApiAuthMode:
-          Ref: "FlowFrontendApiAuthMode"
-        AdminApiAuthMode:
-          Ref: "FlowAdminApiAuthMode"
-        AdminCognitoUserPoolId:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolId"
-        AdminCognitoAuthScopes:
-          Ref: "FlowAdminCognitoAuthScopes"
-        PayloadBucketName:
-          Ref: "FlowPayloadBucketName"
-        TemplatesBucketName:
-          Ref: "FlowTemplatesBucketName"
-        FromEmail:
-          Ref: "FlowFromEmail"
-        EnableRecaptcha:
-          Ref: "FlowEnableRecaptcha"
-        RecaptchaMode:
-          Ref: "RecaptchaMode"
-        RecaptchaProjectId:
-          Ref: "RecaptchaProjectId"
-        RecaptchaSiteKey:
-          Ref: "RecaptchaSiteKey"
-        RecaptchaSecretKey:
-          Ref: "RecaptchaSecretKey"
-        RecaptchaScoreThreshold:
-          Ref: "RecaptchaScoreThreshold"
-        EnableWAF:
-          Ref: "FlowEnableWAF"
-        EnableKmsForSecrets:
-          Ref: "FlowEnableKmsForSecrets"
-        DataRetentionDays:
-          Ref: "FlowDataRetentionDays"
-        PayloadPrefix:
-          Ref: "FlowPayloadPrefix"
-        TemplatesPrefix:
-          Ref: "FlowTemplatesPrefix"
-        DefaultWebhookSigningSecret:
-          Ref: "FlowDefaultWebhookSigningSecret"
-        ApiCustomDomainName:
-          Ref: "FlowApiCustomDomainName"
-        AcmCertificateArn:
-          Ref: "FlowAcmCertificateArn"
-        EnableRoute53:
-          Ref: "FlowEnableRoute53"
-        EnableGuardDutyMalwareProtection:
-          Ref: "FlowEnableGuardDutyMalwareProtection"
-        LambdaMemorySize:
-          Ref: "FlowLambdaMemorySize"
-        LambdaTimeout:
-          Ref: "FlowLambdaTimeout"
-        LogLevel:
-          Ref: "FlowLogLevel"
-        PublicAllowedIPs:
-          Ref: "FlowPublicAllowedIPs"
-        AdminAllowedIPs:
-          Ref: "FlowAdminAllowedIPs"
-        BlockedIPs:
-          Ref: "FlowBlockedIPs"
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
-      TemplateURL:
-        Fn::Sub:
-          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
-          -
-            Bucket:
-              Ref: "MPS3BucketName"
-            Region:
-              Ref: "MPS3BucketRegion"
-            Prefix:
-              Ref: "MPS3KeyPrefix"
-            TemplatePath: "wpsuite-flow-backend-wrapper.yaml"
   StaticGuardianNestedStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
@@ -1611,6 +1649,10 @@ Resources:
             Fn::GetAtt:
               - "FlowBackendNestedStack"
               - "Outputs.PayloadBucketOutput"
+          payloadPrefix:
+            Fn::GetAtt:
+              - "FlowBackendNestedStack"
+              - "Outputs.PayloadPrefixOutput"
         staticGuardian:
           deployed:
             Ref: "DeployStaticGuardian"

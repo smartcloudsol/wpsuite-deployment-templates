@@ -119,6 +119,30 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter DataRetentionDays."
+  EnableAlerts:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableAlerts."
+  AlertEmailAddress1:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AlertEmailAddress1."
+  AlertEmailAddress2:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AlertEmailAddress2."
+  AlertEmailAddress3:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AlertEmailAddress3."
+  AlertEmailAddress4:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AlertEmailAddress4."
+  AlertEmailAddress5:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AlertEmailAddress5."
   PayloadPrefix:
     Type: "String"
     Default: ""
@@ -405,6 +429,72 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "DataRetentionDays"
+        EnableAlerts:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:EnableAlerts}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableAlerts"
+        AlertEmailAddress1:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AlertEmailAddress1}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AlertEmailAddress1"
+        AlertEmailAddress2:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AlertEmailAddress2}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AlertEmailAddress2"
+        AlertEmailAddress3:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AlertEmailAddress3}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AlertEmailAddress3"
+        AlertEmailAddress4:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AlertEmailAddress4}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AlertEmailAddress4"
+        AlertEmailAddress5:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AlertEmailAddress5}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AlertEmailAddress5"
         PayloadPrefix:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -590,3 +680,9 @@ Outputs:
       Fn::GetAtt:
         - "WrappedNestedStack"
         - "Outputs.PayloadBucketOutput"
+  PayloadPrefixOutput:
+    Description: "Forwarded PayloadPrefixOutput output from wpsuite-flow-backend.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.PayloadPrefixOutput"

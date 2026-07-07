@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.9/templates/templates"
+    Default: "releases/v1.0.10/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -241,7 +241,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.9"
+      TemplateVersion: "v1.0.10"
       TargetBucketName:
         Ref: "DeploymentArtifactBucket"
       TargetPrefix:
@@ -343,106 +343,6 @@ Resources:
             Prefix:
               Ref: "MPS3KeyPrefix"
             TemplatePath: "wpsuite-cognito-wrapper.yaml"
-  AiKitBackendNestedStack:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      Parameters:
-        MPS3BucketName:
-          Ref: "MPS3BucketName"
-        MPS3BucketRegion:
-          Ref: "MPS3BucketRegion"
-        MPS3KeyPrefix:
-          Ref: "MPS3KeyPrefix"
-        DeploymentContextMode: "marketplace_secret"
-        WpSuiteDeploymentSecretArn:
-          Ref: "WpSuiteDeploymentSecretArn"
-        TemplateVersion:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "TemplateVersion"
-        ArtifactBucketName:
-          Ref: "DeploymentArtifactBucket"
-        ArtifactRootPrefix:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ArtifactRootPrefix"
-        LogRetentionDays: "14"
-        Enabled: "false"
-        AppName:
-          Fn::Sub: "${AWS::StackName}-ai-kit"
-        Environment: "prod"
-        FrontendApiAuthMode: "NONE"
-        AdminApiAuthMode: "IAM"
-        AdminCognitoAuthScopes: ""
-        FrontendCognitoAuthScopes: ""
-        FrontendModelId: "amazon.nova-lite-v1:0"
-        ModelId: "amazon.nova-lite-v1:0"
-        KnowledgeBaseId: ""
-        EnableChatbotBackend: "false"
-        EnableSummarizerBackend: "false"
-        EnableLanguageAIBackend: "false"
-        EnableRecaptcha: "false"
-        RecaptchaMode: "enterprise"
-        RecaptchaProjectId: ""
-        RecaptchaSiteKey: ""
-        RecaptchaSecretKey: ""
-        RecaptchaScoreThreshold: "0.5"
-        RecaptchaChatTtlSeconds: "120"
-        EnableWAF: "false"
-        DocsBucketName: ""
-        InclusionPrefix: ""
-        TempAssetsPrefix: ""
-        ConfigPrefix: ""
-        FlowAttachmentBucketName: ""
-        FlowAttachmentPrefix: ""
-        AgentModelId: ""
-        AgentReasoningEffortLevel: ""
-        BedrockGuardrailId: ""
-        BedrockGuardrailVersion: ""
-        ApiCustomDomainName: ""
-        AcmCertificateArn: ""
-        CreateS3Trigger: ""
-        EnableRerank: ""
-        StrictMetadataFiltering: ""
-        StrictKBGroundingForChat: ""
-        EnableAgentModeForChatbot: ""
-        GuardrailsEnabled: ""
-        EnableRoute53: ""
-        EnableAlerts: ""
-        MaxTokens: ""
-        OverlapPercentage: ""
-        SessionTTLDays: ""
-        LambdaMemorySize: ""
-        LambdaTimeout: ""
-        AiHandlerTimeout: ""
-        AiAgentDispatcherTimeout: ""
-        ProductionLogLevel: ""
-        PublicAllowedIPs: ""
-        AdminAllowedIPs: ""
-        BlockedIPs: ""
-        AdminCognitoUserPoolId:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolId"
-        FrontendCognitoUserPoolId:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolId"
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
-      TemplateURL:
-        Fn::Sub:
-          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
-          -
-            Bucket:
-              Ref: "MPS3BucketName"
-            Region:
-              Ref: "MPS3BucketRegion"
-            Prefix:
-              Ref: "MPS3KeyPrefix"
-            TemplatePath: "wpsuite-ai-kit-backend-wrapper.yaml"
   FlowBackendNestedStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
@@ -490,6 +390,12 @@ Resources:
         EnableWAF: "false"
         EnableKmsForSecrets: "false"
         DataRetentionDays: "30"
+        EnableAlerts: "false"
+        AlertEmailAddress1: ""
+        AlertEmailAddress2: ""
+        AlertEmailAddress3: ""
+        AlertEmailAddress4: ""
+        AlertEmailAddress5: ""
         PayloadPrefix: ""
         TemplatesPrefix: ""
         DefaultWebhookSigningSecret: ""
@@ -518,6 +424,117 @@ Resources:
             Prefix:
               Ref: "MPS3KeyPrefix"
             TemplatePath: "wpsuite-flow-backend-wrapper.yaml"
+  AiKitBackendNestedStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        MPS3BucketName:
+          Ref: "MPS3BucketName"
+        MPS3BucketRegion:
+          Ref: "MPS3BucketRegion"
+        MPS3KeyPrefix:
+          Ref: "MPS3KeyPrefix"
+        DeploymentContextMode: "marketplace_secret"
+        WpSuiteDeploymentSecretArn:
+          Ref: "WpSuiteDeploymentSecretArn"
+        TemplateVersion:
+          Fn::GetAtt:
+            - "ArtifactStager"
+            - "TemplateVersion"
+        ArtifactBucketName:
+          Ref: "DeploymentArtifactBucket"
+        ArtifactRootPrefix:
+          Fn::GetAtt:
+            - "ArtifactStager"
+            - "ArtifactRootPrefix"
+        LogRetentionDays: "14"
+        Enabled: "false"
+        AppName:
+          Fn::Sub: "${AWS::StackName}-ai-kit"
+        Environment: "prod"
+        FrontendApiAuthMode: "NONE"
+        AdminApiAuthMode: "IAM"
+        AdminCognitoAuthScopes: ""
+        FrontendCognitoAuthScopes: ""
+        FrontendModelId: "amazon.nova-lite-v1:0"
+        ModelId: "amazon.nova-lite-v1:0"
+        KnowledgeBaseId: ""
+        EnableChatbotBackend: "false"
+        EnableSummarizerBackend: "false"
+        EnableLanguageAIBackend: "false"
+        EnableRecaptcha: "false"
+        RecaptchaMode: "enterprise"
+        RecaptchaProjectId: ""
+        RecaptchaSiteKey: ""
+        RecaptchaSecretKey: ""
+        RecaptchaScoreThreshold: "0.5"
+        RecaptchaChatTtlSeconds: "120"
+        EnableWAF: "false"
+        FlowAttachmentBucketName:
+          Fn::GetAtt:
+            - "FlowBackendNestedStack"
+            - "Outputs.PayloadBucketOutput"
+        FlowAttachmentPrefix:
+          Fn::GetAtt:
+            - "FlowBackendNestedStack"
+            - "Outputs.PayloadPrefixOutput"
+        EnableAlerts: "false"
+        AlertEmailAddress1: ""
+        AlertEmailAddress2: ""
+        AlertEmailAddress3: ""
+        AlertEmailAddress4: ""
+        AlertEmailAddress5: ""
+        DocsBucketName: ""
+        InclusionPrefix: ""
+        TempAssetsPrefix: ""
+        ConfigPrefix: ""
+        AgentModelId: ""
+        AgentReasoningEffortLevel: ""
+        BedrockGuardrailId: ""
+        BedrockGuardrailVersion: ""
+        ApiCustomDomainName: ""
+        AcmCertificateArn: ""
+        CreateS3Trigger: ""
+        EnableRerank: ""
+        StrictMetadataFiltering: ""
+        StrictKBGroundingForChat: ""
+        EnableAgentModeForChatbot: ""
+        GuardrailsEnabled: ""
+        EnableRoute53: ""
+        MaxTokens: ""
+        OverlapPercentage: ""
+        SessionTTLDays: ""
+        LambdaMemorySize: ""
+        LambdaTimeout: ""
+        AiHandlerTimeout: ""
+        AiAgentDispatcherTimeout: ""
+        ProductionLogLevel: ""
+        PublicAllowedIPs: ""
+        AdminAllowedIPs: ""
+        BlockedIPs: ""
+        AdminCognitoUserPoolId:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.UserPoolId"
+        FrontendCognitoUserPoolId:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.UserPoolId"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
+      TemplateURL:
+        Fn::Sub:
+          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
+          -
+            Bucket:
+              Ref: "MPS3BucketName"
+            Region:
+              Ref: "MPS3BucketRegion"
+            Prefix:
+              Ref: "MPS3KeyPrefix"
+            TemplatePath: "wpsuite-ai-kit-backend-wrapper.yaml"
   StaticGuardianNestedStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
@@ -637,7 +654,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactStager"
               - "ArtifactRootPrefix"
-          templateVersion: "v1.0.9"
+          templateVersion: "v1.0.10"
         cognito:
           deployed: "false"
           stackId:
@@ -690,6 +707,10 @@ Resources:
             Fn::GetAtt:
               - "FlowBackendNestedStack"
               - "Outputs.PayloadBucketOutput"
+          payloadPrefix:
+            Fn::GetAtt:
+              - "FlowBackendNestedStack"
+              - "Outputs.PayloadPrefixOutput"
         staticGuardian:
           deployed: "false"
           stackId:

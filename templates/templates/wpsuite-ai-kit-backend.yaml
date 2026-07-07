@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.9"
+    Default: "v1.0.10"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -185,6 +185,26 @@ Parameters:
     Type: "String"
     Default: "INFO"
     Description: "Production log level."
+  AlertEmailAddress1:
+    Type: "String"
+    Default: ""
+    Description: "Email recipient 1 for SNS critical alerts."
+  AlertEmailAddress2:
+    Type: "String"
+    Default: ""
+    Description: "Email recipient 2 for SNS critical alerts."
+  AlertEmailAddress3:
+    Type: "String"
+    Default: ""
+    Description: "Email recipient 3 for SNS critical alerts."
+  AlertEmailAddress4:
+    Type: "String"
+    Default: ""
+    Description: "Email recipient 4 for SNS critical alerts."
+  AlertEmailAddress5:
+    Type: "String"
+    Default: ""
+    Description: "Email recipient 5 for SNS critical alerts."
   EnableRerank:
     Type: "String"
     Default: "false"
@@ -542,6 +562,71 @@ Conditions:
       -
         Ref: "EnableAlerts"
       - "true"
+  HasAlertEmailAddress1:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "AlertEmailAddress1"
+          - ""
+  AlertEmailAddress1Enabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "HasAlertEmailAddress1"
+  HasAlertEmailAddress2:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "AlertEmailAddress2"
+          - ""
+  AlertEmailAddress2Enabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "HasAlertEmailAddress2"
+  HasAlertEmailAddress3:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "AlertEmailAddress3"
+          - ""
+  AlertEmailAddress3Enabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "HasAlertEmailAddress3"
+  HasAlertEmailAddress4:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "AlertEmailAddress4"
+          - ""
+  AlertEmailAddress4Enabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "HasAlertEmailAddress4"
+  HasAlertEmailAddress5:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "AlertEmailAddress5"
+          - ""
+  AlertEmailAddress5Enabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "HasAlertEmailAddress5"
   WAFEnabled:
     Fn::Equals:
       -
@@ -839,6 +924,42 @@ Conditions:
       -
         Condition: "S3TriggerEnabled"
   AlertsTopicTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  AlertsEmailSubscription1TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertEmailAddress1Enabled"
+  AlertsEmailSubscription2TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertEmailAddress2Enabled"
+  AlertsEmailSubscription3TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertEmailAddress3Enabled"
+  AlertsEmailSubscription4TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertEmailAddress4Enabled"
+  AlertsEmailSubscription5TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertEmailAddress5Enabled"
+  DeadLetterQueueMessagesAlarmTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
@@ -2213,8 +2334,6 @@ Resources:
   KnowledgeBasePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
-      ManagedPolicyName:
-        Fn::Sub: "${AppName}-${Environment}-knowledge-base-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -2262,8 +2381,6 @@ Resources:
   KnowledgeBaseRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName:
-        Fn::Sub: "${AppName}-${Environment}-knowledge-base-service-role"
       Path: "/service-role/"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -4123,8 +4240,6 @@ Resources:
   KBSyncSchedulePolicy:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
-      ManagedPolicyName:
-        Fn::Sub: "${AppName}-${Environment}-kb-sync-schedule-policy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -4138,8 +4253,6 @@ Resources:
   KBSyncScheduleRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName:
-        Fn::Sub: "${AppName}-${Environment}-kb-sync-schedule-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -4170,6 +4283,51 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "AlertsTopicTemplateEnabledCondition"
+  AlertsEmailSubscription1:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "email"
+      Endpoint:
+        Ref: "AlertEmailAddress1"
+      TopicArn:
+        Ref: "AlertsTopic"
+    Condition: "AlertsEmailSubscription1TemplateEnabledCondition"
+  AlertsEmailSubscription2:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "email"
+      Endpoint:
+        Ref: "AlertEmailAddress2"
+      TopicArn:
+        Ref: "AlertsTopic"
+    Condition: "AlertsEmailSubscription2TemplateEnabledCondition"
+  AlertsEmailSubscription3:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "email"
+      Endpoint:
+        Ref: "AlertEmailAddress3"
+      TopicArn:
+        Ref: "AlertsTopic"
+    Condition: "AlertsEmailSubscription3TemplateEnabledCondition"
+  AlertsEmailSubscription4:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "email"
+      Endpoint:
+        Ref: "AlertEmailAddress4"
+      TopicArn:
+        Ref: "AlertsTopic"
+    Condition: "AlertsEmailSubscription4TemplateEnabledCondition"
+  AlertsEmailSubscription5:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "email"
+      Endpoint:
+        Ref: "AlertEmailAddress5"
+      TopicArn:
+        Ref: "AlertsTopic"
+    Condition: "AlertsEmailSubscription5TemplateEnabledCondition"
   DeadLetterQueue:
     Type: "AWS::SQS::Queue"
     Properties:
@@ -4183,6 +4341,32 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
+  DeadLetterQueueMessagesAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-${Environment}-dlq-messages"
+      AlarmDescription:
+        Fn::Sub: "${AppName} AI Kit dead-letter queue contains messages."
+      Namespace: "AWS/SQS"
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Dimensions:
+        -
+          Name: "QueueName"
+          Value:
+            Fn::GetAtt:
+              - "DeadLetterQueue"
+              - "QueueName"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "DeadLetterQueueMessagesAlarmTemplateEnabledCondition"
   HostedZoneLookup:
     Type: "Custom::HostedZoneLookup"
     Properties:

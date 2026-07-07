@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.9"
+    Default: "v1.0.10"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -123,6 +123,33 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable GuardDuty Malware Protection for the payload bucket."
+  EnableAlerts:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable SNS topic creation for Flow operational alerts."
+  AlertEmailAddress1:
+    Type: "String"
+    Default: ""
+    Description: "Email recipient 1 for SNS operational alerts."
+  AlertEmailAddress2:
+    Type: "String"
+    Default: ""
+    Description: "Email recipient 2 for SNS operational alerts."
+  AlertEmailAddress3:
+    Type: "String"
+    Default: ""
+    Description: "Email recipient 3 for SNS operational alerts."
+  AlertEmailAddress4:
+    Type: "String"
+    Default: ""
+    Description: "Email recipient 4 for SNS operational alerts."
+  AlertEmailAddress5:
+    Type: "String"
+    Default: ""
+    Description: "Email recipient 5 for SNS operational alerts."
   DataRetentionDays:
     Type: "Number"
     Default: 30
@@ -353,6 +380,76 @@ Conditions:
       -
         Ref: "EnableGuardDutyMalwareProtection"
       - "true"
+  AlertsEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableAlerts"
+      - "true"
+  HasAlertEmailAddress1:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "AlertEmailAddress1"
+          - ""
+  AlertEmailAddress1Enabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "HasAlertEmailAddress1"
+  HasAlertEmailAddress2:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "AlertEmailAddress2"
+          - ""
+  AlertEmailAddress2Enabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "HasAlertEmailAddress2"
+  HasAlertEmailAddress3:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "AlertEmailAddress3"
+          - ""
+  AlertEmailAddress3Enabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "HasAlertEmailAddress3"
+  HasAlertEmailAddress4:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "AlertEmailAddress4"
+          - ""
+  AlertEmailAddress4Enabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "HasAlertEmailAddress4"
+  HasAlertEmailAddress5:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "AlertEmailAddress5"
+          - ""
+  AlertEmailAddress5Enabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "HasAlertEmailAddress5"
   HasDefaultWebhookSigningSecret:
     Fn::Not:
       -
@@ -372,6 +469,48 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "UseAdminCognito"
+  AlertsTopicTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  AlertsEmailSubscription1TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertEmailAddress1Enabled"
+  AlertsEmailSubscription2TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertEmailAddress2Enabled"
+  AlertsEmailSubscription3TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertEmailAddress3Enabled"
+  AlertsEmailSubscription4TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertEmailAddress4Enabled"
+  AlertsEmailSubscription5TemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertEmailAddress5Enabled"
+  DeadLetterQueueMessagesAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
   SecretsKmsKeyTemplateEnabledCondition:
     Fn::And:
       -
@@ -522,6 +661,18 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "EnableRecaptchaProtection"
+  OutputAlertsTopicArnTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  OutputAlertsTopicNameTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
   OutputCustomDomainUrlTemplateEnabledCondition:
     Fn::And:
       -
@@ -637,6 +788,90 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
+  AlertsTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName:
+        Fn::Sub: "${AppName}-${Environment}-alerts"
+      DisplayName:
+        Fn::Sub: "${AppName} Flow Alerts"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "AlertsTopicTemplateEnabledCondition"
+  AlertsEmailSubscription1:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "email"
+      Endpoint:
+        Ref: "AlertEmailAddress1"
+      TopicArn:
+        Ref: "AlertsTopic"
+    Condition: "AlertsEmailSubscription1TemplateEnabledCondition"
+  AlertsEmailSubscription2:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "email"
+      Endpoint:
+        Ref: "AlertEmailAddress2"
+      TopicArn:
+        Ref: "AlertsTopic"
+    Condition: "AlertsEmailSubscription2TemplateEnabledCondition"
+  AlertsEmailSubscription3:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "email"
+      Endpoint:
+        Ref: "AlertEmailAddress3"
+      TopicArn:
+        Ref: "AlertsTopic"
+    Condition: "AlertsEmailSubscription3TemplateEnabledCondition"
+  AlertsEmailSubscription4:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "email"
+      Endpoint:
+        Ref: "AlertEmailAddress4"
+      TopicArn:
+        Ref: "AlertsTopic"
+    Condition: "AlertsEmailSubscription4TemplateEnabledCondition"
+  AlertsEmailSubscription5:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "email"
+      Endpoint:
+        Ref: "AlertEmailAddress5"
+      TopicArn:
+        Ref: "AlertsTopic"
+    Condition: "AlertsEmailSubscription5TemplateEnabledCondition"
+  DeadLetterQueueMessagesAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-${Environment}-dlq-messages"
+      AlarmDescription:
+        Fn::Sub: "${AppName} Flow dead-letter queue contains messages."
+      Namespace: "AWS/SQS"
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Dimensions:
+        -
+          Name: "QueueName"
+          Value:
+            Fn::GetAtt:
+              - "DeadLetterQueue"
+              - "QueueName"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "DeadLetterQueueMessagesAlarmTemplateEnabledCondition"
   SecretsKmsKey:
     Type: "AWS::KMS::Key"
     Properties:
@@ -3257,11 +3492,31 @@ Outputs:
             -
               Ref: "PayloadBucket"
         - ""
+  PayloadPrefixOutput:
+    Description: "Resolved payload object prefix."
+    Value:
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Ref: "PayloadPrefix"
+        - ""
   RecaptchaSecretParameterName:
     Description: "reCAPTCHA secret parameter name."
     Value:
       Ref: "RecaptchaSecretParameter"
     Condition: "OutputRecaptchaSecretParameterNameTemplateEnabledCondition"
+  AlertsTopicArn:
+    Description: "SNS Topic ARN for Flow alerts."
+    Value:
+      Ref: "AlertsTopic"
+    Condition: "OutputAlertsTopicArnTemplateEnabledCondition"
+  AlertsTopicName:
+    Description: "SNS Topic Name for Flow alerts."
+    Value:
+      Fn::GetAtt:
+        - "AlertsTopic"
+        - "TopicName"
+    Condition: "OutputAlertsTopicNameTemplateEnabledCondition"
   CustomDomainUrl:
     Description: "Custom domain URL."
     Value:
