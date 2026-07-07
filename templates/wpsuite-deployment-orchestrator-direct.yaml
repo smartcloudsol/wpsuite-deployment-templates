@@ -1188,7 +1188,7 @@ Resources:
         Enabled:
           Ref: "DeployFlowBackend"
         AppName:
-          Fn::Sub: "${AWS::StackName}-flow"
+          Fn::Sub: "${AWS::StackName}"
         Environment:
           Ref: "FlowEnvironment"
         FrontendApiAuthMode:
@@ -1307,7 +1307,7 @@ Resources:
         Enabled:
           Ref: "DeployAiKitBackend"
         AppName:
-          Fn::Sub: "${AWS::StackName}-ai-kit"
+          Fn::Sub: "${AWS::StackName}"
         Environment:
           Ref: "AiKitEnvironment"
         FrontendApiAuthMode:

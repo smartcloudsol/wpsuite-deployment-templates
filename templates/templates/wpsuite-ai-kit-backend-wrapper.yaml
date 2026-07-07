@@ -334,7 +334,23 @@ Resources:
             -
               Ref: "Enabled"
         AppName:
-          Ref: "AppName"
+          Fn::Sub:
+            - "${AppName}-${Environment}-${AppNameSuffix}"
+            -
+              AppName:
+                Ref: "AppName"
+              Environment:
+                Fn::If:
+                  - "CondUseMarketplaceSecret"
+                  -
+                    Fn::Sub:
+                      - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitEnvironment}}"
+                      -
+                        DeploymentSecretArn:
+                          Ref: "WpSuiteDeploymentSecretArn"
+                  -
+                    Ref: "Environment"
+              AppNameSuffix: "ai-kit"
         Environment:
           Fn::If:
             - "CondUseMarketplaceSecret"

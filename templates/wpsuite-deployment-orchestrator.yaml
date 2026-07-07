@@ -369,7 +369,7 @@ Resources:
         LogRetentionDays: ""
         Enabled: "false"
         AppName:
-          Fn::Sub: "${AWS::StackName}-flow"
+          Fn::Sub: "${AWS::StackName}"
         Environment: "prod"
         FrontendApiAuthMode: "NONE"
         AdminApiAuthMode: "COGNITO"
@@ -450,7 +450,7 @@ Resources:
         LogRetentionDays: "14"
         Enabled: "false"
         AppName:
-          Fn::Sub: "${AWS::StackName}-ai-kit"
+          Fn::Sub: "${AWS::StackName}"
         Environment: "prod"
         FrontendApiAuthMode: "NONE"
         AdminApiAuthMode: "IAM"

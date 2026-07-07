@@ -1060,7 +1060,7 @@ Resources:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-ai-handler"
+        Fn::Sub: "/aws/lambda/${AppName}-ai-handler"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -1073,7 +1073,7 @@ Resources:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/apigateway/${AppName}-${Environment}-rest-api"
+        Fn::Sub: "/aws/apigateway/${AppName}-rest-api"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -1152,7 +1152,7 @@ Resources:
     Type: "AWS::KMS::Alias"
     Properties:
       AliasName:
-        Fn::Sub: "alias/${AppName}-${Environment}-recaptcha-key"
+        Fn::Sub: "alias/${AppName}-recaptcha-key"
       TargetKeyId:
         Ref: "RecaptchaKmsKey"
     Condition: "RecaptchaKmsKeyAliasTemplateEnabledCondition"
@@ -1192,7 +1192,7 @@ Resources:
     Type: "AWS::ApiGateway::RestApi"
     Properties:
       Name:
-        Fn::Sub: "${AppName}-${Environment}-rest-api"
+        Fn::Sub: "${AppName}-rest-api"
       Description:
         Fn::Sub: "${AppName} REST API"
       EndpointConfiguration:
@@ -1214,7 +1214,7 @@ Resources:
           - "CustomResourceManager"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-frontend-cognito-auth"
+        Fn::Sub: "${AppName}-frontend-cognito-auth"
       Type: "COGNITO_USER_POOLS"
       RestApiId:
         Ref: "RestApi"
@@ -1232,7 +1232,7 @@ Resources:
           - "CustomResourceManager"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-admin-cognito-auth"
+        Fn::Sub: "${AppName}-admin-cognito-auth"
       Type: "COGNITO_USER_POOLS"
       RestApiId:
         Ref: "RestApi"
@@ -2037,7 +2037,7 @@ Resources:
           - "CustomResourceManager"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-public-allowed-ips"
+        Fn::Sub: "${AppName}-public-allowed-ips"
       Scope: "REGIONAL"
       IPAddressVersion: "IPV4"
       Addresses:
@@ -2051,7 +2051,7 @@ Resources:
           - "CustomResourceManager"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-admin-allowed-ips"
+        Fn::Sub: "${AppName}-admin-allowed-ips"
       Scope: "REGIONAL"
       IPAddressVersion: "IPV4"
       Addresses:
@@ -2065,7 +2065,7 @@ Resources:
           - "CustomResourceManager"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-blocked-ips"
+        Fn::Sub: "${AppName}-blocked-ips"
       Scope: "REGIONAL"
       IPAddressVersion: "IPV4"
       Addresses:
@@ -2079,7 +2079,7 @@ Resources:
           - "CustomResourceManager"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-web-acl"
+        Fn::Sub: "${AppName}-web-acl"
       Description: "WAF protection for REST API endpoints with endpoint-based IP filtering"
       Scope: "REGIONAL"
       DefaultAction:
@@ -2088,7 +2088,7 @@ Resources:
         SampledRequestsEnabled: true
         CloudWatchMetricsEnabled: true
         MetricName:
-          Fn::Sub: "${AppName}-${Environment}-web-acl"
+          Fn::Sub: "${AppName}-web-acl"
       Rules:
         -
           Fn::If:
@@ -2108,7 +2108,7 @@ Resources:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
                 MetricName:
-                  Fn::Sub: "${AppName}-${Environment}-blocked-ips"
+                  Fn::Sub: "${AppName}-blocked-ips"
             -
               Ref: "AWS::NoValue"
         -
@@ -2144,7 +2144,7 @@ Resources:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
                 MetricName:
-                  Fn::Sub: "${AppName}-${Environment}-admin-blocked"
+                  Fn::Sub: "${AppName}-admin-blocked"
             -
               Ref: "AWS::NoValue"
         -
@@ -2180,7 +2180,7 @@ Resources:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
                 MetricName:
-                  Fn::Sub: "${AppName}-${Environment}-public-blocked"
+                  Fn::Sub: "${AppName}-public-blocked"
             -
               Ref: "AWS::NoValue"
         -
@@ -2196,7 +2196,7 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName:
-              Fn::Sub: "${AppName}-${Environment}-common-rules"
+              Fn::Sub: "${AppName}-common-rules"
         -
           Name: "AWSManagedRulesKnownBadInputsRuleSet"
           Priority: 500
@@ -2210,7 +2210,7 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName:
-              Fn::Sub: "${AppName}-${Environment}-bad-inputs"
+              Fn::Sub: "${AppName}-bad-inputs"
         -
           Name: "AWSManagedRulesAmazonIpReputationList"
           Priority: 600
@@ -2224,7 +2224,7 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName:
-              Fn::Sub: "${AppName}-${Environment}-ip-reputation"
+              Fn::Sub: "${AppName}-ip-reputation"
         -
           Name: "RateLimitFrontendEndpoints"
           Priority: 700
@@ -2248,7 +2248,7 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName:
-              Fn::Sub: "${AppName}-${Environment}-frontend-rate-limit"
+              Fn::Sub: "${AppName}-frontend-rate-limit"
         -
           Name: "RateLimitAdminEndpoints"
           Priority: 800
@@ -2272,7 +2272,7 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName:
-              Fn::Sub: "${AppName}-${Environment}-admin-rate-limit"
+              Fn::Sub: "${AppName}-admin-rate-limit"
     Condition: "WebACLTemplateEnabledCondition"
   WebACLAssociation:
     Type: "Custom::WafAssociation"
@@ -2419,7 +2419,7 @@ Resources:
           - "CustomResourceManager"
           - "Arn"
       BucketName:
-        Fn::Sub: "${AppName}-${Environment}-vectors"
+        Fn::Sub: "${AppName}-vectors"
       IndexName: "bedrock-knowledge-base-default-index"
     Condition: "TemplateEnabled"
   KnowledgeBase:
@@ -2430,7 +2430,7 @@ Resources:
           - "CustomResourceManager"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-knowledge-base"
+        Fn::Sub: "${AppName}-knowledge-base"
       Description: "RAG knowledge base for WP Suite AI Kit"
       RoleArn:
         Fn::GetAtt:
@@ -2734,7 +2734,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "${AppName}-${Environment}-KbSyncState"
+        Fn::Sub: "${AppName}-KbSyncState"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -2757,7 +2757,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "${AppName}-${Environment}-ChatSessions"
+        Fn::Sub: "${AppName}-ChatSessions"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -2780,7 +2780,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "${AppName}-${Environment}-ChatMessages"
+        Fn::Sub: "${AppName}-ChatMessages"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -2809,7 +2809,7 @@ Resources:
     Type: "AWS::Lambda::LayerVersion"
     Properties:
       LayerName:
-        Fn::Sub: "${AppName}-${Environment}-common-dependencies"
+        Fn::Sub: "${AppName}-common-dependencies"
       Description:
         Fn::Sub: "Shared dependencies for WP Suite AI Kit Lambda functions (${TemplateVersion})"
       Content:
@@ -2835,7 +2835,7 @@ Resources:
           - "CustomResourceManager"
           - "Arn"
       ParameterName:
-        Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+        Fn::Sub: "/${AppName}/recaptcha/secret-key"
       ParameterDescription: "Google reCAPTCHA secret for frontend API protection"
       ParameterType: "SecureString"
       ParameterValue:
@@ -2958,13 +2958,13 @@ Resources:
                   - "ssm:GetParameters"
                   - "ssm:PutParameter"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/*"
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/*"
               -
                 Effect: "Allow"
                 Action:
                   - "lambda:InvokeFunction"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
+                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-kb-sync"
               -
                 Effect: "Allow"
                 Action:
@@ -3003,7 +3003,7 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-${Environment}-ai-handler"
+        Fn::Sub: "${AppName}-ai-handler"
       Description: "Preview consolidated API handler that routes all endpoints through a single Lambda"
       Code:
         S3Bucket:
@@ -3069,7 +3069,7 @@ Resources:
           RECAPTCHA_CHAT_TTL_SECONDS:
             Ref: "RecaptchaChatTtlSeconds"
           RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+            Fn::Sub: "/${AppName}/recaptcha/secret-key"
           RECAPTCHA_PROJECT_ID:
             Ref: "RecaptchaProjectId"
           RECAPTCHA_SITE_KEY:
@@ -3157,7 +3157,7 @@ Resources:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-ai-agent-dispatcher"
+        Fn::Sub: "/aws/lambda/${AppName}-ai-agent-dispatcher"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -3228,7 +3228,7 @@ Resources:
                   - "ssm:GetParameters"
                   - "ssm:PutParameter"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/bedrock/models/*"
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/bedrock/models/*"
               -
                 Effect: "Allow"
                 Action:
@@ -3266,7 +3266,7 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-${Environment}-ai-agent-dispatcher"
+        Fn::Sub: "${AppName}-ai-agent-dispatcher"
       Description: "Consumes ai.agent.requested events and emits ai.agent.completed / ai.agent.failed"
       Code:
         S3Bucket:
@@ -3332,7 +3332,7 @@ Resources:
           RECAPTCHA_CHAT_TTL_SECONDS:
             Ref: "RecaptchaChatTtlSeconds"
           RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+            Fn::Sub: "/${AppName}/recaptcha/secret-key"
           RECAPTCHA_PROJECT_ID:
             Ref: "RecaptchaProjectId"
           RECAPTCHA_SITE_KEY:
@@ -3427,7 +3427,7 @@ Resources:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-ai-email-intake-dispatcher"
+        Fn::Sub: "/aws/lambda/${AppName}-ai-email-intake-dispatcher"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -3538,7 +3538,7 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-${Environment}-ai-email-intake-dispatcher"
+        Fn::Sub: "${AppName}-ai-email-intake-dispatcher"
       Description: "Consumes inbound WorkMail or SES email events and emits flow-compatible EventBridge events"
       Code:
         S3Bucket:
@@ -3604,7 +3604,7 @@ Resources:
           RECAPTCHA_CHAT_TTL_SECONDS:
             Ref: "RecaptchaChatTtlSeconds"
           RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+            Fn::Sub: "/${AppName}/recaptcha/secret-key"
           RECAPTCHA_PROJECT_ID:
             Ref: "RecaptchaProjectId"
           RECAPTCHA_SITE_KEY:
@@ -3784,9 +3784,9 @@ Resources:
                   - "logs:PutRetentionPolicy"
                 Resource:
                   -
-                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-${Environment}-custom-resource-manager*"
+                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource-manager*"
                   -
-                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-${Environment}-custom-resource-manager*:*"
+                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource-manager*:*"
                   -
                     Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource-manager*"
                   -
@@ -3797,7 +3797,7 @@ Resources:
                   - "lambda:AddPermission"
                   - "lambda:RemovePermission"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
+                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-kb-sync"
               -
                 Effect: "Allow"
                 Action:
@@ -3845,7 +3845,7 @@ Resources:
                   - "ssm:AddTagsToResource"
                   - "ssm:RemoveTagsFromResource"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/*"
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/*"
               -
                 Effect: "Allow"
                 Action:
@@ -3913,7 +3913,7 @@ Resources:
           -
             Fn::Sub: "${AppName}-custom-resource-manager"
           -
-            Fn::Sub: "${AppName}-${Environment}-custom-resource-manager"
+            Fn::Sub: "${AppName}-custom-resource-manager"
       Description: "Custom resource manager for WP Suite AI Kit backend deployment resources"
       Code:
         S3Bucket:
@@ -3977,7 +3977,7 @@ Resources:
           RECAPTCHA_CHAT_TTL_SECONDS:
             Ref: "RecaptchaChatTtlSeconds"
           RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+            Fn::Sub: "/${AppName}/recaptcha/secret-key"
           RECAPTCHA_PROJECT_ID:
             Ref: "RecaptchaProjectId"
           RECAPTCHA_SITE_KEY:
@@ -4018,7 +4018,7 @@ Resources:
           -
             Fn::Sub: "/aws/lambda/${AppName}-custom-resource-manager"
           -
-            Fn::Sub: "/aws/lambda/${AppName}-${Environment}-custom-resource-manager"
+            Fn::Sub: "/aws/lambda/${AppName}-custom-resource-manager"
       RetentionInDays:
         Ref: "LogRetentionDays"
     Condition: "TemplateEnabled"
@@ -4056,7 +4056,7 @@ Resources:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-kb-sync"
+        Fn::Sub: "/aws/lambda/${AppName}-kb-sync"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -4112,7 +4112,7 @@ Resources:
                   - "scheduler:GetSchedule"
                   - "scheduler:DeleteSchedule"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/${AppName}-${Environment}-kb-sync-*"
+                  Fn::Sub: "arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/${AppName}-kb-sync-*"
               -
                 Effect: "Allow"
                 Action:
@@ -4152,7 +4152,7 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-${Environment}-kb-sync"
+        Fn::Sub: "${AppName}-kb-sync"
       Description: "Preview Lambda that merges the KB sync scheduler and ingestion workers"
       Code:
         S3Bucket:
@@ -4218,7 +4218,7 @@ Resources:
           RECAPTCHA_CHAT_TTL_SECONDS:
             Ref: "RecaptchaChatTtlSeconds"
           RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret-key"
+            Fn::Sub: "/${AppName}/recaptcha/secret-key"
           RECAPTCHA_PROJECT_ID:
             Ref: "RecaptchaProjectId"
           RECAPTCHA_SITE_KEY:
@@ -4264,7 +4264,7 @@ Resources:
               - "KBSyncScheduleRole"
               - "Arn"
           SYNC_FUNCTION_ARN:
-            Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
+            Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-kb-sync"
           DEBOUNCE_DELAY_SECONDS: "60"
           WAIT_FOR_COMPLETION: "false"
       Tags:
@@ -4332,7 +4332,7 @@ Resources:
             Action:
               - "lambda:InvokeFunction"
             Resource:
-              Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
+              Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-kb-sync"
     Condition: "KBSyncSchedulePolicyTemplateEnabledCondition"
   KBSyncScheduleRole:
     Type: "AWS::IAM::Role"
@@ -4358,7 +4358,7 @@ Resources:
     Type: "AWS::SNS::Topic"
     Properties:
       TopicName:
-        Fn::Sub: "${AppName}-${Environment}-alerts"
+        Fn::Sub: "${AppName}-alerts"
       DisplayName:
         Fn::Sub: "${AppName} Critical Alerts"
       Tags:
@@ -4416,7 +4416,7 @@ Resources:
     Type: "AWS::SQS::Queue"
     Properties:
       QueueName:
-        Fn::Sub: "${AppName}-${Environment}-dlq"
+        Fn::Sub: "${AppName}-dlq"
       MessageRetentionPeriod: 1209600
       VisibilityTimeout: 60
       Tags:
@@ -4429,7 +4429,7 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName:
-        Fn::Sub: "${AppName}-${Environment}-dlq-messages"
+        Fn::Sub: "${AppName}-dlq-messages"
       AlarmDescription:
         Fn::Sub: "${AppName} AI Kit dead-letter queue contains messages."
       Namespace: "AWS/SQS"

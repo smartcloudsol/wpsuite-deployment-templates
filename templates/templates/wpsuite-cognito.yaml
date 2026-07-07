@@ -1323,7 +1323,10 @@ Resources:
                   - "logs:CreateLogGroup"
                   - "logs:PutRetentionPolicy"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource*"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource*"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource*:*"
               -
                 Effect: "Allow"
                 Action:

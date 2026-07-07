@@ -250,7 +250,23 @@ Resources:
             -
               Ref: "Enabled"
         AppName:
-          Ref: "AppName"
+          Fn::Sub:
+            - "${AppName}-${Environment}-${AppNameSuffix}"
+            -
+              AppName:
+                Ref: "AppName"
+              Environment:
+                Fn::If:
+                  - "CondUseMarketplaceSecret"
+                  -
+                    Fn::Sub:
+                      - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnvironment}}"
+                      -
+                        DeploymentSecretArn:
+                          Ref: "WpSuiteDeploymentSecretArn"
+                  -
+                    Ref: "Environment"
+              AppNameSuffix: "flow"
         Environment:
           Fn::If:
             - "CondUseMarketplaceSecret"

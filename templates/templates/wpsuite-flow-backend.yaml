@@ -728,9 +728,9 @@ Resources:
     Type: "AWS::ApiGateway::RestApi"
     Properties:
       Name:
-        Fn::Sub: "${AppName}-${Environment}-api"
+        Fn::Sub: "${AppName}-api"
       Description:
-        Fn::Sub: "${AppName}-${Environment} WP Suite Flow API"
+        Fn::Sub: "${AppName} WP Suite Flow API"
       EndpointConfiguration:
         Types:
           - "REGIONAL"
@@ -767,7 +767,7 @@ Resources:
           - "CustomResourceManagerFunction"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-admin-cognito-authorizer"
+        Fn::Sub: "${AppName}-admin-cognito-authorizer"
       RestApiId:
         Ref: "RestApi"
       Type: "COGNITO_USER_POOLS"
@@ -780,7 +780,7 @@ Resources:
     Type: "AWS::SQS::Queue"
     Properties:
       QueueName:
-        Fn::Sub: "${AppName}-${Environment}-dlq"
+        Fn::Sub: "${AppName}-dlq"
       MessageRetentionPeriod: 1209600
       Tags:
         -
@@ -792,7 +792,7 @@ Resources:
     Type: "AWS::SNS::Topic"
     Properties:
       TopicName:
-        Fn::Sub: "${AppName}-${Environment}-alerts"
+        Fn::Sub: "${AppName}-alerts"
       DisplayName:
         Fn::Sub: "${AppName} Flow Alerts"
       Tags:
@@ -850,7 +850,7 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName:
-        Fn::Sub: "${AppName}-${Environment}-dlq-messages"
+        Fn::Sub: "${AppName}-dlq-messages"
       AlarmDescription:
         Fn::Sub: "${AppName} Flow dead-letter queue contains messages."
       Namespace: "AWS/SQS"
@@ -876,7 +876,7 @@ Resources:
     Type: "AWS::KMS::Key"
     Properties:
       Description:
-        Fn::Sub: "${AppName}-${Environment} secrets key"
+        Fn::Sub: "${AppName} secrets key"
       EnableKeyRotation: true
       KeyPolicy:
         Version: "2012-10-17"
@@ -942,7 +942,7 @@ Resources:
     Type: "AWS::KMS::Alias"
     Properties:
       AliasName:
-        Fn::Sub: "alias/${AppName}-${Environment}-secrets"
+        Fn::Sub: "alias/${AppName}-secrets"
       TargetKeyId:
         Ref: "SecretsKmsKey"
     Condition: "SecretsKmsAliasTemplateEnabledCondition"
@@ -1020,7 +1020,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "${AppName}-${Environment}-submissions"
+        Fn::Sub: "${AppName}-submissions"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -1101,7 +1101,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "${AppName}-${Environment}-submission-events"
+        Fn::Sub: "${AppName}-submission-events"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -1127,7 +1127,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "${AppName}-${Environment}-templates"
+        Fn::Sub: "${AppName}-templates"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -1171,7 +1171,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "${AppName}-${Environment}-workflow-definitions"
+        Fn::Sub: "${AppName}-workflow-definitions"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -1215,7 +1215,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "${AppName}-${Environment}-form-definitions"
+        Fn::Sub: "${AppName}-form-definitions"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -1259,7 +1259,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "${AppName}-${Environment}-webhook-endpoints"
+        Fn::Sub: "${AppName}-webhook-endpoints"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -1303,7 +1303,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "${AppName}-${Environment}-process-maps"
+        Fn::Sub: "${AppName}-process-maps"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -1373,9 +1373,9 @@ Resources:
                   - "logs:PutRetentionPolicy"
                 Resource:
                   -
-                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-${Environment}-custom-resource-manager"
+                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource-manager"
                   -
-                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-${Environment}-custom-resource-manager:*"
+                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource-manager:*"
               -
                 Effect: "Allow"
                 Action:
@@ -1439,9 +1439,9 @@ Resources:
                   - "ssm:GetParameter"
                 Resource:
                   -
-                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/recaptcha/secret"
+                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/recaptcha/secret"
                   -
-                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/webhook/default-signing-secret"
+                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/webhook/default-signing-secret"
               -
                 Effect: "Allow"
                 Action:
@@ -1570,7 +1570,7 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-${Environment}-custom-resource-manager"
+        Fn::Sub: "${AppName}-custom-resource-manager"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -1665,7 +1665,7 @@ Resources:
           - "CustomResourceManagerFunction"
           - "Arn"
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-custom-resource-manager"
+        Fn::Sub: "/aws/lambda/${AppName}-custom-resource-manager"
       RetentionInDays:
         Ref: "LogRetentionDays"
     Condition: "TemplateEnabled"
@@ -1677,7 +1677,7 @@ Resources:
           - "CustomResourceManagerFunction"
           - "Arn"
       Name:
-        Fn::Sub: "/${AppName}/${Environment}/recaptcha/secret"
+        Fn::Sub: "/${AppName}/recaptcha/secret"
       Value:
         Ref: "RecaptchaSecretKey"
       KeyId:
@@ -1696,7 +1696,7 @@ Resources:
           - "CustomResourceManagerFunction"
           - "Arn"
       Name:
-        Fn::Sub: "/${AppName}/${Environment}/webhook/default-signing-secret"
+        Fn::Sub: "/${AppName}/webhook/default-signing-secret"
       Value:
         Ref: "DefaultWebhookSigningSecret"
       KeyId:
@@ -1821,7 +1821,7 @@ Resources:
           - "CustomResourceManagerFunction"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-public-allow"
+        Fn::Sub: "${AppName}-public-allow"
       Scope: "REGIONAL"
       IPAddressVersion: "IPV4"
       Addresses:
@@ -1838,7 +1838,7 @@ Resources:
           - "CustomResourceManagerFunction"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-admin-allow"
+        Fn::Sub: "${AppName}-admin-allow"
       Scope: "REGIONAL"
       IPAddressVersion: "IPV4"
       Addresses:
@@ -1855,7 +1855,7 @@ Resources:
           - "CustomResourceManagerFunction"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-blocked"
+        Fn::Sub: "${AppName}-blocked"
       Scope: "REGIONAL"
       IPAddressVersion: "IPV4"
       Addresses:
@@ -1872,7 +1872,7 @@ Resources:
           - "CustomResourceManagerFunction"
           - "Arn"
       Name:
-        Fn::Sub: "${AppName}-${Environment}-webacl"
+        Fn::Sub: "${AppName}-webacl"
       Description: "WAF protection for WP Suite Flow API"
       Scope: "REGIONAL"
       DefaultAction:
@@ -1881,7 +1881,7 @@ Resources:
         SampledRequestsEnabled: true
         CloudWatchMetricsEnabled: true
         MetricName:
-          Fn::Sub: "${AppName}-${Environment}-webacl"
+          Fn::Sub: "${AppName}-webacl"
       Rules:
         -
           Fn::If:
@@ -1901,7 +1901,7 @@ Resources:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
                 MetricName:
-                  Fn::Sub: "${AppName}-${Environment}-blocked-ips"
+                  Fn::Sub: "${AppName}-blocked-ips"
             -
               Ref: "AWS::NoValue"
         -
@@ -1937,7 +1937,7 @@ Resources:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
                 MetricName:
-                  Fn::Sub: "${AppName}-${Environment}-admin-blocked"
+                  Fn::Sub: "${AppName}-admin-blocked"
             -
               Ref: "AWS::NoValue"
         -
@@ -1973,7 +1973,7 @@ Resources:
                 SampledRequestsEnabled: true
                 CloudWatchMetricsEnabled: true
                 MetricName:
-                  Fn::Sub: "${AppName}-${Environment}-public-blocked"
+                  Fn::Sub: "${AppName}-public-blocked"
             -
               Ref: "AWS::NoValue"
         -
@@ -2010,7 +2010,7 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName:
-              Fn::Sub: "${AppName}-${Environment}-common-rules"
+              Fn::Sub: "${AppName}-common-rules"
         -
           Name: "AWSManagedRulesKnownBadInputsRuleSet"
           Priority: 500
@@ -2024,7 +2024,7 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName:
-              Fn::Sub: "${AppName}-${Environment}-bad-inputs"
+              Fn::Sub: "${AppName}-bad-inputs"
         -
           Name: "AWSManagedRulesAmazonIpReputationList"
           Priority: 600
@@ -2038,7 +2038,7 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName:
-              Fn::Sub: "${AppName}-${Environment}-ip-reputation"
+              Fn::Sub: "${AppName}-ip-reputation"
         -
           Name: "RateLimitFrontendEndpoints"
           Priority: 700
@@ -2062,7 +2062,7 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName:
-              Fn::Sub: "${AppName}-${Environment}-frontend-rate-limit"
+              Fn::Sub: "${AppName}-frontend-rate-limit"
         -
           Name: "RateLimitAdminEndpoints"
           Priority: 800
@@ -2086,13 +2086,13 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName:
-              Fn::Sub: "${AppName}-${Environment}-admin-rate-limit"
+              Fn::Sub: "${AppName}-admin-rate-limit"
     Condition: "WebAclTemplateEnabledCondition"
   FormsApiLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-forms-api"
+        Fn::Sub: "/aws/lambda/${AppName}-forms-api"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -2321,7 +2321,7 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-${Environment}-forms-api"
+        Fn::Sub: "${AppName}-forms-api"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -2691,7 +2691,7 @@ Resources:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-workflow-dispatcher"
+        Fn::Sub: "/aws/lambda/${AppName}-workflow-dispatcher"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -2832,7 +2832,7 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-${Environment}-workflow-dispatcher"
+        Fn::Sub: "${AppName}-workflow-dispatcher"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -2969,7 +2969,7 @@ Resources:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-email-sender"
+        Fn::Sub: "/aws/lambda/${AppName}-email-sender"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -3097,7 +3097,7 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-${Environment}-email-sender"
+        Fn::Sub: "${AppName}-email-sender"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -3228,7 +3228,7 @@ Resources:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-${Environment}-webhook-dispatcher"
+        Fn::Sub: "/aws/lambda/${AppName}-webhook-dispatcher"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -3334,7 +3334,7 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-${Environment}-webhook-dispatcher"
+        Fn::Sub: "${AppName}-webhook-dispatcher"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
