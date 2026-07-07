@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.16"
+    Default: "v1.0.17"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -499,13 +499,19 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "lambda:CreateFunction"
+                  - "lambda:DeleteFunction"
+                  - "lambda:DeleteAlias"
                   - "lambda:GetFunction"
+                  - "lambda:GetAlias"
+                  - "lambda:ListVersionsByFunction"
                   - "lambda:UpdateFunctionCode"
                   - "lambda:PublishVersion"
                 Resource:
-                  Fn::GetAtt:
-                    - "CookieSigningFunction"
-                    - "Arn"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:lambda:us-east-1:${AWS::AccountId}:function:${AppName}-cookie-signing"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:lambda:us-east-1:${AWS::AccountId}:function:${AppName}-cookie-signing:*"
               -
                 Effect: "Allow"
                 Action:
@@ -513,11 +519,23 @@ Resources:
                   - "lambda:UpdateAlias"
                 Resource:
                   -
-                    Fn::GetAtt:
-                      - "CookieSigningFunction"
-                      - "Arn"
+                    Fn::Sub: "arn:${AWS::Partition}:lambda:us-east-1:${AWS::AccountId}:function:${AppName}-cookie-signing"
                   -
-                    Fn::Sub: "${CookieSigningFunction.Arn}:*"
+                    Fn::Sub: "arn:${AWS::Partition}:lambda:us-east-1:${AWS::AccountId}:function:${AppName}-cookie-signing:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "iam:PassRole"
+                Resource:
+                  Fn::GetAtt:
+                    - "LambdaEdgeExecutionRole"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:s3:::${ArtifactBucketName}/${ArtifactRootPrefix}wpsuite-site-guardian/functions/cookie-signing.zip"
               -
                 Effect: "Allow"
                 Action:
@@ -845,46 +863,34 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
-  CookieSigningFunction:
-    Type: "AWS::Lambda::Function"
-    Properties:
-      Code:
-        S3Bucket:
-          Ref: "ArtifactBucketName"
-        S3Key:
-          Fn::Join:
-            - ""
-            -
-              -
-                Ref: "ArtifactRootPrefix"
-              - "wpsuite-site-guardian/functions/cookie-signing.zip"
-      Handler: "lambda_function.lambda_handler"
-      Description: "Lambda@Edge function for issuing CloudFront signed cookies with JWT authentication"
-      Runtime: "python3.12"
-      Timeout: 5
-      MemorySize: 128
-      Role:
-        Fn::GetAtt:
-          - "LambdaEdgeExecutionRole"
-          - "Arn"
-      FunctionName:
-        Fn::Sub: "${AppName}-cookie-signing"
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
-    Condition: "TemplateEnabled"
-  LambdaCodeUpdater:
+  CookieSigningEdgeFunction:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
       ServiceToken:
         Fn::GetAtt:
           - "CloudFrontResourceManager"
           - "Arn"
-      ResourceType: "LambdaCodeUpdate"
+      ResourceType: "LambdaEdgeFunction"
       FunctionName:
-        Ref: "CookieSigningFunction"
+        Fn::Sub: "${AppName}-cookie-signing"
+      RoleArn:
+        Fn::GetAtt:
+          - "LambdaEdgeExecutionRole"
+          - "Arn"
+      CodeS3Bucket:
+        Ref: "ArtifactBucketName"
+      CodeS3Key:
+        Fn::Join:
+          - ""
+          -
+            -
+              Ref: "ArtifactRootPrefix"
+            - "wpsuite-site-guardian/functions/cookie-signing.zip"
+      Handler: "lambda_function.lambda_handler"
+      Runtime: "python3.12"
+      Timeout: 5
+      MemorySize: 128
+      Description: "Lambda@Edge function for issuing CloudFront signed cookies with JWT authentication"
       DomainName:
         Ref: "DomainName"
       KeyPairId:
@@ -1008,7 +1014,7 @@ Resources:
                 EventType: "viewer-request"
                 LambdaFunctionARN:
                   Fn::GetAtt:
-                    - "LambdaCodeUpdater"
+                    - "CookieSigningEdgeFunction"
                     - "VersionArn"
           -
             PathPattern: "/restricted*"
@@ -1336,7 +1342,7 @@ Resources:
       DashboardName:
         Fn::Sub: "${AppName}-monitoring"
       DashboardBody:
-        Fn::Sub: "{\n  \"widgets\": [\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/Lambda\",\n            \"Invocations\",\n            \"FunctionName\",\n            \"${CookieSigningFunction}\"\n          ],\n          [\n            \".\",\n            \"Errors\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"Duration\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Function Metrics (us-east-1)\"\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 12,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/CloudFront\",\n            \"Requests\",\n            \"DistributionId\",\n            \"${CloudFrontDistribution}\"\n          ],\n          [\n            \".\",\n            \"BytesDownloaded\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"4xxErrorRate\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"5xxErrorRate\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"${AWS::Region}\",\n        \"title\": \"CloudFront Distribution Metrics\"\n      }\n    },\n    {\n      \"type\": \"log\",\n      \"x\": 0,\n      \"y\": 6,\n      \"width\": 24,\n      \"height\": 6,\n      \"properties\": {\n        \"query\": \"SOURCE '/aws/lambda/us-east-1.${CookieSigningFunction}'\\n| fields @timestamp, @message\\n| filter @message like /ERROR/\\n| sort @timestamp desc\\n| limit 100\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Error Logs\",\n        \"view\": \"table\"\n      }\n    }\n  ]\n}"
+        Fn::Sub: "{\n  \"widgets\": [\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/Lambda\",\n            \"Invocations\",\n            \"FunctionName\",\n            \"${AppName}-cookie-signing\"\n          ],\n          [\n            \".\",\n            \"Errors\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"Duration\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Function Metrics (us-east-1)\"\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 12,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/CloudFront\",\n            \"Requests\",\n            \"DistributionId\",\n            \"${CloudFrontDistribution}\"\n          ],\n          [\n            \".\",\n            \"BytesDownloaded\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"4xxErrorRate\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"5xxErrorRate\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"${AWS::Region}\",\n        \"title\": \"CloudFront Distribution Metrics\"\n      }\n    },\n    {\n      \"type\": \"log\",\n      \"x\": 0,\n      \"y\": 6,\n      \"width\": 24,\n      \"height\": 6,\n      \"properties\": {\n        \"query\": \"SOURCE '/aws/lambda/us-east-1.${AppName}-cookie-signing'\\n| fields @timestamp, @message\\n| filter @message like /ERROR/\\n| sort @timestamp desc\\n| limit 100\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Error Logs\",\n        \"view\": \"table\"\n      }\n    }\n  ]\n}"
     Condition: "MonitoringDashboardTemplateEnabledCondition"
 Outputs:
   PrmProductCode:
@@ -1394,7 +1400,7 @@ Outputs:
         - "TemplateEnabled"
         -
           Fn::GetAtt:
-            - "LambdaCodeUpdater"
+            - "CookieSigningEdgeFunction"
             - "VersionArn"
         - ""
   CloudFrontKeyGroupId:
