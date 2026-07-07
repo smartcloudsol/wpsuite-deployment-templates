@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.15"
+    Default: "v1.0.16"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -1370,6 +1370,15 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "logs:PutRetentionPolicy"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-${Environment}-custom-resource-manager"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-${Environment}-custom-resource-manager:*"
+              -
+                Effect: "Allow"
+                Action:
                   - "apigateway:GET"
                   - "apigateway:POST"
                   - "apigateway:PUT"
@@ -1405,10 +1414,12 @@ Resources:
                   - "wafv2:DisassociateWebACL"
                   - "wafv2:CreateIPSet"
                   - "wafv2:GetIPSet"
+                  - "wafv2:ListIPSets"
                   - "wafv2:UpdateIPSet"
                   - "wafv2:DeleteIPSet"
                   - "wafv2:CreateWebACL"
                   - "wafv2:GetWebACL"
+                  - "wafv2:ListWebACLs"
                   - "wafv2:UpdateWebACL"
                   - "wafv2:DeleteWebACL"
                   - "wafv2:TagResource"
@@ -1449,6 +1460,14 @@ Resources:
                           - "Arn"
                       -
                         Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
       Tags:
         -
           Key: "aws-apn-id"
@@ -2262,6 +2281,14 @@ Resources:
                   - "events:PutEvents"
                   - "ssm:GetParameter"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
       Tags:
         -
           Key: "aws-apn-id"
@@ -2787,6 +2814,14 @@ Resources:
                 Action:
                   - "events:PutEvents"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
       Tags:
         -
           Key: "aws-apn-id"
@@ -3044,6 +3079,14 @@ Resources:
                   - "ses:SendEmail"
                   - "events:PutEvents"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
       Tags:
         -
           Key: "aws-apn-id"
@@ -3273,6 +3316,14 @@ Resources:
                   - "ssm:GetParameter"
                   - "events:PutEvents"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
       Tags:
         -
           Key: "aws-apn-id"
