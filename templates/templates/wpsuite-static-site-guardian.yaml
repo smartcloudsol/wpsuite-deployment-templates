@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.10"
+    Default: "v1.0.11"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -462,8 +462,6 @@ Resources:
   CloudFrontResourceManager:
     Type: "AWS::Lambda::Function"
     Properties:
-      FunctionName:
-        Fn::Sub: "${AWS::StackName}-cloudfront-manager"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -483,12 +481,14 @@ Resources:
         Fn::GetAtt:
           - "CloudFrontResourceManagerRole"
           - "Arn"
+      FunctionName:
+        Fn::Sub: "${AppName}-cloudfront-manager"
       Environment:
         Variables:
           WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
           AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           STACK_NAME:
-            Ref: "AWS::StackName"
+            Ref: "AppName"
           PUBLIC_KEY_CONTENT:
             Ref: "PublicKeyContent"
           PROTECTED_PATHS:
@@ -513,7 +513,7 @@ Resources:
           - "Arn"
       ResourceType: "LogGroupManager"
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AWS::StackName}-cloudfront-manager"
+        Fn::Sub: "/aws/lambda/${AppName}-cloudfront-manager"
       RetentionInDays:
         Ref: "LogRetentionDays"
     Condition: "TemplateEnabled"
@@ -537,7 +537,7 @@ Resources:
           - "Arn"
       ResourceType: "PublicKey"
       Name:
-        Fn::Sub: "${AWS::StackName}-public-key"
+        Fn::Sub: "${AppName}-public-key"
       PublicKeyContent:
         Fn::If:
           - "ManageSigningKeyMaterial"
@@ -557,7 +557,7 @@ Resources:
           - "Arn"
       ResourceType: "KeyGroup"
       Name:
-        Fn::Sub: "${AWS::StackName}-key-group"
+        Fn::Sub: "${AppName}-key-group"
       PublicKeyId:
         Fn::GetAtt:
           - "CloudFrontPublicKey"
@@ -572,7 +572,7 @@ Resources:
           - "Arn"
       ResourceType: "OriginAccessControl"
       Name:
-        Fn::Sub: "${AWS::StackName}-OAC"
+        Fn::Sub: "${AppName}-OAC"
     Condition: "TemplateEnabled"
   NoCachePolicy:
     Type: "AWS::CloudFormation::CustomResource"
@@ -583,7 +583,7 @@ Resources:
           - "Arn"
       ResourceType: "ResponsePolicy"
       Name:
-        Fn::Sub: "${AWS::StackName}-NoCachePolicy"
+        Fn::Sub: "${AppName}-NoCachePolicy"
     Condition: "TemplateEnabled"
   SiteKeyParameter:
     Type: "AWS::CloudFormation::CustomResource"
@@ -607,7 +607,7 @@ Resources:
           - "Arn"
       ResourceType: "Function"
       Name:
-        Fn::Sub: "${AWS::StackName}-viewer-request"
+        Fn::Sub: "${AppName}-viewer-request"
       ProtectedPaths:
         Fn::Join:
           - ","
@@ -627,7 +627,7 @@ Resources:
           - "Arn"
       ResourceType: "PathRewriteFunction"
       Name:
-        Fn::Sub: "${AWS::StackName}-path-rewrite"
+        Fn::Sub: "${AppName}-path-rewrite"
       ProtectedPaths:
         Fn::Join:
           - ","
@@ -671,8 +671,6 @@ Resources:
   CookieSigningFunction:
     Type: "AWS::Lambda::Function"
     Properties:
-      FunctionName:
-        Fn::Sub: "${AWS::StackName}-cookie-signing"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -692,6 +690,8 @@ Resources:
         Fn::GetAtt:
           - "LambdaEdgeExecutionRole"
           - "Arn"
+      FunctionName:
+        Fn::Sub: "${AppName}-cookie-signing"
       Tags:
         -
           Key: "aws-apn-id"
@@ -707,7 +707,7 @@ Resources:
           - "Arn"
       ResourceType: "LambdaCodeUpdate"
       FunctionName:
-        Fn::Sub: "${AWS::StackName}-cookie-signing"
+        Ref: "CookieSigningFunction"
       DomainName:
         Ref: "DomainName"
       KeyPairId:
@@ -748,8 +748,6 @@ Resources:
           - ","
           -
             Ref: "CognitoAppClientIds"
-    DependsOn:
-      - "CookieSigningFunction"
     Condition: "TemplateEnabled"
   CloudFrontDistributionUpdate:
     Type: "AWS::CloudFormation::CustomResource"
@@ -1022,8 +1020,6 @@ Resources:
   LicenseRefreshFunction:
     Type: "AWS::Lambda::Function"
     Properties:
-      FunctionName:
-        Fn::Sub: "${AWS::StackName}-license-refresh"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -1043,6 +1039,8 @@ Resources:
         Fn::GetAtt:
           - "LicenseRefreshFunctionRole"
           - "Arn"
+      FunctionName:
+        Fn::Sub: "${AppName}-license-refresh"
       Environment:
         Variables:
           WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
@@ -1069,7 +1067,7 @@ Resources:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AWS::StackName}-license-refresh"
+        Fn::Sub: "/aws/lambda/${AppName}-license-refresh"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -1159,7 +1157,7 @@ Resources:
     Type: "AWS::CloudWatch::Dashboard"
     Properties:
       DashboardName:
-        Fn::Sub: "${AWS::StackName}-monitoring"
+        Fn::Sub: "${AppName}-monitoring"
       DashboardBody:
         Fn::Sub: "{\n  \"widgets\": [\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/Lambda\",\n            \"Invocations\",\n            \"FunctionName\",\n            \"${CookieSigningFunction}\"\n          ],\n          [\n            \".\",\n            \"Errors\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"Duration\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Function Metrics (us-east-1)\"\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 12,\n      \"y\": 0,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"metrics\": [\n          [\n            \"AWS/CloudFront\",\n            \"Requests\",\n            \"DistributionId\",\n            \"${CloudFrontDistribution}\"\n          ],\n          [\n            \".\",\n            \"BytesDownloaded\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"4xxErrorRate\",\n            \".\",\n            \".\"\n          ],\n          [\n            \".\",\n            \"5xxErrorRate\",\n            \".\",\n            \".\"\n          ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n        \"region\": \"${AWS::Region}\",\n        \"title\": \"CloudFront Distribution Metrics\"\n      }\n    },\n    {\n      \"type\": \"log\",\n      \"x\": 0,\n      \"y\": 6,\n      \"width\": 24,\n      \"height\": 6,\n      \"properties\": {\n        \"query\": \"SOURCE '/aws/lambda/us-east-1.${CookieSigningFunction}'\\n| fields @timestamp, @message\\n| filter @message like /ERROR/\\n| sort @timestamp desc\\n| limit 100\",\n        \"region\": \"us-east-1\",\n        \"title\": \"Lambda@Edge Error Logs\",\n        \"view\": \"table\"\n      }\n    }\n  ]\n}"
     Condition: "MonitoringDashboardTemplateEnabledCondition"
@@ -1302,5 +1300,5 @@ Outputs:
   MonitoringDashboardUrl:
     Description: "CloudWatch Dashboard URL for monitoring."
     Value:
-      Fn::Sub: "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${AWS::StackName}-monitoring"
+      Fn::Sub: "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${AppName}-monitoring"
     Condition: "OutputMonitoringDashboardUrlTemplateEnabledCondition"
