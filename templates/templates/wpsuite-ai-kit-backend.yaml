@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.8"
+    Default: "v1.0.9"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -3338,7 +3338,6 @@ Resources:
             Effect: "Allow"
             Action:
               - "s3:GetObject"
-              - "s3:PutObject"
             Resource:
               Fn::Sub: "arn:${AWS::Partition}:s3:::${EmailIntakeSesBucketName}/${EmailIntakeSesPrefix}*"
     Condition: "AiEmailIntakeSesBucketAccessPolicyTemplateEnabledCondition"
@@ -3358,6 +3357,15 @@ Resources:
               - "s3:GetObject"
             Resource:
               Fn::Sub: "arn:${AWS::Partition}:s3:::${FlowAttachmentBucketName}/${FlowAttachmentPrefix}*"
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:PutObject"
+            Resource:
+              Fn::Sub: "arn:${AWS::Partition}:s3:::${FlowAttachmentBucketName}/${FlowAttachmentPrefix}*"
+            Condition:
+              StringEquals:
+                s3:x-amz-server-side-encryption: "AES256"
     Condition: "AiEmailIntakeFlowAttachmentAccessPolicyTemplateEnabledCondition"
   AiEmailIntakeDispatcherFunction:
     Type: "AWS::Lambda::Function"
