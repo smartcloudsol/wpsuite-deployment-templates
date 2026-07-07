@@ -51,6 +51,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter AppName."
+  Environment:
+    Type: "String"
+    Default: "prod"
+    Description: "Forwarded WP Suite nested stack parameter Environment."
   ExistingUserPoolId:
     Type: "String"
     Default: ""
@@ -274,7 +278,23 @@ Resources:
             -
               Ref: "Enabled"
         AppName:
-          Ref: "AppName"
+          Fn::Sub:
+            - "${AppName}-${Environment}-${AppNameSuffix}"
+            -
+              AppName:
+                Ref: "AppName"
+              Environment:
+                Fn::If:
+                  - "CondUseMarketplaceSecret"
+                  -
+                    Fn::Sub:
+                      - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}"
+                      -
+                        DeploymentSecretArn:
+                          Ref: "WpSuiteDeploymentSecretArn"
+                  -
+                    Ref: "Environment"
+              AppNameSuffix: "cognito"
         ExistingUserPoolId:
           Fn::If:
             - "CondUseMarketplaceSecret"

@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.17/templates/templates"
+    Default: "releases/v1.0.18/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.17"
+    Default: "v1.0.18"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -79,6 +79,10 @@ Parameters:
       - "true"
       - "false"
     Description: "Deploy WP Suite Static Site Guardian."
+  Environment:
+    Type: "String"
+    Default: "prod"
+    Description: "Deployment environment used in generated WP Suite component resource names."
   EnableAlerts:
     Type: "String"
     Default: "false"
@@ -1059,7 +1063,9 @@ Resources:
         Enabled:
           Ref: "DeployCognito"
         AppName:
-          Fn::Sub: "${AWS::StackName}-cognito"
+          Fn::Sub: "${AWS::StackName}"
+        Environment:
+          Ref: "Environment"
         ExistingUserPoolId:
           Ref: "ExistingUserPoolId"
         ExistingUserPoolClientId:
@@ -1474,7 +1480,9 @@ Resources:
         Enabled:
           Ref: "DeployStaticGuardian"
         AppName:
-          Fn::Sub: "${AWS::StackName}-guardian"
+          Fn::Sub: "${AWS::StackName}"
+        Environment:
+          Ref: "Environment"
         DomainName:
           Ref: "StaticGuardianDomainName"
         CertificateArn:
