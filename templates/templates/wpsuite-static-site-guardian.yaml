@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.8"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -298,7 +298,7 @@ Resources:
           -
             Ref: "S3BucketName"
           -
-            Fn::Sub: "${AWS::StackName}-${AWS::AccountId}"
+            Ref: "AWS::NoValue"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -394,7 +394,7 @@ Resources:
                   - "kms:CreateAlias"
                   - "kms:DeleteAlias"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/${AppName}-site-guardian-cloudfront-private-key"
+                  Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/${AppName}-site-guardian-cf-pk"
               -
                 Effect: "Allow"
                 Action:

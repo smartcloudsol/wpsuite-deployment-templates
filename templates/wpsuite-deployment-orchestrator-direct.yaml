@@ -1,11 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite Deployment Access direct root orchestration template for WP Suite console launches"
 Parameters:
-  PrmTagValue:
-    Type: "String"
-    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
-    AllowedPattern: "^pc:[a-z0-9]+$"
-    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
   MPS3BucketName:
     Type: "String"
     Default: "wpsuite-artifacts-637423296378-us-east-1-an"
@@ -16,11 +11,12 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.0/templates/templates"
+    Default: "releases/v1.0.8/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
     Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
+    MinLength: 1
     NoEcho: true
   DeploymentContextMode:
     Type: "String"
@@ -53,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.8"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -99,10 +95,6 @@ Parameters:
     Type: "String"
     Default: "/signin"
     Description: "Sign-in path used by Static Site Guardian."
-  CognitoAppName:
-    Type: "String"
-    Default: ""
-    Description: "Application name for the WP Suite Cognito nested stack. Leave empty to derive it from the root stack name."
   CognitoPostLoginRedirectUrl:
     Type: "String"
     Default: "https://example.com/signin"
@@ -164,10 +156,6 @@ Parameters:
     Type: "Number"
     Default: 120
     Description: "AI Kit chat reCAPTCHA verification cache TTL in seconds."
-  AiKitAppName:
-    Type: "String"
-    Default: ""
-    Description: "Application name for the WP Suite AI Kit nested stack. Leave empty to derive it from the root stack name."
   AiKitEnvironment:
     Type: "String"
     Default: "prod"
@@ -235,10 +223,6 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable AWS WAF for AI Kit APIs."
-  FlowAppName:
-    Type: "String"
-    Default: ""
-    Description: "Application name for the WP Suite Flow nested stack. Leave empty to derive it from the root stack name."
   FlowEnvironment:
     Type: "String"
     Default: "prod"
@@ -292,10 +276,6 @@ Parameters:
     Type: "Number"
     Default: 30
     Description: "Number of days to retain Flow submission data."
-  StaticGuardianAppName:
-    Type: "String"
-    Default: ""
-    Description: "Application name for the Static Site Guardian nested stack. Leave empty to derive it from the root stack name."
   StaticGuardianS3BucketName:
     Type: "String"
     Default: ""
@@ -777,26 +757,6 @@ Mappings:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
-  CondUseGeneratedCognitoAppName:
-    Fn::Equals:
-      -
-        Ref: "CognitoAppName"
-      - ""
-  CondUseGeneratedAiKitAppName:
-    Fn::Equals:
-      -
-        Ref: "AiKitAppName"
-      - ""
-  CondUseGeneratedFlowAppName:
-    Fn::Equals:
-      -
-        Ref: "FlowAppName"
-      - ""
-  CondUseGeneratedStaticGuardianAppName:
-    Fn::Equals:
-      -
-        Ref: "StaticGuardianAppName"
-      - ""
   CondUseMarketplaceSecret:
     Fn::Equals:
       -
@@ -825,8 +785,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
   DeploymentArtifactBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
@@ -908,8 +867,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
         -
           Key: "WPSuitePurpose"
           Value: "deployment-artifact-ingress"
@@ -970,8 +928,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
   ArtifactStagerReadDeploymentSecretPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -1010,8 +967,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       Timeout: 900
   ArtifactStager:
     Type: "AWS::CloudFormation::CustomResource"
@@ -1088,17 +1044,10 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "LogRetentionDays"
-        PrmTagValue:
-          Ref: "PrmTagValue"
         Enabled:
           Ref: "DeployCognito"
         AppName:
-          Fn::If:
-            - "CondUseGeneratedCognitoAppName"
-            -
-              Fn::Sub: "${AWS::StackName}-cognito"
-            -
-              Ref: "CognitoAppName"
+          Fn::Sub: "${AWS::StackName}-cognito"
         ExistingUserPoolId:
           Ref: "ExistingUserPoolId"
         ExistingUserPoolClientId:
@@ -1186,8 +1135,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -1225,17 +1173,10 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "LogRetentionDays"
-        PrmTagValue:
-          Ref: "PrmTagValue"
         Enabled:
           Ref: "DeployAiKitBackend"
         AppName:
-          Fn::If:
-            - "CondUseGeneratedAiKitAppName"
-            -
-              Fn::Sub: "${AWS::StackName}-ai-kit"
-            -
-              Ref: "AiKitAppName"
+          Fn::Sub: "${AWS::StackName}-ai-kit"
         Environment:
           Ref: "AiKitEnvironment"
         FrontendApiAuthMode:
@@ -1347,8 +1288,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -1386,17 +1326,10 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "FlowLogRetentionDays"
-        PrmTagValue:
-          Ref: "PrmTagValue"
         Enabled:
           Ref: "DeployFlowBackend"
         AppName:
-          Fn::If:
-            - "CondUseGeneratedFlowAppName"
-            -
-              Fn::Sub: "${AWS::StackName}-flow"
-            -
-              Ref: "FlowAppName"
+          Fn::Sub: "${AWS::StackName}-flow"
         Environment:
           Ref: "FlowEnvironment"
         FrontendApiAuthMode:
@@ -1462,8 +1395,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -1501,17 +1433,10 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "StaticGuardianLogRetentionDays"
-        PrmTagValue:
-          Ref: "PrmTagValue"
         Enabled:
           Ref: "DeployStaticGuardian"
         AppName:
-          Fn::If:
-            - "CondUseGeneratedStaticGuardianAppName"
-            -
-              Fn::Sub: "${AWS::StackName}-static-guardian"
-            -
-              Ref: "StaticGuardianAppName"
+          Fn::Sub: "${AWS::StackName}-static-guardian"
         DomainName:
           Ref: "StaticGuardianDomainName"
         CertificateArn:
@@ -1563,8 +1488,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -1597,8 +1521,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       Timeout: 300
   DeploymentOutputReporter:
     Type: "AWS::CloudFormation::CustomResource"

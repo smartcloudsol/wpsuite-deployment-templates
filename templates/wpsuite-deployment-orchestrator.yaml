@@ -1,11 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite Deployment Access root orchestration template for AWS Marketplace Quick Launch"
 Parameters:
-  PrmTagValue:
-    Type: "String"
-    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
-    AllowedPattern: "^pc:[a-z0-9]+$"
-    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
   MPS3BucketName:
     Type: "String"
     Default: "wpsuite-artifacts-637423296378-us-east-1-an"
@@ -16,11 +11,12 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.0/templates/templates"
+    Default: "releases/v1.0.8/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
     Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
+    MinLength: 1
     NoEcho: true
 Mappings:
   WpSuiteMarketplace:
@@ -49,8 +45,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
   DeploymentArtifactBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
@@ -131,8 +126,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
         -
           Key: "WPSuitePurpose"
           Value: "deployment-artifact-ingress"
@@ -193,8 +187,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
   ArtifactStagerReadDeploymentSecretPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -232,8 +225,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       Timeout: 900
   ArtifactStager:
     Type: "AWS::CloudFormation::CustomResource"
@@ -249,7 +241,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.0"
+      TemplateVersion: "v1.0.8"
       TargetBucketName:
         Ref: "DeploymentArtifactBucket"
       TargetPrefix:
@@ -291,8 +283,6 @@ Resources:
             - "ArtifactStager"
             - "ArtifactRootPrefix"
         LogRetentionDays: "14"
-        PrmTagValue:
-          Ref: "PrmTagValue"
         Enabled: "false"
         AppName:
           Fn::Sub: "${AWS::StackName}-cognito"
@@ -341,8 +331,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -378,8 +367,6 @@ Resources:
             - "ArtifactStager"
             - "ArtifactRootPrefix"
         LogRetentionDays: "14"
-        PrmTagValue:
-          Ref: "PrmTagValue"
         Enabled: "false"
         AppName:
           Fn::Sub: "${AWS::StackName}-ai-kit"
@@ -444,8 +431,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -481,8 +467,6 @@ Resources:
             - "ArtifactStager"
             - "ArtifactRootPrefix"
         LogRetentionDays: ""
-        PrmTagValue:
-          Ref: "PrmTagValue"
         Enabled: "false"
         AppName:
           Fn::Sub: "${AWS::StackName}-flow"
@@ -522,8 +506,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -559,8 +542,6 @@ Resources:
             - "ArtifactStager"
             - "ArtifactRootPrefix"
         LogRetentionDays: ""
-        PrmTagValue:
-          Ref: "PrmTagValue"
         Enabled: "false"
         AppName:
           Fn::Sub: "${AWS::StackName}-static-guardian"
@@ -595,8 +576,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       TemplateURL:
         Fn::Sub:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
@@ -629,8 +609,7 @@ Resources:
       Tags:
         -
           Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
       Timeout: 300
   DeploymentOutputReporter:
     Type: "AWS::CloudFormation::CustomResource"
@@ -658,7 +637,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactStager"
               - "ArtifactRootPrefix"
-          templateVersion: "v1.0.0"
+          templateVersion: "v1.0.8"
         cognito:
           deployed: "false"
           stackId:

@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.8"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -714,8 +714,6 @@ Resources:
   TemplatesBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName:
-        Fn::Sub: "${AppName}-${Environment}-templates-${AWS::AccountId}"
       CorsConfiguration:
         CorsRules:
           -
@@ -741,8 +739,6 @@ Resources:
   PayloadBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName:
-        Fn::Sub: "${AppName}-${Environment}-payloads-${AWS::AccountId}"
       CorsConfiguration:
         CorsRules:
           -

@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.8"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -772,6 +772,18 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "EnableRecaptchaProtection"
+  AiEmailIntakeSesBucketAccessPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasEmailIntakeSesAccessConfig"
+  AiEmailIntakeFlowAttachmentAccessPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "HasFlowAttachmentAccessConfig"
   AiEmailIntakeDispatcherInvokePermissionWorkMailTemplateEnabledCondition:
     Fn::And:
       -
@@ -2148,8 +2160,6 @@ Resources:
   DocsBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName:
-        Fn::Sub: "${AppName}-${Environment}-docs-${AWS::AccountId}-${AWS::Region}"
       VersioningConfiguration:
         Status: "Enabled"
       BucketEncryption:
@@ -3308,32 +3318,47 @@ Resources:
                   - "workmailmessageflow:GetRawMessageContent"
                   - "events:PutEvents"
                 Resource: "*"
-              -
-                Effect: "Allow"
-                Action:
-                  - "s3:GetObject"
-                  - "s3:PutObject"
-                Resource:
-                  -
-                    Fn::If:
-                      - "HasEmailIntakeSesAccessConfig"
-                      -
-                        Fn::Sub: "arn:${AWS::Partition}:s3:::${EmailIntakeSesBucketName}/${EmailIntakeSesPrefix}*"
-                      -
-                        Ref: "AWS::NoValue"
-                  -
-                    Fn::If:
-                      - "HasFlowAttachmentAccessConfig"
-                      -
-                        Fn::Sub: "arn:${AWS::Partition}:s3:::${FlowAttachmentBucketName}/${FlowAttachmentPrefix}*"
-                      -
-                        Ref: "AWS::NoValue"
       Tags:
         -
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
+  AiEmailIntakeSesBucketAccessPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "AiEmailIntakeSesBucketAccess"
+      Roles:
+        -
+          Ref: "AiEmailIntakeDispatcherFunctionRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:GetObject"
+              - "s3:PutObject"
+            Resource:
+              Fn::Sub: "arn:${AWS::Partition}:s3:::${EmailIntakeSesBucketName}/${EmailIntakeSesPrefix}*"
+    Condition: "AiEmailIntakeSesBucketAccessPolicyTemplateEnabledCondition"
+  AiEmailIntakeFlowAttachmentAccessPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "AiEmailIntakeFlowAttachmentAccess"
+      Roles:
+        -
+          Ref: "AiEmailIntakeDispatcherFunctionRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:GetObject"
+            Resource:
+              Fn::Sub: "arn:${AWS::Partition}:s3:::${FlowAttachmentBucketName}/${FlowAttachmentPrefix}*"
+    Condition: "AiEmailIntakeFlowAttachmentAccessPolicyTemplateEnabledCondition"
   AiEmailIntakeDispatcherFunction:
     Type: "AWS::Lambda::Function"
     Properties:

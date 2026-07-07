@@ -18,6 +18,7 @@ Parameters:
   WpSuiteDeploymentSecretArn:
     Type: "String"
     Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
+    MinLength: 1
     NoEcho: true
   DeploymentContextMode:
     Type: "String"
@@ -186,7 +187,16 @@ Resources:
     Properties:
       Parameters:
         PrmTagValue:
-          Ref: "PrmTagValue"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:PrmTagValue}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "PrmTagValue"
         TemplateVersion:
           Ref: "TemplateVersion"
         ArtifactBucketName:
