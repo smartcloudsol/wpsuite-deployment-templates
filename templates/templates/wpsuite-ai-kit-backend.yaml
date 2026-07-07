@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.14"
+    Default: "v1.0.15"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -857,6 +857,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "EnableRecaptchaProtection"
+  AiHandlerFunctionRecaptchaKmsPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableRecaptchaProtection"
   AiEmailIntakeSesBucketAccessPolicyTemplateEnabledCondition:
     Fn::And:
       -
@@ -881,6 +887,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "HasEmailIntakeSesBucketName"
+  CustomResourceManagerRecaptchaKmsPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableRecaptchaProtection"
   KnowledgeBaseSyncFunctionLogGroupTemplateEnabledCondition:
     Fn::And:
       -
@@ -2953,18 +2965,32 @@ Resources:
                   - "lambda:InvokeFunction"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-${Environment}-kb-sync"
-              -
-                Effect: "Allow"
-                Action:
-                  - "kms:Decrypt"
-                  - "kms:DescribeKey"
-                Resource: "*"
       Tags:
         -
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
+  AiHandlerFunctionRecaptchaKmsPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "AiHandlerFunctionRecaptchaKmsPolicy"
+      Roles:
+        -
+          Ref: "AiHandlerFunctionRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+            Resource:
+              Fn::GetAtt:
+                - "RecaptchaKmsKey"
+                - "Arn"
+    Condition: "AiHandlerFunctionRecaptchaKmsPolicyTemplateEnabledCondition"
   AiHandlerFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -3814,20 +3840,34 @@ Resources:
                 Condition:
                   StringEquals:
                     iam:PassedToService: "apigateway.amazonaws.com"
-              -
-                Effect: "Allow"
-                Action:
-                  - "kms:Decrypt"
-                  - "kms:DescribeKey"
-                  - "kms:Encrypt"
-                  - "kms:GenerateDataKey"
-                Resource: "*"
       Tags:
         -
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
+  CustomResourceManagerRecaptchaKmsPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "CustomResourceManagerRecaptchaKmsPolicy"
+      Roles:
+        -
+          Ref: "CustomResourceManagerRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+            Resource:
+              Fn::GetAtt:
+                - "RecaptchaKmsKey"
+                - "Arn"
+    Condition: "CustomResourceManagerRecaptchaKmsPolicyTemplateEnabledCondition"
   CustomResourceManager:
     Type: "AWS::Lambda::Function"
     Properties:

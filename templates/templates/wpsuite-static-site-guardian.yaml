@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.14"
+    Default: "v1.0.15"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -161,6 +161,19 @@ Conditions:
       -
         Ref: "ManageSigningKeys"
       - "true"
+  ManualSigningKeyMaterial:
+    Fn::And:
+      -
+        Fn::Not:
+          -
+            Condition: "ManageSigningKeyMaterial"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "KmsKeyId"
+              - ""
   HasNotFoundPage:
     Fn::Not:
       -
@@ -204,6 +217,36 @@ Conditions:
         Condition: "HasWpsuiteSiteId"
       -
         Condition: "HasWpsuiteSiteKey"
+  SigningKeyKmsKeyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ManageSigningKeyMaterial"
+  SigningKeyKmsAliasTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ManageSigningKeyMaterial"
+  CloudFrontResourceManagerManagedSigningKeyPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ManageSigningKeyMaterial"
+  CloudFrontResourceManagerManualSigningKeyPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ManualSigningKeyMaterial"
+  CloudFrontResourceManagerSiteKeyParameterPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableWeeklyLicenseRefresh"
   SigningKeyMaterialTemplateEnabledCondition:
     Fn::And:
       -
@@ -321,6 +364,79 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
+  SigningKeyKmsKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      Description:
+        Fn::Sub: "${AppName} Site Guardian CloudFront private key"
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "EnableRootPermissions"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                Fn::Sub: "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action:
+              - "kms:CancelKeyDeletion"
+              - "kms:CreateAlias"
+              - "kms:CreateGrant"
+              - "kms:Decrypt"
+              - "kms:DeleteAlias"
+              - "kms:DescribeKey"
+              - "kms:DisableKey"
+              - "kms:DisableKeyRotation"
+              - "kms:EnableKey"
+              - "kms:EnableKeyRotation"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+              - "kms:GenerateDataKeyPair"
+              - "kms:GenerateDataKeyPairWithoutPlaintext"
+              - "kms:GenerateDataKeyWithoutPlaintext"
+              - "kms:GetKeyPolicy"
+              - "kms:GetKeyRotationStatus"
+              - "kms:GetPublicKey"
+              - "kms:ListGrants"
+              - "kms:ListResourceTags"
+              - "kms:PutKeyPolicy"
+              - "kms:ReEncryptFrom"
+              - "kms:ReEncryptTo"
+              - "kms:RetireGrant"
+              - "kms:RevokeGrant"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:Sign"
+              - "kms:TagResource"
+              - "kms:UntagResource"
+              - "kms:UpdateAlias"
+              - "kms:UpdateKeyDescription"
+              - "kms:Verify"
+            Resource: "*"
+          -
+            Sid: "AllowSsmUse"
+            Effect: "Allow"
+            Principal:
+              Service: "ssm.amazonaws.com"
+            Action:
+              - "kms:Decrypt"
+              - "kms:Encrypt"
+              - "kms:DescribeKey"
+            Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "SigningKeyKmsKeyTemplateEnabledCondition"
+  SigningKeyKmsAlias:
+    Type: "AWS::KMS::Alias"
+    Properties:
+      AliasName:
+        Fn::Sub: "alias/${AppName}-site-guardian-cf-pk"
+      TargetKeyId:
+        Ref: "SigningKeyKmsKey"
+    Condition: "SigningKeyKmsAliasTemplateEnabledCondition"
   CloudFrontResourceManagerRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -383,29 +499,6 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
-                  - "kms:CreateKey"
-                  - "kms:DescribeKey"
-                  - "kms:ScheduleKeyDeletion"
-                  - "kms:ListAliases"
-                Resource: "*"
-              -
-                Effect: "Allow"
-                Action:
-                  - "kms:CreateAlias"
-                Resource:
-                  -
-                    Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*"
-                  -
-                    Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/${AppName}-site-guardian-cf-pk"
-              -
-                Effect: "Allow"
-                Action:
-                  - "kms:DeleteAlias"
-                Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/${AppName}-site-guardian-cf-pk"
-              -
-                Effect: "Allow"
-                Action:
                   - "lambda:GetFunction"
                   - "lambda:UpdateFunctionCode"
                   - "lambda:PublishVersion"
@@ -425,17 +518,6 @@ Resources:
                       - "Arn"
                   -
                     Fn::Sub: "${CookieSigningFunction.Arn}:*"
-              -
-                Effect: "Allow"
-                Action:
-                  - "ssm:PutParameter"
-                  - "ssm:GetParameter"
-                  - "ssm:DeleteParameter"
-                Resource:
-                  -
-                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/site-guardian/*"
-                  -
-                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudfront/private-key/*"
               -
                 Effect: "Allow"
                 Action:
@@ -525,6 +607,91 @@ Resources:
       RetentionInDays:
         Ref: "LogRetentionDays"
     Condition: "TemplateEnabled"
+  CloudFrontResourceManagerManagedSigningKeyPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "CloudFrontResourceManagerManagedSigningKeyPolicy"
+      Roles:
+        -
+          Ref: "CloudFrontResourceManagerRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "ssm:PutParameter"
+              - "ssm:GetParameter"
+              - "ssm:DeleteParameter"
+            Resource:
+              Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/site-guardian/cloudfront-*"
+          -
+            Effect: "Allow"
+            Action:
+              - "kms:DescribeKey"
+            Resource:
+              Fn::GetAtt:
+                - "SigningKeyKmsKey"
+                - "Arn"
+          -
+            Effect: "Allow"
+            Action:
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+            Resource:
+              Fn::GetAtt:
+                - "SigningKeyKmsKey"
+                - "Arn"
+            Condition:
+              StringEquals:
+                kms:ViaService:
+                  Fn::Sub: "ssm.${AWS::Region}.${AWS::URLSuffix}"
+    Condition: "CloudFrontResourceManagerManagedSigningKeyPolicyTemplateEnabledCondition"
+  CloudFrontResourceManagerManualSigningKeyPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "CloudFrontResourceManagerManualSigningKeyPolicy"
+      Roles:
+        -
+          Ref: "CloudFrontResourceManagerRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "ssm:GetParameter"
+            Resource:
+              Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudfront/private-key/*"
+          -
+            Effect: "Allow"
+            Action:
+              - "kms:Decrypt"
+            Resource:
+              Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${KmsKeyId}"
+            Condition:
+              StringEquals:
+                kms:ViaService:
+                  Fn::Sub: "ssm.${AWS::Region}.${AWS::URLSuffix}"
+    Condition: "CloudFrontResourceManagerManualSigningKeyPolicyTemplateEnabledCondition"
+  CloudFrontResourceManagerSiteKeyParameterPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "CloudFrontResourceManagerSiteKeyParameterPolicy"
+      Roles:
+        -
+          Ref: "CloudFrontResourceManagerRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "ssm:PutParameter"
+              - "ssm:DeleteParameter"
+            Resource:
+              Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/site-guardian/site-key"
+    Condition: "CloudFrontResourceManagerSiteKeyParameterPolicyTemplateEnabledCondition"
   SigningKeyMaterial:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -535,6 +702,8 @@ Resources:
       ResourceType: "SigningKeyMaterial"
       AppName:
         Ref: "AppName"
+      KmsKeyId:
+        Ref: "SigningKeyKmsKey"
     Condition: "SigningKeyMaterialTemplateEnabledCondition"
   CloudFrontPublicKey:
     Type: "AWS::CloudFormation::CustomResource"
