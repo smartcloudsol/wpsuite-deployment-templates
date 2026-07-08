@@ -759,7 +759,7 @@ Resources:
               Ref: "KmsKeyId"
         CustomResourceFunctionName:
           Fn::Sub:
-            - "${AppName}-${AppNameSuffix}-custom-resource"
+            - "${AppName}-${Environment}-${AppNameSuffix}-custom-resource"
             -
               AppName:
                 Ref: "AppName"

@@ -441,7 +441,7 @@ Resources:
               Ref: "LicenseRefreshScheduleExpression"
         CloudFrontResourceManagerFunctionName:
           Fn::Sub:
-            - "${AppName}-${AppNameSuffix}-cloudfront-manager"
+            - "${AppName}-${Environment}-${AppNameSuffix}-cloudfront-manager"
             -
               AppName:
                 Ref: "AppName"

@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.21/templates/templates"
+    Default: "releases/v1.0.22/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -267,7 +267,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.21"
+      TemplateVersion: "v1.0.22"
       TargetBucketName:
         Ref: "DeploymentArtifactBucket"
       TargetPrefix:
@@ -686,7 +686,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.21"
+          templateVersion: "v1.0.22"
         cognito:
           deployed: "false"
           stackId:
