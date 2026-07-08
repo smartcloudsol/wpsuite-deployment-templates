@@ -654,24 +654,6 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "BlockedIPs"
-        CustomResourceManagerFunctionName:
-          Fn::Sub:
-            - "${AppName}-${Environment}-${AppNameSuffix}-custom-resource-manager"
-            -
-              AppName:
-                Ref: "AppName"
-              Environment:
-                Fn::If:
-                  - "CondUseMarketplaceSecret"
-                  -
-                    Fn::Sub:
-                      - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnvironment}}"
-                      -
-                        DeploymentSecretArn:
-                          Ref: "WpSuiteDeploymentSecretArn"
-                  -
-                    Ref: "Environment"
-              AppNameSuffix: "flow"
       Tags:
         -
           Key: "aws-apn-id"
