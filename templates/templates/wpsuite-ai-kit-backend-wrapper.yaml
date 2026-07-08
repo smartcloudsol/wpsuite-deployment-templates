@@ -942,6 +942,24 @@ Resources:
           Ref: "AdminCognitoUserPoolId"
         FrontendCognitoUserPoolId:
           Ref: "FrontendCognitoUserPoolId"
+        CustomResourceManagerFunctionName:
+          Fn::Sub:
+            - "${AppName}-${Environment}-${AppNameSuffix}-custom-resource-manager"
+            -
+              AppName:
+                Ref: "AppName"
+              Environment:
+                Fn::If:
+                  - "CondUseMarketplaceSecret"
+                  -
+                    Fn::Sub:
+                      - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitEnvironment}}"
+                      -
+                        DeploymentSecretArn:
+                          Ref: "WpSuiteDeploymentSecretArn"
+                  -
+                    Ref: "Environment"
+              AppNameSuffix: "ai-kit"
       Tags:
         -
           Key: "aws-apn-id"

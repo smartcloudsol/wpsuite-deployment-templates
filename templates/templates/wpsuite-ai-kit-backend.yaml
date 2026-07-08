@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.20"
+    Default: "v1.0.21"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -45,6 +45,10 @@ Parameters:
       - "true"
       - "false"
     Description: "Keep legacy custom-resource-manager naming for update-safe ServiceToken stability."
+  CustomResourceManagerFunctionName:
+    Type: "String"
+    Default: ""
+    Description: "Optional stable custom resource manager Lambda function name used to keep ServiceToken unchanged during stack updates."
   DocsBucketName:
     Type: "String"
     Default: ""
@@ -557,6 +561,13 @@ Conditions:
       -
         Ref: "UseLegacyCustomResourceManagerName"
       - "true"
+  HasCustomResourceManagerFunctionName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "CustomResourceManagerFunctionName"
+          - ""
   AlertsEnabled:
     Fn::Equals:
       -
@@ -3909,11 +3920,16 @@ Resources:
     Properties:
       FunctionName:
         Fn::If:
-          - "UseLegacyCustomResourceManagerNaming"
+          - "HasCustomResourceManagerFunctionName"
           -
-            Fn::Sub: "${AppName}-custom-resource-manager"
+            Ref: "CustomResourceManagerFunctionName"
           -
-            Fn::Sub: "${AppName}-custom-resource-manager"
+            Fn::If:
+              - "UseLegacyCustomResourceManagerNaming"
+              -
+                Fn::Sub: "${AppName}-custom-resource-manager"
+              -
+                Fn::Sub: "${AppName}-custom-resource-manager"
       Description: "Custom resource manager for WP Suite AI Kit backend deployment resources"
       Code:
         S3Bucket:
@@ -4013,12 +4029,21 @@ Resources:
           - "CustomResourceManager"
           - "Arn"
       LogGroupName:
-        Fn::If:
-          - "UseLegacyCustomResourceManagerNaming"
+        Fn::Sub:
+          - "/aws/lambda/${CustomResourceManagerFunctionName}"
           -
-            Fn::Sub: "/aws/lambda/${AppName}-custom-resource-manager"
-          -
-            Fn::Sub: "/aws/lambda/${AppName}-custom-resource-manager"
+            CustomResourceManagerFunctionName:
+              Fn::If:
+                - "HasCustomResourceManagerFunctionName"
+                -
+                  Ref: "CustomResourceManagerFunctionName"
+                -
+                  Fn::If:
+                    - "UseLegacyCustomResourceManagerNaming"
+                    -
+                      Fn::Sub: "${AppName}-custom-resource-manager"
+                    -
+                      Fn::Sub: "${AppName}-custom-resource-manager"
       RetentionInDays:
         Ref: "LogRetentionDays"
     Condition: "TemplateEnabled"

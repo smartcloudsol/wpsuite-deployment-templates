@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.20"
+    Default: "v1.0.21"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -28,6 +28,10 @@ Parameters:
     Default: "wpsuite-cognito"
     AllowedPattern: "^[a-zA-Z0-9-]+$"
     Description: "Short application name used as the prefix for generated AWS resource names."
+  CustomResourceFunctionName:
+    Type: "String"
+    Default: ""
+    Description: "Optional stable custom resource manager Lambda function name used to keep ServiceToken unchanged during stack updates."
   LogRetentionDays:
     Type: "Number"
     Default: "14"
@@ -572,6 +576,13 @@ Conditions:
         Fn::Equals:
           -
             Ref: "KmsKeyId"
+          - ""
+  HasCustomResourceFunctionName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "CustomResourceFunctionName"
           - ""
   CondCreateCustomSenderKmsKey:
     Fn::And:
@@ -1316,7 +1327,16 @@ Resources:
                     - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupNamePattern}"
                     -
                       LogGroupNamePattern:
-                        Fn::Sub: "/aws/lambda/${AppName}-custom-resource*"
+                        Fn::Sub:
+                          - "/aws/lambda/${CustomResourceFunctionName}*"
+                          -
+                            CustomResourceFunctionName:
+                              Fn::If:
+                                - "HasCustomResourceFunctionName"
+                                -
+                                  Ref: "CustomResourceFunctionName"
+                                -
+                                  Fn::Sub: "${AppName}-custom-resource"
               -
                 Effect: "Allow"
                 Action:
@@ -1324,9 +1344,27 @@ Resources:
                   - "logs:PutRetentionPolicy"
                 Resource:
                   -
-                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource*"
+                    Fn::Sub:
+                      - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${CustomResourceFunctionName}*"
+                      -
+                        CustomResourceFunctionName:
+                          Fn::If:
+                            - "HasCustomResourceFunctionName"
+                            -
+                              Ref: "CustomResourceFunctionName"
+                            -
+                              Fn::Sub: "${AppName}-custom-resource"
                   -
-                    Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-custom-resource*:*"
+                    Fn::Sub:
+                      - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${CustomResourceFunctionName}*:*"
+                      -
+                        CustomResourceFunctionName:
+                          Fn::If:
+                            - "HasCustomResourceFunctionName"
+                            -
+                              Ref: "CustomResourceFunctionName"
+                            -
+                              Fn::Sub: "${AppName}-custom-resource"
               -
                 Effect: "Allow"
                 Action:
@@ -1405,7 +1443,12 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-custom-resource"
+        Fn::If:
+          - "HasCustomResourceFunctionName"
+          -
+            Ref: "CustomResourceFunctionName"
+          -
+            Fn::Sub: "${AppName}-custom-resource"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -1452,7 +1495,16 @@ Resources:
           - "Arn"
       Action: "LogGroupManager"
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-custom-resource"
+        Fn::Sub:
+          - "/aws/lambda/${CustomResourceFunctionName}"
+          -
+            CustomResourceFunctionName:
+              Fn::If:
+                - "HasCustomResourceFunctionName"
+                -
+                  Ref: "CustomResourceFunctionName"
+                -
+                  Fn::Sub: "${AppName}-custom-resource"
       RetentionInDays:
         Ref: "LogRetentionDays"
     Condition: "TemplateEnabled"

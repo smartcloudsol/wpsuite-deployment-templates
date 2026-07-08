@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.20"
+    Default: "v1.0.21"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -28,6 +28,10 @@ Parameters:
     Type: "String"
     Default: "wpsuite-flow"
     Description: "Application name prefix used when naming Flow resources."
+  CustomResourceManagerFunctionName:
+    Type: "String"
+    Default: ""
+    Description: "Optional stable custom resource manager Lambda function name used to keep ServiceToken unchanged during stack updates."
   Environment:
     Type: "String"
     Default: "prod"
@@ -456,6 +460,13 @@ Conditions:
         Fn::Equals:
           -
             Ref: "DefaultWebhookSigningSecret"
+          - ""
+  HasCustomResourceManagerFunctionName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "CustomResourceManagerFunctionName"
           - ""
   ApiDomainNameTemplateEnabledCondition:
     Fn::And:
@@ -1570,7 +1581,12 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName:
-        Fn::Sub: "${AppName}-custom-resource-manager"
+        Fn::If:
+          - "HasCustomResourceManagerFunctionName"
+          -
+            Ref: "CustomResourceManagerFunctionName"
+          -
+            Fn::Sub: "${AppName}-custom-resource-manager"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -1665,7 +1681,16 @@ Resources:
           - "CustomResourceManagerFunction"
           - "Arn"
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-custom-resource-manager"
+        Fn::Sub:
+          - "/aws/lambda/${CustomResourceManagerFunctionName}"
+          -
+            CustomResourceManagerFunctionName:
+              Fn::If:
+                - "HasCustomResourceManagerFunctionName"
+                -
+                  Ref: "CustomResourceManagerFunctionName"
+                -
+                  Fn::Sub: "${AppName}-custom-resource-manager"
       RetentionInDays:
         Ref: "LogRetentionDays"
     Condition: "TemplateEnabled"

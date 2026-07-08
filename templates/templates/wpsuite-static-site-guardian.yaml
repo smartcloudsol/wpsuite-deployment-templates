@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.20"
+    Default: "v1.0.21"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -28,6 +28,10 @@ Parameters:
     Type: "String"
     Default: "wpsuite-site-guardian"
     Description: "Short application name used for generated resource names and SSM parameter paths."
+  CloudFrontResourceManagerFunctionName:
+    Type: "String"
+    Default: ""
+    Description: "Optional stable CloudFront resource manager Lambda function name used to keep ServiceToken unchanged during stack updates."
   DomainName:
     Type: "String"
     Default: "example.com"
@@ -217,6 +221,13 @@ Conditions:
         Condition: "HasWpsuiteSiteId"
       -
         Condition: "HasWpsuiteSiteKey"
+  HasCloudFrontResourceManagerFunctionName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "CloudFrontResourceManagerFunctionName"
+          - ""
   SigningKeyKmsKeyTemplateEnabledCondition:
     Fn::And:
       -
@@ -588,7 +599,12 @@ Resources:
           - "CloudFrontResourceManagerRole"
           - "Arn"
       FunctionName:
-        Fn::Sub: "${AppName}-cloudfront-manager"
+        Fn::If:
+          - "HasCloudFrontResourceManagerFunctionName"
+          -
+            Ref: "CloudFrontResourceManagerFunctionName"
+          -
+            Fn::Sub: "${AppName}-cloudfront-manager"
       Environment:
         Variables:
           WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
@@ -619,7 +635,16 @@ Resources:
           - "Arn"
       ResourceType: "LogGroupManager"
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-cloudfront-manager"
+        Fn::Sub:
+          - "/aws/lambda/${CloudFrontResourceManagerFunctionName}"
+          -
+            CloudFrontResourceManagerFunctionName:
+              Fn::If:
+                - "HasCloudFrontResourceManagerFunctionName"
+                -
+                  Ref: "CloudFrontResourceManagerFunctionName"
+                -
+                  Fn::Sub: "${AppName}-cloudfront-manager"
       RetentionInDays:
         Ref: "LogRetentionDays"
     Condition: "TemplateEnabled"

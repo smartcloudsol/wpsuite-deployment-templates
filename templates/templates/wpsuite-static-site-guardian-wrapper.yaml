@@ -439,6 +439,24 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "LicenseRefreshScheduleExpression"
+        CloudFrontResourceManagerFunctionName:
+          Fn::Sub:
+            - "${AppName}-${AppNameSuffix}-cloudfront-manager"
+            -
+              AppName:
+                Ref: "AppName"
+              Environment:
+                Fn::If:
+                  - "CondUseMarketplaceSecret"
+                  -
+                    Fn::Sub:
+                      - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}"
+                      -
+                        DeploymentSecretArn:
+                          Ref: "WpSuiteDeploymentSecretArn"
+                  -
+                    Ref: "Environment"
+              AppNameSuffix: "guardian"
       Tags:
         -
           Key: "aws-apn-id"

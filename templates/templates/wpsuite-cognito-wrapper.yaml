@@ -757,6 +757,24 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "KmsKeyId"
+        CustomResourceFunctionName:
+          Fn::Sub:
+            - "${AppName}-${AppNameSuffix}-custom-resource"
+            -
+              AppName:
+                Ref: "AppName"
+              Environment:
+                Fn::If:
+                  - "CondUseMarketplaceSecret"
+                  -
+                    Fn::Sub:
+                      - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}"
+                      -
+                        DeploymentSecretArn:
+                          Ref: "WpSuiteDeploymentSecretArn"
+                  -
+                    Ref: "Environment"
+              AppNameSuffix: "cognito"
       Tags:
         -
           Key: "aws-apn-id"
