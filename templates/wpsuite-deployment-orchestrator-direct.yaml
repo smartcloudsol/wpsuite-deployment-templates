@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.19/templates/templates"
+    Default: "releases/v1.0.20/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.19"
+    Default: "v1.0.20"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -879,6 +879,32 @@ Resources:
                         Ref: "DeploymentArtifactBucket"
                       Prefix:
                         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
+              -
+                Effect: "Allow"
+                Action: "cloudformation:CreateChangeSet"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*"
+                Condition:
+                  StringLike:
+                    cloudformation:ChangeSetName: "wpsuite-update-*"
+                    cloudformation:TemplateUrl: "https://wpsuite-artifacts-*-*-*.s3.*.amazonaws.com/releases/*/templates/wpsuite-deployment-orchestrator-direct.yaml"
+              -
+                Effect: "Allow"
+                Action:
+                  - "cloudformation:DescribeChangeSet"
+                  - "cloudformation:DescribeStacks"
+                  - "cloudformation:DescribeStackEvents"
+                  - "cloudformation:DescribeStackResources"
+                  - "cloudformation:GetTemplate"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*"
+              -
+                Effect: "Allow"
+                Action: "cloudformation:ValidateTemplate"
+                Resource: "*"
+                Condition:
+                  StringLike:
+                    cloudformation:TemplateUrl: "https://wpsuite-artifacts-*-*-*.s3.*.amazonaws.com/releases/*/templates/wpsuite-deployment-orchestrator-direct.yaml"
           PolicyName: "WriteDeploymentArtifacts"
       Tags:
         -
@@ -1600,6 +1626,10 @@ Resources:
             Fn::GetAtt:
               - "ArtifactStager"
               - "ArtifactRootPrefix"
+          artifactIngressRoleArn:
+            Fn::GetAtt:
+              - "ArtifactIngressRole"
+              - "Arn"
           templateVersion:
             Ref: "TemplateVersion"
         cognito:
@@ -1708,6 +1738,12 @@ Outputs:
       Fn::GetAtt:
         - "ArtifactStager"
         - "ArtifactRootPrefix"
+  ArtifactIngressRoleArn:
+    Description: "Buyer-account role used by WP Suite to prepare deployment update change sets."
+    Value:
+      Fn::GetAtt:
+        - "ArtifactIngressRole"
+        - "Arn"
   TemplateVersion:
     Description: "WP Suite template version used by this deployment."
     Value:
