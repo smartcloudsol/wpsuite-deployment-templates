@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.26/templates/templates"
+    Default: "releases/v1.0.27/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.26"
+    Default: "v1.0.27"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -1037,10 +1037,24 @@ Resources:
         Ref: "WpSuiteExpectedAwsAccountId"
       TemplateVersion:
         Ref: "TemplateVersion"
+      MarketplaceTemplateSource:
+        BucketName:
+          Ref: "MPS3BucketName"
+        BucketRegion:
+          Ref: "MPS3BucketRegion"
+        KeyPrefix:
+          Ref: "MPS3KeyPrefix"
       TargetBucketName:
         Ref: "DeploymentArtifactBucket"
       TargetPrefix:
-        Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
+        Fn::Join:
+          - ""
+          -
+            -
+              Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
+            -
+              Ref: "TemplateVersion"
+            - "/"
       ArtifactIngressRoleArn:
         Fn::GetAtt:
           - "ArtifactIngressRole"
@@ -1064,12 +1078,6 @@ Resources:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       Parameters:
-        MPS3BucketName:
-          Ref: "MPS3BucketName"
-        MPS3BucketRegion:
-          Ref: "MPS3BucketRegion"
-        MPS3KeyPrefix:
-          Ref: "MPS3KeyPrefix"
         DeploymentContextMode:
           Ref: "DeploymentContextMode"
         WpSuiteDeploymentSecretArn:
@@ -1185,22 +1193,20 @@ Resources:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
           -
             Bucket:
-              Ref: "MPS3BucketName"
+              Ref: "DeploymentArtifactBucket"
             Region:
-              Ref: "MPS3BucketRegion"
+              Ref: "AWS::Region"
             Prefix:
-              Ref: "MPS3KeyPrefix"
-            TemplatePath: "wpsuite-cognito-wrapper.yaml"
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "ArtifactRootPrefix"
+            TemplatePath: "templates/templates/wpsuite-cognito-wrapper.yaml"
+    DependsOn:
+      - "ArtifactStager"
   FlowBackendNestedStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       Parameters:
-        MPS3BucketName:
-          Ref: "MPS3BucketName"
-        MPS3BucketRegion:
-          Ref: "MPS3BucketRegion"
-        MPS3KeyPrefix:
-          Ref: "MPS3KeyPrefix"
         DeploymentContextMode:
           Ref: "DeploymentContextMode"
         WpSuiteDeploymentSecretArn:
@@ -1304,22 +1310,20 @@ Resources:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
           -
             Bucket:
-              Ref: "MPS3BucketName"
+              Ref: "DeploymentArtifactBucket"
             Region:
-              Ref: "MPS3BucketRegion"
+              Ref: "AWS::Region"
             Prefix:
-              Ref: "MPS3KeyPrefix"
-            TemplatePath: "wpsuite-flow-backend-wrapper.yaml"
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "ArtifactRootPrefix"
+            TemplatePath: "templates/templates/wpsuite-flow-backend-wrapper.yaml"
+    DependsOn:
+      - "ArtifactStager"
   AiKitBackendNestedStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       Parameters:
-        MPS3BucketName:
-          Ref: "MPS3BucketName"
-        MPS3BucketRegion:
-          Ref: "MPS3BucketRegion"
-        MPS3KeyPrefix:
-          Ref: "MPS3KeyPrefix"
         DeploymentContextMode:
           Ref: "DeploymentContextMode"
         WpSuiteDeploymentSecretArn:
@@ -1471,22 +1475,20 @@ Resources:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
           -
             Bucket:
-              Ref: "MPS3BucketName"
+              Ref: "DeploymentArtifactBucket"
             Region:
-              Ref: "MPS3BucketRegion"
+              Ref: "AWS::Region"
             Prefix:
-              Ref: "MPS3KeyPrefix"
-            TemplatePath: "wpsuite-ai-kit-backend-wrapper.yaml"
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "ArtifactRootPrefix"
+            TemplatePath: "templates/templates/wpsuite-ai-kit-backend-wrapper.yaml"
+    DependsOn:
+      - "ArtifactStager"
   StaticGuardianNestedStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       Parameters:
-        MPS3BucketName:
-          Ref: "MPS3BucketName"
-        MPS3BucketRegion:
-          Ref: "MPS3BucketRegion"
-        MPS3KeyPrefix:
-          Ref: "MPS3KeyPrefix"
         DeploymentContextMode:
           Ref: "DeploymentContextMode"
         WpSuiteDeploymentSecretArn:
@@ -1566,12 +1568,16 @@ Resources:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
           -
             Bucket:
-              Ref: "MPS3BucketName"
+              Ref: "DeploymentArtifactBucket"
             Region:
-              Ref: "MPS3BucketRegion"
+              Ref: "AWS::Region"
             Prefix:
-              Ref: "MPS3KeyPrefix"
-            TemplatePath: "wpsuite-static-site-guardian-wrapper.yaml"
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "ArtifactRootPrefix"
+            TemplatePath: "templates/templates/wpsuite-static-site-guardian-wrapper.yaml"
+    DependsOn:
+      - "ArtifactStager"
   DeploymentOutputReporterFunction:
     Type: "AWS::Lambda::Function"
     Properties:

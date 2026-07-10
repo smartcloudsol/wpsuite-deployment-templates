@@ -6,15 +6,6 @@ Parameters:
     Default: "pc:5d8wq5hg1d54kb933ntenntiu"
     AllowedPattern: "^pc:[a-z0-9]+$"
     Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
-  MPS3BucketName:
-    Type: "String"
-    Description: "Public S3 bucket that contains the reviewed WP Suite CloudFormation templates."
-  MPS3BucketRegion:
-    Type: "String"
-    Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
-  MPS3KeyPrefix:
-    Type: "String"
-    Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
     Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
@@ -767,12 +758,12 @@ Resources:
           - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
           -
             Bucket:
-              Ref: "MPS3BucketName"
+              Ref: "ArtifactBucketName"
             Region:
-              Ref: "MPS3BucketRegion"
+              Ref: "AWS::Region"
             Prefix:
-              Ref: "MPS3KeyPrefix"
-            TemplatePath: "wpsuite-cognito.yaml"
+              Ref: "ArtifactRootPrefix"
+            TemplatePath: "templates/templates/wpsuite-cognito.yaml"
 Outputs:
   PrmProductCode:
     Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
