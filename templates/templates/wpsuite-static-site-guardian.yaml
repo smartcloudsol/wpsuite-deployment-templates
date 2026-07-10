@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.25"
+    Default: "v1.0.26"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -844,6 +844,8 @@ Resources:
         Fn::Sub: "/${AppName}/site-guardian/site-key"
       Value:
         Ref: "WpsuiteSiteKey"
+    DependsOn:
+      - "CloudFrontResourceManagerSiteKeyParameterPolicy"
     Condition: "SiteKeyParameterTemplateEnabledCondition"
   ViewerRequestFunction:
     Type: "AWS::CloudFormation::CustomResource"
