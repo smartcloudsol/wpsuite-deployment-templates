@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.29"
+    Default: "v1.0.30"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -937,12 +937,6 @@ Conditions:
       -
         Condition: "S3TriggerEnabled"
   AlertsTopicTemplateEnabledCondition:
-    Fn::And:
-      -
-        Condition: "TemplateEnabled"
-      -
-        Condition: "AlertsEnabled"
-  AlertsEmailSubscriptionPolicyTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
@@ -4378,93 +4372,50 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "AlertsTopicTemplateEnabledCondition"
-  AlertsEmailSubscriptionPolicy:
-    Type: "AWS::IAM::Policy"
-    Properties:
-      PolicyName: "AlertsEmailSubscriptionPolicy"
-      Roles:
-        -
-          Ref: "CustomResourceManagerRole"
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          -
-            Effect: "Allow"
-            Action:
-              - "sns:ListSubscriptionsByTopic"
-              - "sns:Subscribe"
-            Resource:
-              Ref: "AlertsTopic"
-    Condition: "AlertsEmailSubscriptionPolicyTemplateEnabledCondition"
   AlertsEmailSubscription1:
-    Type: "Custom::SNSEmailSubscription"
+    Type: "AWS::SNS::Subscription"
     Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - "CustomResourceManager"
-          - "Arn"
-      Email:
+      Protocol: "email"
+      Endpoint:
         Ref: "AlertEmailAddress1"
       TopicArn:
         Ref: "AlertsTopic"
-    DependsOn:
-      - "AlertsEmailSubscriptionPolicy"
     Condition: "AlertsEmailSubscription1TemplateEnabledCondition"
   AlertsEmailSubscription2:
-    Type: "Custom::SNSEmailSubscription"
+    Type: "AWS::SNS::Subscription"
     Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - "CustomResourceManager"
-          - "Arn"
-      Email:
+      Protocol: "email"
+      Endpoint:
         Ref: "AlertEmailAddress2"
       TopicArn:
         Ref: "AlertsTopic"
-    DependsOn:
-      - "AlertsEmailSubscriptionPolicy"
     Condition: "AlertsEmailSubscription2TemplateEnabledCondition"
   AlertsEmailSubscription3:
-    Type: "Custom::SNSEmailSubscription"
+    Type: "AWS::SNS::Subscription"
     Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - "CustomResourceManager"
-          - "Arn"
-      Email:
+      Protocol: "email"
+      Endpoint:
         Ref: "AlertEmailAddress3"
       TopicArn:
         Ref: "AlertsTopic"
-    DependsOn:
-      - "AlertsEmailSubscriptionPolicy"
     Condition: "AlertsEmailSubscription3TemplateEnabledCondition"
   AlertsEmailSubscription4:
-    Type: "Custom::SNSEmailSubscription"
+    Type: "AWS::SNS::Subscription"
     Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - "CustomResourceManager"
-          - "Arn"
-      Email:
+      Protocol: "email"
+      Endpoint:
         Ref: "AlertEmailAddress4"
       TopicArn:
         Ref: "AlertsTopic"
-    DependsOn:
-      - "AlertsEmailSubscriptionPolicy"
     Condition: "AlertsEmailSubscription4TemplateEnabledCondition"
   AlertsEmailSubscription5:
-    Type: "Custom::SNSEmailSubscription"
+    Type: "AWS::SNS::Subscription"
     Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - "CustomResourceManager"
-          - "Arn"
-      Email:
+      Protocol: "email"
+      Endpoint:
         Ref: "AlertEmailAddress5"
       TopicArn:
         Ref: "AlertsTopic"
-    DependsOn:
-      - "AlertsEmailSubscriptionPolicy"
     Condition: "AlertsEmailSubscription5TemplateEnabledCondition"
   DeadLetterQueue:
     Type: "AWS::SQS::Queue"
