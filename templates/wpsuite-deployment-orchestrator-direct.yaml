@@ -89,27 +89,27 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-    Description: "Enable shared SNS email alerting for selected WP Suite backends."
+    Description: "Enable shared SNS email alerting for selected WP Suite backends. Confirm pending subscriptions from the buyer SNS console by pasting the email confirmation URL; do not open the email link directly."
   AlertEmailAddress1:
     Type: "String"
     Default: ""
-    Description: "Alert email recipient 1. Leave empty when unused."
+    Description: "Alert email recipient 1. Leave empty when unused. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress2:
     Type: "String"
     Default: ""
-    Description: "Alert email recipient 2. Leave empty when unused."
+    Description: "Alert email recipient 2. Leave empty when unused. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress3:
     Type: "String"
     Default: ""
-    Description: "Alert email recipient 3. Leave empty when unused."
+    Description: "Alert email recipient 3. Leave empty when unused. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress4:
     Type: "String"
     Default: ""
-    Description: "Alert email recipient 4. Leave empty when unused."
+    Description: "Alert email recipient 4. Leave empty when unused. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress5:
     Type: "String"
     Default: ""
-    Description: "Alert email recipient 5. Leave empty when unused."
+    Description: "Alert email recipient 5. Leave empty when unused. Confirm from the buyer SNS console to require authenticated unsubscribe."
   StaticGuardianDomainName:
     Type: "String"
     Default: ""

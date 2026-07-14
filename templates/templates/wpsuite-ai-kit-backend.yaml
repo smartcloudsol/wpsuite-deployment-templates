@@ -189,23 +189,23 @@ Parameters:
   AlertEmailAddress1:
     Type: "String"
     Default: ""
-    Description: "Email recipient 1 for SNS critical alerts."
+    Description: "Email recipient 1 for SNS critical alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress2:
     Type: "String"
     Default: ""
-    Description: "Email recipient 2 for SNS critical alerts."
+    Description: "Email recipient 2 for SNS critical alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress3:
     Type: "String"
     Default: ""
-    Description: "Email recipient 3 for SNS critical alerts."
+    Description: "Email recipient 3 for SNS critical alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress4:
     Type: "String"
     Default: ""
-    Description: "Email recipient 4 for SNS critical alerts."
+    Description: "Email recipient 4 for SNS critical alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress5:
     Type: "String"
     Default: ""
-    Description: "Email recipient 5 for SNS critical alerts."
+    Description: "Email recipient 5 for SNS critical alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
   EnableRerank:
     Type: "String"
     Default: "false"
@@ -289,7 +289,7 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-    Description: "Enable SNS topic creation for critical alerts."
+    Description: "Enable SNS topic creation for critical alerts. Confirm pending subscriptions from the buyer SNS console by pasting the email confirmation URL; do not open the email link directly."
   EnableWAF:
     Type: "String"
     Default: "false"

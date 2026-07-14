@@ -129,27 +129,27 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-    Description: "Enable SNS topic creation for Flow operational alerts."
+    Description: "Enable SNS topic creation for Flow operational alerts. Confirm pending subscriptions from the buyer SNS console by pasting the email confirmation URL; do not open the email link directly."
   AlertEmailAddress1:
     Type: "String"
     Default: ""
-    Description: "Email recipient 1 for SNS operational alerts."
+    Description: "Email recipient 1 for SNS operational alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress2:
     Type: "String"
     Default: ""
-    Description: "Email recipient 2 for SNS operational alerts."
+    Description: "Email recipient 2 for SNS operational alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress3:
     Type: "String"
     Default: ""
-    Description: "Email recipient 3 for SNS operational alerts."
+    Description: "Email recipient 3 for SNS operational alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress4:
     Type: "String"
     Default: ""
-    Description: "Email recipient 4 for SNS operational alerts."
+    Description: "Email recipient 4 for SNS operational alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
   AlertEmailAddress5:
     Type: "String"
     Default: ""
-    Description: "Email recipient 5 for SNS operational alerts."
+    Description: "Email recipient 5 for SNS operational alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
   DataRetentionDays:
     Type: "Number"
     Default: 30
