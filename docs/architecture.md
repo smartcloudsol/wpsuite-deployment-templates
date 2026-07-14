@@ -6,9 +6,31 @@ The diagrams are intended to help buyers, AWS Marketplace reviewers, and securit
 
 For the exact deployable definitions, review the generated YAML templates under `templates/`. For IAM-focused review notes, see [IAM permissions overview](iam-permissions.md).
 
+## Quick Launch stack topology
+
+Marketplace Quick Launch does not pass every buyer-selected parameter directly into the component templates. The deployment wizard first saves a short-lived deployment secret, then the buyer launches the root orchestration stack. A full deployment uses one root stack, four wrapper nested stacks, and four wrapped component stacks.
+
+```mermaid
+flowchart TD
+    Wizard["WP Suite deployment wizard"] --> Secret["Deployment secret"]
+    Secret --> Root["Root orchestration stack"]
+    Root --> CognitoWrapper["Cognito wrapper stack"]
+    Root --> FlowWrapper["Flow wrapper stack"]
+    Root --> AiKitWrapper["AI Kit wrapper stack"]
+    Root --> GuardianWrapper["Static Guardian wrapper stack"]
+    CognitoWrapper --> CognitoWrapped["Cognito wrapped stack"]
+    FlowWrapper --> FlowWrapped["Flow wrapped stack"]
+    AiKitWrapper --> AiKitWrapped["AI Kit wrapped stack"]
+    GuardianWrapper --> GuardianWrapped["Static Guardian wrapped stack"]
+```
+
+The root template creates the wrapper topology and passes deployment context to each wrapper. In Quick Launch mode, wrapper templates read component parameters from the deployment secret through CloudFormation dynamic references, then pass those values into the wrapped templates. The `Enabled` parameter controls whether the wrapped template creates the component resources. This means an unselected component can still have wrapper and wrapped nested stacks in the CloudFormation tree, while the actual component resources are suppressed by conditions.
+
+The direct launch template follows the same component model, but receives explicit CloudFormation parameters instead of resolving them from a deployment secret.
+
 ## Root orchestration template
 
-The root orchestration template is the Marketplace entry point. It receives the deployment session and selected topology, validates the deployment through the WP Suite control plane, stages private runtime artifacts into a buyer-owned S3 bucket, and conditionally creates the selected nested stacks.
+The root orchestration template is the Marketplace entry point. It receives the deployment session reference and selected topology, validates the deployment through the WP Suite control plane, stages private runtime artifacts into a buyer-owned S3 bucket, and creates the wrapper nested stacks that drive the wrapped component templates.
 
 ![WP Suite Deployment Access root orchestration architecture](../assets/wpsuite-deployment-access-root-orchestration-architecture.png)
 
@@ -17,7 +39,8 @@ Key review points:
 - Marketplace Quick Launch starts the buyer-account root CloudFormation stack.
 - Public templates are reviewable before launch.
 - Runtime artifacts remain private and are staged only after entitlement or agency-credit validation.
-- The root stack passes normalized parameters to selected nested stacks.
+- Quick Launch parameters are stored in a deployment secret; wrappers resolve those values with dynamic references and forward them to wrapped templates.
+- The wrapper/wrapped topology can appear for every supported component; component resources are controlled by the wrapped template `Enabled` parameter.
 - Deployment outputs are reported back to the WP Suite control plane for later workspace/site configuration.
 
 ## WP Suite Cognito nested template
@@ -43,8 +66,8 @@ Key review points:
 
 - API Gateway exposes frontend and admin resource groups with configurable authorization modes.
 - Lambda handlers implement the backend request and business logic.
-- DynamoDB stores chat, session, and configuration records.
-- S3 stores documents, configuration, and temporary assets.
+- DynamoDB stores chat sessions, chat messages, and knowledge-base sync state.
+- S3 stores documents, prompt/configuration assets, and temporary assets; sensitive runtime configuration is stored in SSM parameters where required.
 - Bedrock Knowledge Base, model access, guardrails, WAF, custom API domain, Route 53, and reCAPTCHA are optional/configurable.
 
 ## WP Suite Flow Backend nested template
@@ -72,6 +95,6 @@ Key review points:
 - CloudFront serves public and protected paths from a private S3 origin.
 - Edge request protection validates Cognito JWTs and enforces path/group rules.
 - Signing keys can be generated and managed by the stack or supplied manually.
-- Optional Route 53 records, WAF, custom error pages, detailed logging, and WP Suite license/config refresh are configurable.
+- Optional Route 53 records, custom error pages, detailed logging, and WP Suite license/config refresh are configurable.
+- The current Static Site Guardian template does not create WAF resources; API WAF controls are implemented in the AI Kit and Flow backend templates.
 - Stack outputs provide the bucket, distribution, domain, key, and refresh-related identifiers needed by downstream WP Suite configuration.
-
