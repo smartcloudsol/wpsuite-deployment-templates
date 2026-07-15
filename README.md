@@ -33,8 +33,12 @@ This repository does not include:
 
 The deployment wizard collects configuration, then either publishes the configuration
 as an AWS Marketplace deployment parameter for Quick Launch or opens a direct
-CloudFormation launch URL for agency-credit launches. The root stack
-conditionally creates nested stacks based on the selected components.
+CloudFormation launch URL for agency-credit launches. In Quick Launch, the wizard
+saves the configuration in a deployment secret. The root stack creates four wrapper
+nested stacks, each wrapper resolves its component parameters from that secret, and
+each wrapper passes them to a wrapped component stack. The wrapped template's
+`Enabled` parameter controls whether that component creates resources, so the full
+wrapper/wrapped topology can appear even for unselected components.
 
 The public templates let buyers and reviewers inspect:
 

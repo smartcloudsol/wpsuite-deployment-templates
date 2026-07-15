@@ -6,14 +6,14 @@ The exact IAM statements are defined in the templates under `templates/`. This f
 
 ## Root orchestrator
 
-The root template coordinates selected nested stacks and deployment support custom resources.
+The root template coordinates the four wrapper/wrapped component stack pairs and deployment support custom resources. In Quick Launch, all four pairs can appear in the CloudFormation tree; each wrapped template's `Enabled` parameter controls whether that component creates resources.
 
 Review:
 
 - permissions used by deployment artifact staging
 - permissions used by deployment output reporting
 - access to deployment-time secrets and configuration
-- nested stack parameters passed to selected components
+- deployment context passed to wrappers and component parameters resolved from the deployment secret and forwarded to wrapped templates
 
 ## WP Suite Cognito
 
