@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.33"
+    Default: "v1.0.34"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -204,7 +204,7 @@ Conditions:
         Condition: "HasWpsuiteSiteId"
       -
         Condition: "HasWpsuiteSiteKey"
-  SigningKeyKmsKeyTemplateEnabledCondition:
+  CloudFrontSigningKmsKeyTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
@@ -351,7 +351,7 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
-  SigningKeyKmsKey:
+  CloudFrontSigningKmsKey:
     Type: "AWS::KMS::Key"
     Properties:
       Description:
@@ -406,7 +406,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "SigningKeyKmsKeyTemplateEnabledCondition"
+    Condition: "CloudFrontSigningKmsKeyTemplateEnabledCondition"
   CloudFrontResourceManagerRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -625,7 +625,7 @@ Resources:
               - "kms:GetPublicKey"
             Resource:
               Fn::GetAtt:
-                - "SigningKeyKmsKey"
+                - "CloudFrontSigningKmsKey"
                 - "Arn"
           -
             Effect: "Allow"
@@ -684,7 +684,7 @@ Resources:
       AliasName:
         Fn::Sub: "alias/${AppName}-site-guardian-cf-pk"
       TargetKeyId:
-        Ref: "SigningKeyKmsKey"
+        Ref: "CloudFrontSigningKmsKey"
     DependsOn:
       - "SigningKeyKmsAliasCleanup"
     Condition: "SigningKeyKmsAliasTemplateEnabledCondition"
@@ -699,12 +699,12 @@ Resources:
       AppName:
         Ref: "AppName"
       KmsKeyId:
-        Ref: "SigningKeyKmsKey"
+        Ref: "CloudFrontSigningKmsKey"
     DependsOn:
       - "CloudFrontResourceManagerManagedSigningKeyPolicy"
       - "SigningKeyKmsAlias"
     Condition: "SigningKeyMaterialTemplateEnabledCondition"
-  CloudFrontPublicKey:
+  CloudFrontSigningPublicKey:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
       ServiceToken:
@@ -713,7 +713,7 @@ Resources:
           - "Arn"
       ResourceType: "PublicKey"
       Name:
-        Fn::Sub: "${AppName}-public-key"
+        Fn::Sub: "${AppName}-ecdsa-public-key"
       PublicKeyContent:
         Fn::If:
           - "ManageSigningKeyMaterial"
@@ -724,7 +724,7 @@ Resources:
           -
             Ref: "PublicKeyContent"
     Condition: "TemplateEnabled"
-  CloudFrontKeyGroup:
+  CloudFrontSigningKeyGroup:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
       ServiceToken:
@@ -733,10 +733,10 @@ Resources:
           - "Arn"
       ResourceType: "KeyGroup"
       Name:
-        Fn::Sub: "${AppName}-key-group"
+        Fn::Sub: "${AppName}-ecdsa-key-group"
       PublicKeyId:
         Fn::GetAtt:
-          - "CloudFrontPublicKey"
+          - "CloudFrontSigningPublicKey"
           - "PublicKeyId"
     Condition: "TemplateEnabled"
   OriginAccessControl:
@@ -849,7 +849,7 @@ Resources:
                     - "ManageSigningKeyMaterial"
                     -
                       Fn::GetAtt:
-                        - "SigningKeyKmsKey"
+                        - "CloudFrontSigningKmsKey"
                         - "Arn"
                     -
                       Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${KmsKeyId}"
@@ -891,7 +891,7 @@ Resources:
         Ref: "DomainName"
       KeyPairId:
         Fn::GetAtt:
-          - "CloudFrontPublicKey"
+          - "CloudFrontSigningPublicKey"
           - "PublicKeyId"
       CookieExpirationDays:
         Ref: "CookieExpirationDays"
@@ -1020,7 +1020,7 @@ Resources:
             TrustedKeyGroups:
               -
                 Fn::GetAtt:
-                  - "CloudFrontKeyGroup"
+                  - "CloudFrontSigningKeyGroup"
                   - "KeyGroupId"
             FunctionAssociations:
               -
@@ -1400,7 +1400,7 @@ Outputs:
         - "TemplateEnabled"
         -
           Fn::GetAtt:
-            - "CloudFrontKeyGroup"
+            - "CloudFrontSigningKeyGroup"
             - "KeyGroupId"
         - ""
   ResolvedKmsKeyId:
