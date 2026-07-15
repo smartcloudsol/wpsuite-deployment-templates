@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.30"
+    Default: "v1.0.31"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -1015,6 +1015,20 @@ Resources:
           - "Arn"
       BucketName:
         Ref: "PayloadBucket"
+      DeleteGuardDutyMalwareProtectionPlans:
+        Fn::If:
+          - "GuardDutyMalwareProtectionEnabled"
+          - "true"
+          - "false"
+      GuardDutyMalwareProtectionRoleArn:
+        Fn::If:
+          - "GuardDutyMalwareProtectionEnabled"
+          -
+            Fn::GetAtt:
+              - "GuardDutyMalwareProtectionRole"
+              - "Arn"
+          -
+            Ref: "AWS::NoValue"
     Condition: "PayloadBucketCleanerTemplateEnabledCondition"
   SubmissionsTable:
     Type: "AWS::DynamoDB::Table"
@@ -1427,6 +1441,7 @@ Resources:
                   - "guardduty:CreateMalwareProtectionPlan"
                   - "guardduty:UpdateMalwareProtectionPlan"
                   - "guardduty:GetMalwareProtectionPlan"
+                  - "guardduty:ListMalwareProtectionPlans"
                   - "guardduty:DeleteMalwareProtectionPlan"
                   - "guardduty:TagResource"
                   - "guardduty:UntagResource"
@@ -1729,21 +1744,45 @@ Resources:
             Version: "2012-10-17"
             Statement:
               -
+                Sid: "ManagedRuleLifecycle"
                 Effect: "Allow"
                 Action:
                   - "events:PutRule"
                   - "events:DeleteRule"
                   - "events:PutTargets"
                   - "events:RemoveTargets"
-                  - "events:DescribeRule"
-                  - "events:ListTargetsByRule"
-                Resource: "*"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/DO-NOT-DELETE-AmazonGuardDutyMalwareProtectionS3*"
+                Condition:
+                  StringLike:
+                    events:ManagedBy: "malware-protection-plan.guardduty.amazonaws.com"
               -
+                Sid: "ManagedRuleRead"
                 Effect: "Allow"
                 Action:
-                  - "s3:GetBucketLocation"
+                  - "events:DescribeRule"
+                  - "events:ListTargetsByRule"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/DO-NOT-DELETE-AmazonGuardDutyMalwareProtectionS3*"
+              -
+                Sid: "BucketNotifications"
+                Effect: "Allow"
+                Action:
                   - "s3:GetBucketNotification"
                   - "s3:PutBucketNotification"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedPayloadBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${PayloadBucketName}"
+                    -
+                      Fn::GetAtt:
+                        - "PayloadBucket"
+                        - "Arn"
+              -
+                Sid: "BucketOwnership"
+                Effect: "Allow"
+                Action:
                   - "s3:ListBucket"
                 Resource:
                   Fn::If:
@@ -1755,6 +1794,7 @@ Resources:
                         - "PayloadBucket"
                         - "Arn"
               -
+                Sid: "ObjectReadAndTag"
                 Effect: "Allow"
                 Action:
                   - "s3:GetObject"
@@ -1771,13 +1811,29 @@ Resources:
                     -
                       Fn::Sub: "${PayloadBucket.Arn}/*"
               -
+                Sid: "PutValidationObject"
+                Effect: "Allow"
+                Action:
+                  - "s3:PutObject"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedPayloadBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${PayloadBucketName}/malware-protection-resource-validation-object"
+                    -
+                      Fn::Sub: "${PayloadBucket.Arn}/malware-protection-resource-validation-object"
+              -
+                Sid: "DecryptObjects"
                 Effect: "Allow"
                 Action:
                   - "kms:GenerateDataKey"
                   - "kms:Decrypt"
-                  - "kms:DescribeKey"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+                Condition:
+                  StringLike:
+                    kms:ViaService:
+                      Fn::Sub: "s3.${AWS::Region}.${AWS::URLSuffix}"
       Tags:
         -
           Key: "aws-apn-id"
@@ -1795,6 +1851,7 @@ Resources:
         Fn::GetAtt:
           - "GuardDutyMalwareProtectionRole"
           - "Arn"
+      RolePolicyRevision: "2"
       ProtectedResource:
         S3Bucket:
           BucketName:
