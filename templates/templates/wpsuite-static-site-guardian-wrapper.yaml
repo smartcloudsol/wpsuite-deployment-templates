@@ -493,9 +493,9 @@ Outputs:
       Fn::GetAtt:
         - "WrappedNestedStack"
         - "Outputs.CloudFrontKeyGroupId"
-  PrivateKeyParameterName:
-    Description: "Forwarded PrivateKeyParameterName output from wpsuite-static-site-guardian.yaml."
+  PublicKeyParameterName:
+    Description: "Forwarded PublicKeyParameterName output from wpsuite-static-site-guardian.yaml."
     Value:
       Fn::GetAtt:
         - "WrappedNestedStack"
-        - "Outputs.PrivateKeyParameterName"
+        - "Outputs.PublicKeyParameterName"

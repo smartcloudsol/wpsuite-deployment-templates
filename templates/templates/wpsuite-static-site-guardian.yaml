@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.32"
+    Default: "v1.0.33"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -65,15 +65,15 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-    Description: "Automatically generate and manage the CloudFront signing key pair, KMS key, and SSM parameters."
+    Description: "Automatically manage the CloudFront public key and asymmetric KMS signing key."
   PublicKeyContent:
     Type: "String"
     Default: ""
-    Description: "Manual mode only. Base64 encoded RSA public key content."
+    Description: "Manual mode only. Base64 encoded ECDSA P-256 public key content."
   KmsKeyId:
     Type: "String"
     Default: ""
-    Description: "Manual mode only. KMS Key ID containing the encrypted CloudFront private key."
+    Description: "Manual mode only. KMS asymmetric ECC_NIST_P256 signing key ID."
   EnableDetailedLogging:
     Type: "String"
     Default: "false"
@@ -161,19 +161,6 @@ Conditions:
       -
         Ref: "ManageSigningKeys"
       - "true"
-  ManualSigningKeyMaterial:
-    Fn::And:
-      -
-        Fn::Not:
-          -
-            Condition: "ManageSigningKeyMaterial"
-      -
-        Fn::Not:
-          -
-            Fn::Equals:
-              -
-                Ref: "KmsKeyId"
-              - ""
   HasNotFoundPage:
     Fn::Not:
       -
@@ -229,12 +216,6 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "ManageSigningKeyMaterial"
-  CloudFrontResourceManagerManualSigningKeyPolicyTemplateEnabledCondition:
-    Fn::And:
-      -
-        Condition: "TemplateEnabled"
-      -
-        Condition: "ManualSigningKeyMaterial"
   CloudFrontResourceManagerSiteKeyParameterPolicyTemplateEnabledCondition:
     Fn::And:
       -
@@ -374,8 +355,9 @@ Resources:
     Type: "AWS::KMS::Key"
     Properties:
       Description:
-        Fn::Sub: "${AppName} Site Guardian CloudFront private key"
-      EnableKeyRotation: true
+        Fn::Sub: "${AppName} Site Guardian CloudFront signed-cookie signing key"
+      KeySpec: "ECC_NIST_P256"
+      KeyUsage: "SIGN_VERIFY"
       KeyPolicy:
         Version: "2012-10-17"
         Statement:
@@ -418,16 +400,6 @@ Resources:
               - "kms:UpdateAlias"
               - "kms:UpdateKeyDescription"
               - "kms:Verify"
-            Resource: "*"
-          -
-            Sid: "AllowSsmUse"
-            Effect: "Allow"
-            Principal:
-              Service: "ssm.amazonaws.com"
-            Action:
-              - "kms:Decrypt"
-              - "kms:Encrypt"
-              - "kms:DescribeKey"
             Resource: "*"
       Tags:
         -
@@ -650,6 +622,7 @@ Resources:
             Effect: "Allow"
             Action:
               - "kms:DescribeKey"
+              - "kms:GetPublicKey"
             Resource:
               Fn::GetAtt:
                 - "SigningKeyKmsKey"
@@ -671,51 +644,7 @@ Resources:
               ForAnyValue:StringEquals:
                 kms:ResourceAliases:
                   Fn::Sub: "alias/${AppName}-site-guardian-cf-pk"
-          -
-            Effect: "Allow"
-            Action:
-              - "kms:Encrypt"
-              - "kms:Decrypt"
-            Resource:
-              Fn::GetAtt:
-                - "SigningKeyKmsKey"
-                - "Arn"
-            Condition:
-              StringEquals:
-                kms:CallerAccount:
-                  Ref: "AWS::AccountId"
-                kms:ViaService:
-                  Fn::Sub: "ssm.${AWS::Region}.${AWS::URLSuffix}"
     Condition: "CloudFrontResourceManagerManagedSigningKeyPolicyTemplateEnabledCondition"
-  CloudFrontResourceManagerManualSigningKeyPolicy:
-    Type: "AWS::IAM::Policy"
-    Properties:
-      PolicyName: "CloudFrontResourceManagerManualSigningKeyPolicy"
-      Roles:
-        -
-          Ref: "CloudFrontResourceManagerRole"
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          -
-            Effect: "Allow"
-            Action:
-              - "ssm:GetParameter"
-            Resource:
-              Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cloudfront/private-key/*"
-          -
-            Effect: "Allow"
-            Action:
-              - "kms:Decrypt"
-            Resource:
-              Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${KmsKeyId}"
-            Condition:
-              StringEquals:
-                kms:CallerAccount:
-                  Ref: "AWS::AccountId"
-                kms:ViaService:
-                  Fn::Sub: "ssm.${AWS::Region}.${AWS::URLSuffix}"
-    Condition: "CloudFrontResourceManagerManualSigningKeyPolicyTemplateEnabledCondition"
   CloudFrontResourceManagerSiteKeyParameterPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -911,6 +840,19 @@ Resources:
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:Sign"
+                Resource:
+                  Fn::If:
+                    - "ManageSigningKeyMaterial"
+                    -
+                      Fn::GetAtt:
+                        - "SigningKeyKmsKey"
+                        - "Arn"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${KmsKeyId}"
       Tags:
         -
           Key: "aws-apn-id"
@@ -960,15 +902,6 @@ Resources:
             Ref: "ProtectedPaths"
       ProtectedPathGroupMap:
         Ref: "ProtectedPathGroupMap"
-      PrivateKeyParameterName:
-        Fn::If:
-          - "ManageSigningKeyMaterial"
-          -
-            Fn::GetAtt:
-              - "SigningKeyMaterial"
-              - "PrivateKeyParameterName"
-          -
-            Fn::Sub: "/cloudfront/private-key/${KmsKeyId}"
       KmsKeyId:
         Fn::If:
           - "ManageSigningKeyMaterial"
@@ -978,6 +911,9 @@ Resources:
               - "KmsKeyId"
           -
             Ref: "KmsKeyId"
+      KmsRegion:
+        Ref: "AWS::Region"
+      KmsSigningAlgorithm: "ECDSA_SHA_256"
       CognitoUserPoolId:
         Ref: "CognitoUserPoolId"
       CognitoAppClientIds:
@@ -1482,8 +1418,8 @@ Outputs:
             -
               Ref: "KmsKeyId"
         - ""
-  PrivateKeyParameterName:
-    Description: "SSM parameter name that stores the private signing key."
+  PublicKeyParameterName:
+    Description: "SSM parameter name that stores the CloudFront public key content."
     Value:
       Fn::If:
         - "TemplateEnabled"
@@ -1493,9 +1429,8 @@ Outputs:
             -
               Fn::GetAtt:
                 - "SigningKeyMaterial"
-                - "PrivateKeyParameterName"
-            -
-              Fn::Sub: "/cloudfront/private-key/${KmsKeyId}"
+                - "PublicKeyParameterName"
+            - ""
         - ""
   NoCachePolicyId:
     Description: "CloudFront Response Headers Policy ID."
