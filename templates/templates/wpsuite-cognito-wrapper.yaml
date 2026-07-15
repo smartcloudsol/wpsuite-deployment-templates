@@ -103,14 +103,18 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter RecaptchaSiteKey."
-  RecaptchaSecretKey:
-    Type: "String"
-    Description: "Forwarded WP Suite nested stack parameter RecaptchaSecretKey."
-    NoEcho: true
   RecaptchaScoreThreshold:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter RecaptchaScoreThreshold."
+  RecaptchaSecretKey:
+    Type: "String"
+    Description: "Forwarded WP Suite nested stack parameter RecaptchaSecretKey."
+    NoEcho: true
+  SharedRecaptchaResourcePrefix:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter SharedRecaptchaResourcePrefix."
   UserPoolName:
     Type: "String"
     Default: ""
@@ -427,17 +431,6 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "RecaptchaSiteKey"
-        RecaptchaSecretKey:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaSecretKey}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RecaptchaSecretKey"
         RecaptchaScoreThreshold:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -449,6 +442,19 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "RecaptchaScoreThreshold"
+        RecaptchaSecretKey:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaSecretKey}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "RecaptchaSecretKey"
+        SharedRecaptchaResourcePrefix:
+          Ref: "SharedRecaptchaResourcePrefix"
         UserPoolName:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -799,3 +805,21 @@ Outputs:
       Fn::GetAtt:
         - "WrappedNestedStack"
         - "Outputs.IdentityPoolId"
+  SharedRecaptchaSecretParameterName:
+    Description: "Forwarded SharedRecaptchaSecretParameterName output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.SharedRecaptchaSecretParameterName"
+  SharedRecaptchaSecretParameterArn:
+    Description: "Forwarded SharedRecaptchaSecretParameterArn output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.SharedRecaptchaSecretParameterArn"
+  SharedRecaptchaKmsKeyArn:
+    Description: "Forwarded SharedRecaptchaKmsKeyArn output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.SharedRecaptchaKmsKeyArn"

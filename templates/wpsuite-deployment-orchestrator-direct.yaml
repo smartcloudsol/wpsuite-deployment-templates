@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.31/templates/templates"
+    Default: "releases/v1.0.32/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.31"
+    Default: "v1.0.32"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -1134,6 +1134,12 @@ Resources:
           Ref: "RecaptchaSecretKey"
         RecaptchaScoreThreshold:
           Ref: "RecaptchaScoreThreshold"
+        SharedRecaptchaResourcePrefix:
+          Fn::Sub:
+            - "${AWS::StackName}-${Environment}"
+            -
+              Environment:
+                Ref: "Environment"
         UserPoolName:
           Ref: "CognitoUserPoolName"
         LoginMechanisms:
@@ -1263,10 +1269,20 @@ Resources:
           Ref: "RecaptchaProjectId"
         RecaptchaSiteKey:
           Ref: "RecaptchaSiteKey"
-        RecaptchaSecretKey:
-          Ref: "RecaptchaSecretKey"
         RecaptchaScoreThreshold:
           Ref: "RecaptchaScoreThreshold"
+        SharedRecaptchaSecretParameterName:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaSecretParameterName"
+        SharedRecaptchaSecretParameterArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaSecretParameterArn"
+        SharedRecaptchaKmsKeyArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaKmsKeyArn"
         EnableWAF:
           Ref: "FlowEnableWAF"
         EnableKmsForSecrets:
@@ -1388,10 +1404,20 @@ Resources:
           Ref: "RecaptchaProjectId"
         RecaptchaSiteKey:
           Ref: "RecaptchaSiteKey"
-        RecaptchaSecretKey:
-          Ref: "RecaptchaSecretKey"
         RecaptchaScoreThreshold:
           Ref: "RecaptchaScoreThreshold"
+        SharedRecaptchaSecretParameterName:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaSecretParameterName"
+        SharedRecaptchaSecretParameterArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaSecretParameterArn"
+        SharedRecaptchaKmsKeyArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaKmsKeyArn"
         RecaptchaChatTtlSeconds:
           Ref: "RecaptchaChatTtlSeconds"
         EnableWAF:

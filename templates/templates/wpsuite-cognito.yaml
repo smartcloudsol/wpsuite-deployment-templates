@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.31"
+    Default: "v1.0.32"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -286,6 +286,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Public reCAPTCHA site key expected from the client."
+  SharedRecaptchaResourcePrefix:
+    Type: "String"
+    Default: ""
+    Description: "Deployment-wide prefix for shared reCAPTCHA SSM and KMS resources."
   RegisteredGroupName:
     Type: "String"
     Default: "registered"
@@ -581,6 +585,31 @@ Conditions:
         Fn::Not:
           -
             Condition: "HasProvidedKmsKeyId"
+  CondHasRecaptchaSecret:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "RecaptchaSecretKey"
+          - ""
+  CondHasSharedRecaptchaResourcePrefix:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SharedRecaptchaResourcePrefix"
+          - ""
+  CondCreateSharedRecaptchaSecret:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Fn::Equals:
+          -
+            Ref: "EnableRecaptcha"
+          - "true"
+      -
+        Condition: "CondHasRecaptchaSecret"
   CustomSenderKmsKeyTemplateEnabledCondition:
     Fn::And:
       -
@@ -593,6 +622,18 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CondCreateCustomSenderKmsKey"
+  SharedRecaptchaKmsKeyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateSharedRecaptchaSecret"
+  SharedRecaptchaKmsAliasTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateSharedRecaptchaSecret"
   UserPoolTemplateEnabledCondition:
     Fn::And:
       -
@@ -653,26 +694,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CondCreateEmailTemplateBucket"
-  CondEnableRecaptchaWithSecret:
-    Fn::And:
-      -
-        Fn::Equals:
-          -
-            Ref: "EnableRecaptcha"
-          - "true"
-      -
-        Fn::Not:
-          -
-            Fn::Equals:
-              -
-                Ref: "RecaptchaSecretKey"
-              - ""
   RecaptchaSecretParameterTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "CondEnableRecaptchaWithSecret"
+        Condition: "CondCreateSharedRecaptchaSecret"
   EmailTemplateBucketCleanerTemplateEnabledCondition:
     Fn::And:
       -
@@ -917,6 +944,98 @@ Resources:
       TargetKeyId:
         Ref: "CustomSenderKmsKey"
     Condition: "CustomSenderKmsAliasTemplateEnabledCondition"
+  SharedRecaptchaKmsKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      Description:
+        Fn::Sub:
+          - "KMS key for deployment-wide reCAPTCHA secret in ${SharedRecaptchaPrefix}"
+          -
+            SharedRecaptchaPrefix:
+              Fn::If:
+                - "CondHasSharedRecaptchaResourcePrefix"
+                -
+                  Ref: "SharedRecaptchaResourcePrefix"
+                -
+                  Ref: "AppName"
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AllowAccountAdmin"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                Fn::Sub: "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action:
+              - "kms:CancelKeyDeletion"
+              - "kms:CreateAlias"
+              - "kms:CreateGrant"
+              - "kms:Decrypt"
+              - "kms:DeleteAlias"
+              - "kms:DescribeKey"
+              - "kms:DisableKey"
+              - "kms:DisableKeyRotation"
+              - "kms:EnableKey"
+              - "kms:EnableKeyRotation"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+              - "kms:GenerateDataKeyPair"
+              - "kms:GenerateDataKeyPairWithoutPlaintext"
+              - "kms:GenerateDataKeyWithoutPlaintext"
+              - "kms:GetKeyPolicy"
+              - "kms:GetKeyRotationStatus"
+              - "kms:GetPublicKey"
+              - "kms:ListGrants"
+              - "kms:ListResourceTags"
+              - "kms:PutKeyPolicy"
+              - "kms:ReEncryptFrom"
+              - "kms:ReEncryptTo"
+              - "kms:RetireGrant"
+              - "kms:RevokeGrant"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:Sign"
+              - "kms:TagResource"
+              - "kms:UntagResource"
+              - "kms:UpdateAlias"
+              - "kms:UpdateKeyDescription"
+              - "kms:Verify"
+            Resource: "*"
+          -
+            Sid: "AllowSsmUse"
+            Effect: "Allow"
+            Principal:
+              Service: "ssm.amazonaws.com"
+            Action:
+              - "kms:Decrypt"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+              - "kms:DescribeKey"
+            Resource: "*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "SharedRecaptchaKmsKeyTemplateEnabledCondition"
+  SharedRecaptchaKmsAlias:
+    Type: "AWS::KMS::Alias"
+    Properties:
+      AliasName:
+        Fn::Sub:
+          - "alias/${SharedRecaptchaPrefix}-shared-recaptcha"
+          -
+            SharedRecaptchaPrefix:
+              Fn::If:
+                - "CondHasSharedRecaptchaResourcePrefix"
+                -
+                  Ref: "SharedRecaptchaResourcePrefix"
+                -
+                  Ref: "AppName"
+      TargetKeyId:
+        Ref: "SharedRecaptchaKmsKey"
+    Condition: "SharedRecaptchaKmsAliasTemplateEnabledCondition"
   UserPool:
     Type: "AWS::Cognito::UserPool"
     Properties:
@@ -1346,7 +1465,35 @@ Resources:
                   - "ssm:GetParameter"
                   - "ssm:DeleteParameter"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/recaptcha/secret"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/recaptcha/secret"
+                  -
+                    Fn::Sub:
+                      - "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${SharedRecaptchaPrefix}/shared/recaptcha/secret"
+                      -
+                        SharedRecaptchaPrefix:
+                          Fn::If:
+                            - "CondHasSharedRecaptchaResourcePrefix"
+                            -
+                              Ref: "SharedRecaptchaResourcePrefix"
+                            -
+                              Ref: "AppName"
+              -
+                Fn::If:
+                  - "CondCreateSharedRecaptchaSecret"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "kms:Decrypt"
+                      - "kms:DescribeKey"
+                      - "kms:Encrypt"
+                      - "kms:GenerateDataKey"
+                    Resource:
+                      Fn::GetAtt:
+                        - "SharedRecaptchaKmsKey"
+                        - "Arn"
+                  -
+                    Ref: "AWS::NoValue"
               -
                 Effect: "Allow"
                 Action:
@@ -1481,9 +1628,20 @@ Resources:
           - "Arn"
       Action: "SSMParameter"
       Name:
-        Fn::Sub: "/${AppName}/recaptcha/secret"
+        Fn::Sub:
+          - "/${SharedRecaptchaPrefix}/shared/recaptcha/secret"
+          -
+            SharedRecaptchaPrefix:
+              Fn::If:
+                - "CondHasSharedRecaptchaResourcePrefix"
+                -
+                  Ref: "SharedRecaptchaResourcePrefix"
+                -
+                  Ref: "AppName"
       Value:
         Ref: "RecaptchaSecretKey"
+      KeyId:
+        Ref: "SharedRecaptchaKmsKey"
     Condition: "RecaptchaSecretParameterTemplateEnabledCondition"
   EmailTemplateBucketCleaner:
     Type: "Custom::BucketCleaner"
@@ -1616,7 +1774,30 @@ Resources:
                 Action:
                   - "ssm:GetParameter"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/recaptcha/secret"
+                  Fn::Sub:
+                    - "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${SharedRecaptchaPrefix}/shared/recaptcha/secret"
+                    -
+                      SharedRecaptchaPrefix:
+                        Fn::If:
+                          - "CondHasSharedRecaptchaResourcePrefix"
+                          -
+                            Ref: "SharedRecaptchaResourcePrefix"
+                          -
+                            Ref: "AppName"
+              -
+                Fn::If:
+                  - "CondCreateSharedRecaptchaSecret"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "kms:Decrypt"
+                      - "kms:DescribeKey"
+                    Resource:
+                      Fn::GetAtt:
+                        - "SharedRecaptchaKmsKey"
+                        - "Arn"
+                  -
+                    Ref: "AWS::NoValue"
       Tags:
         -
           Key: "aws-apn-id"
@@ -1681,7 +1862,16 @@ Resources:
           RECAPTCHA_SITE_KEY:
             Ref: "RecaptchaSiteKey"
           RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/recaptcha/secret"
+            Fn::Sub:
+              - "/${SharedRecaptchaPrefix}/shared/recaptcha/secret"
+              -
+                SharedRecaptchaPrefix:
+                  Fn::If:
+                    - "CondHasSharedRecaptchaResourcePrefix"
+                    -
+                      Ref: "SharedRecaptchaResourcePrefix"
+                    -
+                      Ref: "AppName"
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
           ENABLE_EXTERNAL_IDP_LINKING: "true"
@@ -2341,6 +2531,50 @@ Outputs:
     Description: "Default registered group name."
     Value:
       Ref: "RegisteredGroupName"
+  SharedRecaptchaSecretParameterName:
+    Description: "Deployment-wide reCAPTCHA secret SSM parameter name."
+    Value:
+      Fn::If:
+        - "CondCreateSharedRecaptchaSecret"
+        -
+          Fn::Sub:
+            - "/${SharedRecaptchaPrefix}/shared/recaptcha/secret"
+            -
+              SharedRecaptchaPrefix:
+                Fn::If:
+                  - "CondHasSharedRecaptchaResourcePrefix"
+                  -
+                    Ref: "SharedRecaptchaResourcePrefix"
+                  -
+                    Ref: "AppName"
+        - ""
+  SharedRecaptchaSecretParameterArn:
+    Description: "Deployment-wide reCAPTCHA secret SSM parameter ARN."
+    Value:
+      Fn::If:
+        - "CondCreateSharedRecaptchaSecret"
+        -
+          Fn::Sub:
+            - "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${SharedRecaptchaPrefix}/shared/recaptcha/secret"
+            -
+              SharedRecaptchaPrefix:
+                Fn::If:
+                  - "CondHasSharedRecaptchaResourcePrefix"
+                  -
+                    Ref: "SharedRecaptchaResourcePrefix"
+                  -
+                    Ref: "AppName"
+        - ""
+  SharedRecaptchaKmsKeyArn:
+    Description: "Deployment-wide reCAPTCHA secret KMS key ARN."
+    Value:
+      Fn::If:
+        - "CondCreateSharedRecaptchaSecret"
+        -
+          Fn::GetAtt:
+            - "SharedRecaptchaKmsKey"
+            - "Arn"
+        - ""
   EmailTemplateBucketName:
     Description: "Email template bucket name."
     Value:

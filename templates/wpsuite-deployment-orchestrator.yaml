@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.31/templates/templates"
+    Default: "releases/v1.0.32/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -267,7 +267,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.31"
+      TemplateVersion: "v1.0.32"
       MarketplaceTemplateSource:
         BucketName:
           Ref: "MPS3BucketName"
@@ -283,7 +283,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.0.31/"
+            - "v1.0.32/"
       ArtifactIngressRoleArn:
         Fn::GetAtt:
           - "ArtifactIngressRole"
@@ -339,6 +339,11 @@ Resources:
         RecaptchaSiteKey: ""
         RecaptchaSecretKey: ""
         RecaptchaScoreThreshold: "0.5"
+        SharedRecaptchaResourcePrefix:
+          Fn::Sub:
+            - "${AWS::StackName}-${Environment}"
+            -
+              Environment: "prod"
         UserPoolName: ""
         LoginMechanisms: ""
         OAuthScopes: ""
@@ -426,8 +431,19 @@ Resources:
         RecaptchaMode: "enterprise"
         RecaptchaProjectId: ""
         RecaptchaSiteKey: ""
-        RecaptchaSecretKey: ""
         RecaptchaScoreThreshold: "0.5"
+        SharedRecaptchaSecretParameterName:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaSecretParameterName"
+        SharedRecaptchaSecretParameterArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaSecretParameterArn"
+        SharedRecaptchaKmsKeyArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaKmsKeyArn"
         EnableWAF: "false"
         EnableKmsForSecrets: "false"
         DataRetentionDays: "30"
@@ -509,8 +525,19 @@ Resources:
         RecaptchaMode: "enterprise"
         RecaptchaProjectId: ""
         RecaptchaSiteKey: ""
-        RecaptchaSecretKey: ""
         RecaptchaScoreThreshold: "0.5"
+        SharedRecaptchaSecretParameterName:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaSecretParameterName"
+        SharedRecaptchaSecretParameterArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaSecretParameterArn"
+        SharedRecaptchaKmsKeyArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedRecaptchaKmsKeyArn"
         RecaptchaChatTtlSeconds: "120"
         EnableWAF: "false"
         FlowAttachmentBucketName:
@@ -706,7 +733,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.31"
+          templateVersion: "v1.0.32"
         cognito:
           deployed: "false"
           stackId:

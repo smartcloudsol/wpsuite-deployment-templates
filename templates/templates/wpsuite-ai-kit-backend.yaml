@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.31"
+    Default: "v1.0.32"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -157,6 +157,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "reCAPTCHA site key."
+  SharedRecaptchaSecretParameterName:
+    Type: "String"
+    Default: ""
+    Description: "Deployment-wide reCAPTCHA secret SSM parameter name created by the Cognito nested stack."
   ApiCustomDomainName:
     Type: "String"
     Default: ""
@@ -181,6 +185,16 @@ Parameters:
     Type: "String"
     Default: "INFO"
     Description: "Production log level."
+  SharedRecaptchaSecretParameterArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|arn:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]{12}:.+$"
+    Description: "Deployment-wide reCAPTCHA secret SSM parameter ARN created by the Cognito nested stack."
+  SharedRecaptchaKmsKeyArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|arn:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]{12}:.+$"
+    Description: "Deployment-wide reCAPTCHA secret KMS key ARN created by the Cognito nested stack."
   RecaptchaSecretKey:
     Type: "String"
     Default: ""
@@ -548,6 +562,40 @@ Conditions:
       -
         Ref: "EnableRecaptcha"
       - "true"
+  UseSharedRecaptchaSecret:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SharedRecaptchaSecretParameterName"
+          - ""
+  HasLocalRecaptchaSecret:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "RecaptchaSecretKey"
+          - ""
+  CreateLocalRecaptchaSecret:
+    Fn::And:
+      -
+        Condition: "EnableRecaptchaProtection"
+      -
+        Fn::Not:
+          -
+            Condition: "UseSharedRecaptchaSecret"
+      -
+        Condition: "HasLocalRecaptchaSecret"
+  RecaptchaKmsAccessRequired:
+    Fn::And:
+      -
+        Condition: "EnableRecaptchaProtection"
+      -
+        Fn::Or:
+          -
+            Condition: "UseSharedRecaptchaSecret"
+          -
+            Condition: "CreateLocalRecaptchaSecret"
   IsProduction:
     Fn::Equals:
       -
@@ -743,13 +791,13 @@ Conditions:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "EnableRecaptchaProtection"
+        Condition: "CreateLocalRecaptchaSecret"
   RecaptchaKmsKeyAliasTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "EnableRecaptchaProtection"
+        Condition: "CreateLocalRecaptchaSecret"
   FrontendCognitoAuthTemplateEnabledCondition:
     Fn::And:
       -
@@ -857,13 +905,19 @@ Conditions:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "EnableRecaptchaProtection"
-  AiHandlerFunctionRecaptchaKmsPolicyTemplateEnabledCondition:
+        Condition: "CreateLocalRecaptchaSecret"
+  AiHandlerFunctionSharedRecaptchaKmsPolicyTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "EnableRecaptchaProtection"
+        Condition: "UseSharedRecaptchaSecret"
+  AiHandlerFunctionLocalRecaptchaKmsPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateLocalRecaptchaSecret"
   AiEmailIntakeSesBucketAccessPolicyTemplateEnabledCondition:
     Fn::And:
       -
@@ -888,12 +942,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "HasEmailIntakeSesBucketName"
-  CustomResourceManagerRecaptchaKmsPolicyTemplateEnabledCondition:
+  CustomResourceManagerLocalRecaptchaKmsPolicyTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "EnableRecaptchaProtection"
+        Condition: "CreateLocalRecaptchaSecret"
   KnowledgeBaseSyncFunctionLogGroupTemplateEnabledCondition:
     Fn::And:
       -
@@ -1025,7 +1079,7 @@ Conditions:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "EnableRecaptchaProtection"
+        Condition: "RecaptchaKmsAccessRequired"
   OutputDataSourceIdTemplateEnabledCondition:
     Fn::And:
       -
@@ -2961,6 +3015,17 @@ Resources:
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/*"
               -
+                Fn::If:
+                  - "UseSharedRecaptchaSecret"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "ssm:GetParameter"
+                    Resource:
+                      Ref: "SharedRecaptchaSecretParameterArn"
+                  -
+                    Ref: "AWS::NoValue"
+              -
                 Effect: "Allow"
                 Action:
                   - "lambda:InvokeFunction"
@@ -2980,10 +3045,28 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
-  AiHandlerFunctionRecaptchaKmsPolicy:
+  AiHandlerFunctionSharedRecaptchaKmsPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "AiHandlerFunctionRecaptchaKmsPolicy"
+      PolicyName: "AiHandlerFunctionSharedRecaptchaKmsPolicy"
+      Roles:
+        -
+          Ref: "AiHandlerFunctionRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+            Resource:
+              Ref: "SharedRecaptchaKmsKeyArn"
+    Condition: "AiHandlerFunctionSharedRecaptchaKmsPolicyTemplateEnabledCondition"
+  AiHandlerFunctionLocalRecaptchaKmsPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "AiHandlerFunctionLocalRecaptchaKmsPolicy"
       Roles:
         -
           Ref: "AiHandlerFunctionRole"
@@ -2999,7 +3082,7 @@ Resources:
               Fn::GetAtt:
                 - "RecaptchaKmsKey"
                 - "Arn"
-    Condition: "AiHandlerFunctionRecaptchaKmsPolicyTemplateEnabledCondition"
+    Condition: "AiHandlerFunctionLocalRecaptchaKmsPolicyTemplateEnabledCondition"
   AiHandlerFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -3063,20 +3146,6 @@ Resources:
             Ref: "AdminApiAuthMode"
           API_AUTH_MODE:
             Ref: "FrontendApiAuthMode"
-          ENABLE_RECAPTCHA:
-            Ref: "EnableRecaptcha"
-          RECAPTCHA_MODE:
-            Ref: "RecaptchaMode"
-          RECAPTCHA_CHAT_TTL_SECONDS:
-            Ref: "RecaptchaChatTtlSeconds"
-          RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/recaptcha/secret-key"
-          RECAPTCHA_PROJECT_ID:
-            Ref: "RecaptchaProjectId"
-          RECAPTCHA_SITE_KEY:
-            Ref: "RecaptchaSiteKey"
-          RECAPTCHA_SCORE_THRESHOLD:
-            Ref: "RecaptchaScoreThreshold"
           GUARDRAILS_ENABLED:
             Ref: "GuardrailsEnabled"
           BEDROCK_GUARDRAIL_ID:
@@ -3092,6 +3161,33 @@ Resources:
                 Ref: "DocsBucketName"
               -
                 Ref: "DocsBucket"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_CHAT_TTL_SECONDS:
+            Ref: "RecaptchaChatTtlSeconds"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::If:
+              - "EnableRecaptchaProtection"
+              -
+                Fn::If:
+                  - "UseSharedRecaptchaSecret"
+                  -
+                    Ref: "SharedRecaptchaSecretParameterName"
+                  -
+                    Fn::If:
+                      - "CreateLocalRecaptchaSecret"
+                      -
+                        Ref: "RecaptchaSecretParameter"
+                      - ""
+              - ""
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
           CHAT_SESSIONS_TABLE:
             Ref: "ChatSessionsTable"
           CHAT_MESSAGES_TABLE:
@@ -3326,20 +3422,6 @@ Resources:
             Ref: "AdminApiAuthMode"
           API_AUTH_MODE:
             Ref: "FrontendApiAuthMode"
-          ENABLE_RECAPTCHA:
-            Ref: "EnableRecaptcha"
-          RECAPTCHA_MODE:
-            Ref: "RecaptchaMode"
-          RECAPTCHA_CHAT_TTL_SECONDS:
-            Ref: "RecaptchaChatTtlSeconds"
-          RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/recaptcha/secret-key"
-          RECAPTCHA_PROJECT_ID:
-            Ref: "RecaptchaProjectId"
-          RECAPTCHA_SITE_KEY:
-            Ref: "RecaptchaSiteKey"
-          RECAPTCHA_SCORE_THRESHOLD:
-            Ref: "RecaptchaScoreThreshold"
           GUARDRAILS_ENABLED:
             Ref: "GuardrailsEnabled"
           BEDROCK_GUARDRAIL_ID:
@@ -3355,6 +3437,33 @@ Resources:
                 Ref: "DocsBucketName"
               -
                 Ref: "DocsBucket"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_CHAT_TTL_SECONDS:
+            Ref: "RecaptchaChatTtlSeconds"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::If:
+              - "EnableRecaptchaProtection"
+              -
+                Fn::If:
+                  - "UseSharedRecaptchaSecret"
+                  -
+                    Ref: "SharedRecaptchaSecretParameterName"
+                  -
+                    Fn::If:
+                      - "CreateLocalRecaptchaSecret"
+                      -
+                        Ref: "RecaptchaSecretParameter"
+                      - ""
+              - ""
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
           CONFIG_PREFIX:
             Ref: "ConfigPrefix"
           ENABLE_RERANK:
@@ -3598,20 +3707,6 @@ Resources:
             Ref: "AdminApiAuthMode"
           API_AUTH_MODE:
             Ref: "FrontendApiAuthMode"
-          ENABLE_RECAPTCHA:
-            Ref: "EnableRecaptcha"
-          RECAPTCHA_MODE:
-            Ref: "RecaptchaMode"
-          RECAPTCHA_CHAT_TTL_SECONDS:
-            Ref: "RecaptchaChatTtlSeconds"
-          RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/recaptcha/secret-key"
-          RECAPTCHA_PROJECT_ID:
-            Ref: "RecaptchaProjectId"
-          RECAPTCHA_SITE_KEY:
-            Ref: "RecaptchaSiteKey"
-          RECAPTCHA_SCORE_THRESHOLD:
-            Ref: "RecaptchaScoreThreshold"
           GUARDRAILS_ENABLED:
             Ref: "GuardrailsEnabled"
           BEDROCK_GUARDRAIL_ID:
@@ -3627,6 +3722,33 @@ Resources:
                 Ref: "DocsBucketName"
               -
                 Ref: "DocsBucket"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_CHAT_TTL_SECONDS:
+            Ref: "RecaptchaChatTtlSeconds"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::If:
+              - "EnableRecaptchaProtection"
+              -
+                Fn::If:
+                  - "UseSharedRecaptchaSecret"
+                  -
+                    Ref: "SharedRecaptchaSecretParameterName"
+                  -
+                    Fn::If:
+                      - "CreateLocalRecaptchaSecret"
+                      -
+                        Ref: "RecaptchaSecretParameter"
+                      - ""
+              - ""
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
           EVENT_BUS_NAME: "default"
           INQUIRY_FIELD_NAMES:
             Ref: "InquiryFieldNames"
@@ -3883,10 +4005,10 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
-  CustomResourceManagerRecaptchaKmsPolicy:
+  CustomResourceManagerLocalRecaptchaKmsPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "CustomResourceManagerRecaptchaKmsPolicy"
+      PolicyName: "CustomResourceManagerLocalRecaptchaKmsPolicy"
       Roles:
         -
           Ref: "CustomResourceManagerRole"
@@ -3904,7 +4026,7 @@ Resources:
               Fn::GetAtt:
                 - "RecaptchaKmsKey"
                 - "Arn"
-    Condition: "CustomResourceManagerRecaptchaKmsPolicyTemplateEnabledCondition"
+    Condition: "CustomResourceManagerLocalRecaptchaKmsPolicyTemplateEnabledCondition"
   CustomResourceManager:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -3971,20 +4093,6 @@ Resources:
             Ref: "AdminApiAuthMode"
           API_AUTH_MODE:
             Ref: "FrontendApiAuthMode"
-          ENABLE_RECAPTCHA:
-            Ref: "EnableRecaptcha"
-          RECAPTCHA_MODE:
-            Ref: "RecaptchaMode"
-          RECAPTCHA_CHAT_TTL_SECONDS:
-            Ref: "RecaptchaChatTtlSeconds"
-          RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/recaptcha/secret-key"
-          RECAPTCHA_PROJECT_ID:
-            Ref: "RecaptchaProjectId"
-          RECAPTCHA_SITE_KEY:
-            Ref: "RecaptchaSiteKey"
-          RECAPTCHA_SCORE_THRESHOLD:
-            Ref: "RecaptchaScoreThreshold"
           GUARDRAILS_ENABLED:
             Ref: "GuardrailsEnabled"
           BEDROCK_GUARDRAIL_ID:
@@ -4216,20 +4324,6 @@ Resources:
             Ref: "AdminApiAuthMode"
           API_AUTH_MODE:
             Ref: "FrontendApiAuthMode"
-          ENABLE_RECAPTCHA:
-            Ref: "EnableRecaptcha"
-          RECAPTCHA_MODE:
-            Ref: "RecaptchaMode"
-          RECAPTCHA_CHAT_TTL_SECONDS:
-            Ref: "RecaptchaChatTtlSeconds"
-          RECAPTCHA_SECRET_PARAMETER_NAME:
-            Fn::Sub: "/${AppName}/recaptcha/secret-key"
-          RECAPTCHA_PROJECT_ID:
-            Ref: "RecaptchaProjectId"
-          RECAPTCHA_SITE_KEY:
-            Ref: "RecaptchaSiteKey"
-          RECAPTCHA_SCORE_THRESHOLD:
-            Ref: "RecaptchaScoreThreshold"
           GUARDRAILS_ENABLED:
             Ref: "GuardrailsEnabled"
           BEDROCK_GUARDRAIL_ID:
@@ -4245,6 +4339,33 @@ Resources:
                 Ref: "DocsBucketName"
               -
                 Ref: "DocsBucket"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_CHAT_TTL_SECONDS:
+            Ref: "RecaptchaChatTtlSeconds"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::If:
+              - "EnableRecaptchaProtection"
+              -
+                Fn::If:
+                  - "UseSharedRecaptchaSecret"
+                  -
+                    Ref: "SharedRecaptchaSecretParameterName"
+                  -
+                    Fn::If:
+                      - "CreateLocalRecaptchaSecret"
+                      -
+                        Ref: "RecaptchaSecretParameter"
+                      - ""
+              - ""
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
           STATE_TABLE_NAME:
             Ref: "KBSyncStateTable"
           KNOWLEDGE_BASE_ID:
@@ -4602,9 +4723,14 @@ Outputs:
   RecaptchaKmsKeyArn:
     Description: "KMS Key ARN for reCAPTCHA secret encryption."
     Value:
-      Fn::GetAtt:
-        - "RecaptchaKmsKey"
-        - "Arn"
+      Fn::If:
+        - "UseSharedRecaptchaSecret"
+        -
+          Ref: "SharedRecaptchaKmsKeyArn"
+        -
+          Fn::GetAtt:
+            - "RecaptchaKmsKey"
+            - "Arn"
     Condition: "OutputRecaptchaKmsKeyArnTemplateEnabledCondition"
   DocsBucketName:
     Description: "S3 bucket name for knowledge base documents."

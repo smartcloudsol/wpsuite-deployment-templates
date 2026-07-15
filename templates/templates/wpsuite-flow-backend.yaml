@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.31"
+    Default: "v1.0.32"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -81,6 +81,20 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Public reCAPTCHA site key expected from the frontend."
+  SharedRecaptchaSecretParameterName:
+    Type: "String"
+    Default: ""
+    Description: "Deployment-wide reCAPTCHA secret SSM parameter name created by the Cognito nested stack."
+  SharedRecaptchaSecretParameterArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|arn:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]{12}:.+$"
+    Description: "Deployment-wide reCAPTCHA secret SSM parameter ARN created by the Cognito nested stack."
+  SharedRecaptchaKmsKeyArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|arn:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]{12}:.+$"
+    Description: "Deployment-wide reCAPTCHA secret KMS key ARN created by the Cognito nested stack."
   RecaptchaSecretKey:
     Type: "String"
     Default: ""
@@ -285,6 +299,40 @@ Conditions:
       -
         Ref: "EnableRecaptcha"
       - "true"
+  UseSharedRecaptchaSecret:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SharedRecaptchaSecretParameterName"
+          - ""
+  HasLocalRecaptchaSecret:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "RecaptchaSecretKey"
+          - ""
+  CreateLocalRecaptchaSecret:
+    Fn::And:
+      -
+        Condition: "EnableRecaptchaProtection"
+      -
+        Fn::Not:
+          -
+            Condition: "UseSharedRecaptchaSecret"
+      -
+        Condition: "HasLocalRecaptchaSecret"
+  HasRecaptchaSecretParameter:
+    Fn::And:
+      -
+        Condition: "EnableRecaptchaProtection"
+      -
+        Fn::Or:
+          -
+            Condition: "UseSharedRecaptchaSecret"
+          -
+            Condition: "CreateLocalRecaptchaSecret"
   WAFEnabled:
     Fn::Equals:
       -
@@ -570,7 +618,7 @@ Conditions:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "EnableRecaptchaProtection"
+        Condition: "CreateLocalRecaptchaSecret"
   DefaultWebhookSigningSecretParameterTemplateEnabledCondition:
     Fn::And:
       -
@@ -619,6 +667,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CreateKmsKey"
+  FormsApiFunctionSharedRecaptchaKmsPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseSharedRecaptchaSecret"
   ApiBasePathMappingTemplateEnabledCondition:
     Fn::And:
       -
@@ -660,7 +714,7 @@ Conditions:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "EnableRecaptchaProtection"
+        Condition: "HasRecaptchaSecretParameter"
   OutputAlertsTopicArnTemplateEnabledCondition:
     Fn::And:
       -
@@ -2340,8 +2394,21 @@ Resources:
                 Effect: "Allow"
                 Action:
                   - "events:PutEvents"
-                  - "ssm:GetParameter"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:GetParameter"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/*"
+                  -
+                    Fn::If:
+                      - "UseSharedRecaptchaSecret"
+                      -
+                        Ref: "SharedRecaptchaSecretParameterArn"
+                      -
+                        Ref: "AWS::NoValue"
               -
                 Effect: "Allow"
                 Action:
@@ -2378,6 +2445,24 @@ Resources:
                 - "SecretsKmsKey"
                 - "Arn"
     Condition: "FormsApiFunctionKmsPolicyTemplateEnabledCondition"
+  FormsApiFunctionSharedRecaptchaKmsPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "FormsApiFunctionSharedRecaptchaKmsPolicy"
+      Roles:
+        -
+          Ref: "FormsApiFunctionRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+            Resource:
+              Ref: "SharedRecaptchaKmsKeyArn"
+    Condition: "FormsApiFunctionSharedRecaptchaKmsPolicyTemplateEnabledCondition"
   FormsApiFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -2468,7 +2553,16 @@ Resources:
             Fn::If:
               - "EnableRecaptchaProtection"
               -
-                Ref: "RecaptchaSecretParameter"
+                Fn::If:
+                  - "UseSharedRecaptchaSecret"
+                  -
+                    Ref: "SharedRecaptchaSecretParameterName"
+                  -
+                    Fn::If:
+                      - "CreateLocalRecaptchaSecret"
+                      -
+                        Ref: "RecaptchaSecretParameter"
+                      - ""
               - ""
           DEFAULT_WEBHOOK_SIGNING_SECRET_PARAMETER_NAME:
             Fn::If:
@@ -3615,7 +3709,12 @@ Outputs:
   RecaptchaSecretParameterName:
     Description: "reCAPTCHA secret parameter name."
     Value:
-      Ref: "RecaptchaSecretParameter"
+      Fn::If:
+        - "UseSharedRecaptchaSecret"
+        -
+          Ref: "SharedRecaptchaSecretParameterName"
+        -
+          Ref: "RecaptchaSecretParameter"
     Condition: "OutputRecaptchaSecretParameterNameTemplateEnabledCondition"
   AlertsTopicArn:
     Description: "SNS Topic ARN for Flow alerts."

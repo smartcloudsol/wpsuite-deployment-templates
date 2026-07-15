@@ -111,14 +111,22 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter RecaptchaSiteKey."
-  RecaptchaSecretKey:
-    Type: "String"
-    Description: "Forwarded WP Suite nested stack parameter RecaptchaSecretKey."
-    NoEcho: true
   RecaptchaScoreThreshold:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter RecaptchaScoreThreshold."
+  SharedRecaptchaSecretParameterName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter SharedRecaptchaSecretParameterName."
+  SharedRecaptchaSecretParameterArn:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter SharedRecaptchaSecretParameterArn."
+  SharedRecaptchaKmsKeyArn:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter SharedRecaptchaKmsKeyArn."
   RecaptchaChatTtlSeconds:
     Type: "String"
     Default: ""
@@ -516,17 +524,6 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "RecaptchaSiteKey"
-        RecaptchaSecretKey:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaSecretKey}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RecaptchaSecretKey"
         RecaptchaScoreThreshold:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -538,6 +535,12 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "RecaptchaScoreThreshold"
+        SharedRecaptchaSecretParameterName:
+          Ref: "SharedRecaptchaSecretParameterName"
+        SharedRecaptchaSecretParameterArn:
+          Ref: "SharedRecaptchaSecretParameterArn"
+        SharedRecaptchaKmsKeyArn:
+          Ref: "SharedRecaptchaKmsKeyArn"
         RecaptchaChatTtlSeconds:
           Fn::If:
             - "CondUseMarketplaceSecret"
