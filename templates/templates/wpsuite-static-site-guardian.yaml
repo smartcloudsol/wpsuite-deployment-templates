@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.34"
+    Default: "v1.0.35"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -228,7 +228,7 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "ManageSigningKeyMaterial"
-  SigningKeyKmsAliasTemplateEnabledCondition:
+  CloudFrontSigningKmsAliasTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
@@ -632,7 +632,7 @@ Resources:
             Action:
               - "kms:DeleteAlias"
             Resource:
-              Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/${AppName}-site-guardian-cf-pk"
+              Fn::Sub: "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/${AppName}-cf-sign"
           -
             Effect: "Allow"
             Action:
@@ -643,7 +643,7 @@ Resources:
             Condition:
               ForAnyValue:StringEquals:
                 kms:ResourceAliases:
-                  Fn::Sub: "alias/${AppName}-site-guardian-cf-pk"
+                  Fn::Sub: "alias/${AppName}-cf-sign"
     Condition: "CloudFrontResourceManagerManagedSigningKeyPolicyTemplateEnabledCondition"
   CloudFrontResourceManagerSiteKeyParameterPolicy:
     Type: "AWS::IAM::Policy"
@@ -672,22 +672,22 @@ Resources:
           - "Arn"
       ResourceType: "KmsAliasCleanup"
       AliasName:
-        Fn::Sub: "alias/${AppName}-site-guardian-cf-pk"
+        Fn::Sub: "alias/${AppName}-cf-sign"
       ScheduleKeyDeletion: "true"
       PendingWindowInDays: 7
     DependsOn:
       - "CloudFrontResourceManagerManagedSigningKeyPolicy"
     Condition: "SigningKeyKmsAliasCleanupTemplateEnabledCondition"
-  SigningKeyKmsAlias:
+  CloudFrontSigningKmsAlias:
     Type: "AWS::KMS::Alias"
     Properties:
       AliasName:
-        Fn::Sub: "alias/${AppName}-site-guardian-cf-pk"
+        Fn::Sub: "alias/${AppName}-cf-sign"
       TargetKeyId:
         Ref: "CloudFrontSigningKmsKey"
     DependsOn:
       - "SigningKeyKmsAliasCleanup"
-    Condition: "SigningKeyKmsAliasTemplateEnabledCondition"
+    Condition: "CloudFrontSigningKmsAliasTemplateEnabledCondition"
   SigningKeyMaterial:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -702,7 +702,7 @@ Resources:
         Ref: "CloudFrontSigningKmsKey"
     DependsOn:
       - "CloudFrontResourceManagerManagedSigningKeyPolicy"
-      - "SigningKeyKmsAlias"
+      - "CloudFrontSigningKmsAlias"
     Condition: "SigningKeyMaterialTemplateEnabledCondition"
   CloudFrontSigningPublicKey:
     Type: "AWS::CloudFormation::CustomResource"
