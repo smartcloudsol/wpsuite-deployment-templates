@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.35"
+    Default: "v1.0.37"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -85,6 +85,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Deployment-wide reCAPTCHA secret SSM parameter name created by the Cognito nested stack."
+  SharedRegionalWebACLArn:
+    Type: "String"
+    Default: ""
+    Description: "Deployment-wide regional WAF WebACL ARN shared by WP Suite API stacks."
   SharedRecaptchaSecretParameterArn:
     Type: "String"
     Default: ""
@@ -111,6 +115,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable AWS WAF protection for the Flow API."
+  EnableDetailedApiLogging:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable INFO-level API Gateway execution logs. Disabled uses ERROR-level logs."
   PublicAllowedIPs:
     Type: "CommaDelimitedList"
     Default: ""
@@ -338,10 +349,25 @@ Conditions:
       -
         Ref: "EnableWAF"
       - "true"
-  HasPublicAllowedIPs:
+  HasSharedRegionalWebACL:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SharedRegionalWebACLArn"
+          - ""
+  CreateLocalWAF:
     Fn::And:
       -
         Condition: "WAFEnabled"
+      -
+        Fn::Not:
+          -
+            Condition: "HasSharedRegionalWebACL"
+  HasPublicAllowedIPs:
+    Fn::And:
+      -
+        Condition: "CreateLocalWAF"
       -
         Fn::Not:
           -
@@ -355,7 +381,7 @@ Conditions:
   HasAdminAllowedIPs:
     Fn::And:
       -
-        Condition: "WAFEnabled"
+        Condition: "CreateLocalWAF"
       -
         Fn::Not:
           -
@@ -369,7 +395,7 @@ Conditions:
   HasBlockedIPs:
     Fn::And:
       -
-        Condition: "WAFEnabled"
+        Condition: "CreateLocalWAF"
       -
         Fn::Not:
           -
@@ -380,6 +406,11 @@ Conditions:
                   -
                     Ref: "BlockedIPs"
               - ""
+  CondEnableDetailedApiLogging:
+    Fn::Equals:
+      -
+        Ref: "EnableDetailedApiLogging"
+      - "true"
   UseAdminCognito:
     Fn::And:
       -
@@ -660,7 +691,7 @@ Conditions:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "WAFEnabled"
+        Condition: "CreateLocalWAF"
   FormsApiFunctionKmsPolicyTemplateEnabledCondition:
     Fn::And:
       -
@@ -2601,6 +2632,11 @@ Resources:
       RestApiId:
         Ref: "RestApi"
       StageName: "prod"
+      LoggingLevel:
+        Fn::If:
+          - "CondEnableDetailedApiLogging"
+          - "INFO"
+          - "ERROR"
       FormsApiIntegrationUri:
         Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FormsApiFunction.Arn}/invocations"
       FrontendAuthMode:
@@ -2834,9 +2870,14 @@ Resources:
           - "CustomResourceManagerFunction"
           - "Arn"
       WebACLArn:
-        Fn::GetAtt:
-          - "WebAcl"
-          - "Arn"
+        Fn::If:
+          - "HasSharedRegionalWebACL"
+          -
+            Ref: "SharedRegionalWebACLArn"
+          -
+            Fn::GetAtt:
+              - "WebAcl"
+              - "Arn"
       ResourceArn:
         Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/${RestApi}/stages/prod"
     DependsOn:

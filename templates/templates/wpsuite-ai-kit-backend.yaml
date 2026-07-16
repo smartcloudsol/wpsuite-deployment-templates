@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.35"
+    Default: "v1.0.37"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -161,6 +161,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Deployment-wide reCAPTCHA secret SSM parameter name created by the Cognito nested stack."
+  SharedRegionalWebACLArn:
+    Type: "String"
+    Default: ""
+    Description: "Deployment-wide regional WAF WebACL ARN shared by WP Suite API stacks."
   ApiCustomDomainName:
     Type: "String"
     Default: ""
@@ -311,6 +315,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable AWS WAF protection for API endpoints."
+  EnableDetailedApiLogging:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable INFO-level API Gateway execution logs. Disabled uses ERROR-level logs."
   FrontendApiAuthMode:
     Type: "String"
     Default: "NONE"
@@ -681,10 +692,25 @@ Conditions:
       -
         Ref: "EnableWAF"
       - "true"
-  HasPublicAllowedIPs:
+  HasSharedRegionalWebACL:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SharedRegionalWebACLArn"
+          - ""
+  CreateLocalWAF:
     Fn::And:
       -
         Condition: "WAFEnabled"
+      -
+        Fn::Not:
+          -
+            Condition: "HasSharedRegionalWebACL"
+  HasPublicAllowedIPs:
+    Fn::And:
+      -
+        Condition: "CreateLocalWAF"
       -
         Fn::Not:
           -
@@ -698,7 +724,7 @@ Conditions:
   HasAdminAllowedIPs:
     Fn::And:
       -
-        Condition: "WAFEnabled"
+        Condition: "CreateLocalWAF"
       -
         Fn::Not:
           -
@@ -712,7 +738,7 @@ Conditions:
   HasBlockedIPs:
     Fn::And:
       -
-        Condition: "WAFEnabled"
+        Condition: "CreateLocalWAF"
       -
         Fn::Not:
           -
@@ -751,6 +777,11 @@ Conditions:
               -
                 Ref: "AdminApiRateLimit"
               - "0"
+  CondEnableDetailedApiLogging:
+    Fn::Equals:
+      -
+        Ref: "EnableDetailedApiLogging"
+      - "true"
   S3TriggerEnabledWithNewBucket:
     Fn::And:
       -
@@ -857,7 +888,7 @@ Conditions:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "WAFEnabled"
+        Condition: "CreateLocalWAF"
   WebACLAssociationTemplateEnabledCondition:
     Fn::And:
       -
@@ -1566,7 +1597,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1586,7 +1621,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1606,7 +1645,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1626,7 +1669,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1646,7 +1693,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1666,7 +1717,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1686,7 +1741,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1706,7 +1765,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1726,7 +1789,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1746,7 +1813,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1766,7 +1837,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1786,7 +1861,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1806,7 +1885,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1826,7 +1909,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1846,7 +1933,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1866,7 +1957,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1886,7 +1981,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
         -
@@ -1906,7 +2005,11 @@ Resources:
                 Ref: "AdminApiRateLimit"
               -
                 Ref: "AWS::NoValue"
-          LoggingLevel: "INFO"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
       Tags:
@@ -1941,7 +2044,11 @@ Resources:
             Ref: "FrontendApiRateLimit"
           -
             Ref: "AWS::NoValue"
-      LoggingLevel: "INFO"
+      LoggingLevel:
+        Fn::If:
+          - "CondEnableDetailedApiLogging"
+          - "INFO"
+          - "ERROR"
       DataTraceEnabled: false
       MetricsEnabled: true
       TracingEnabled: false
@@ -2339,9 +2446,14 @@ Resources:
       ResourceArn:
         Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/${RestApi}/stages/prod"
       WebACLArn:
-        Fn::GetAtt:
-          - "WebACL"
-          - "WebACLArn"
+        Fn::If:
+          - "HasSharedRegionalWebACL"
+          -
+            Ref: "SharedRegionalWebACLArn"
+          -
+            Fn::GetAtt:
+              - "WebACL"
+              - "WebACLArn"
     DependsOn:
       - "ApiStage"
     Condition: "WebACLAssociationTemplateEnabledCondition"
@@ -4789,14 +4901,23 @@ Outputs:
   WebACLId:
     Description: "WAF WebACL ID."
     Value:
-      Fn::GetAtt:
-        - "WebACL"
-        - "WebACLId"
+      Fn::If:
+        - "HasSharedRegionalWebACL"
+        - ""
+        -
+          Fn::GetAtt:
+            - "WebACL"
+            - "WebACLId"
     Condition: "OutputWebACLIdTemplateEnabledCondition"
   WebACLArn:
     Description: "WAF WebACL ARN."
     Value:
-      Fn::GetAtt:
-        - "WebACL"
-        - "WebACLArn"
+      Fn::If:
+        - "HasSharedRegionalWebACL"
+        -
+          Ref: "SharedRegionalWebACLArn"
+        -
+          Fn::GetAtt:
+            - "WebACL"
+            - "WebACLArn"
     Condition: "OutputWebACLArnTemplateEnabledCondition"

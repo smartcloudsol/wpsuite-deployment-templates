@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.35/templates/templates"
+    Default: "releases/v1.0.37/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -267,7 +267,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.35"
+      TemplateVersion: "v1.0.37"
       MarketplaceTemplateSource:
         BucketName:
           Ref: "MPS3BucketName"
@@ -283,7 +283,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.0.35/"
+            - "v1.0.37/"
       ArtifactIngressRoleArn:
         Fn::GetAtt:
           - "ArtifactIngressRole"
@@ -344,6 +344,12 @@ Resources:
             - "${AWS::StackName}-${Environment}"
             -
               Environment: "prod"
+        DeployAiKitBackend: "false"
+        DeployFlowBackend: "false"
+        EnableApiWAF: "false"
+        ApiPublicAllowedIPs: ""
+        ApiAdminAllowedIPs: ""
+        ApiBlockedIPs: ""
         UserPoolName: ""
         LoginMechanisms: ""
         OAuthScopes: ""
@@ -445,6 +451,11 @@ Resources:
             - "CognitoNestedStack"
             - "Outputs.SharedRecaptchaKmsKeyArn"
         EnableWAF: "false"
+        SharedRegionalWebACLArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedApiWebACLArn"
+        EnableDetailedApiLogging: "false"
         EnableKmsForSecrets: "false"
         DataRetentionDays: "30"
         EnableAlerts: "false"
@@ -540,6 +551,11 @@ Resources:
             - "Outputs.SharedRecaptchaKmsKeyArn"
         RecaptchaChatTtlSeconds: "120"
         EnableWAF: "false"
+        SharedRegionalWebACLArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedApiWebACLArn"
+        EnableDetailedApiLogging: "false"
         FlowAttachmentBucketName:
           Fn::GetAtt:
             - "FlowBackendNestedStack"
@@ -655,7 +671,6 @@ Resources:
         CookieExpirationDays: ""
         PublicKeyContent: ""
         KmsKeyId: ""
-        EnableDetailedLogging: ""
         NotFoundPagePath: ""
         ForbiddenPagePath: ""
         WpsuiteAccountId: ""
@@ -663,6 +678,8 @@ Resources:
         WpsuiteSiteKey: ""
         WpsuiteApiBaseUrl: ""
         LicenseRefreshScheduleExpression: ""
+        EnableCloudFrontWAF: "false"
+        EnableDetailedLogging: "false"
       Tags:
         -
           Key: "aws-apn-id"
@@ -733,7 +750,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.35"
+          templateVersion: "v1.0.37"
         cognito:
           deployed: "false"
           stackId:

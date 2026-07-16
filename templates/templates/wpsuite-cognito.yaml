@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.35"
+    Default: "v1.0.37"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -290,6 +290,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Deployment-wide prefix for shared reCAPTCHA SSM and KMS resources."
+  SharedApiResourcePrefix:
+    Type: "String"
+    Default: ""
+    Description: "Deployment-wide prefix for shared API WAF resources. Leave empty to preserve legacy AppName-based names."
   RegisteredGroupName:
     Type: "String"
     Default: "registered"
@@ -334,6 +338,39 @@ Parameters:
     Type: "Number"
     Default: 0.5
     Description: "Minimum accepted reCAPTCHA score."
+  DeployAiKitBackend:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Whether the deployment includes the AI Kit backend. Used for shared API WAF creation."
+  DeployFlowBackend:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Whether the deployment includes the Flow backend. Used for shared API WAF creation."
+  EnableApiWAF:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable the deployment-wide shared regional API WAF WebACL."
+  ApiPublicAllowedIPs:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "Optional CIDR allowlist for public API endpoints."
+  ApiAdminAllowedIPs:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "Optional CIDR allowlist for admin API endpoints."
+  ApiBlockedIPs:
+    Type: "CommaDelimitedList"
+    Default: ""
+    Description: "Optional CIDR blocklist for all API endpoints."
   MfaMode:
     Type: "String"
     Default: "no"
@@ -599,6 +636,13 @@ Conditions:
           -
             Ref: "SharedRecaptchaResourcePrefix"
           - ""
+  CondHasSharedApiResourcePrefix:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SharedApiResourcePrefix"
+          - ""
   CondCreateSharedRecaptchaSecret:
     Fn::And:
       -
@@ -610,6 +654,67 @@ Conditions:
           - "true"
       -
         Condition: "CondHasRecaptchaSecret"
+  CondApiWafEnabled:
+    Fn::And:
+      -
+        Fn::Equals:
+          -
+            Ref: "EnableApiWAF"
+          - "true"
+      -
+        Fn::Or:
+          -
+            Fn::Equals:
+              -
+                Ref: "DeployAiKitBackend"
+              - "true"
+          -
+            Fn::Equals:
+              -
+                Ref: "DeployFlowBackend"
+              - "true"
+  CondHasApiPublicAllowedIPs:
+    Fn::And:
+      -
+        Condition: "CondApiWafEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Join:
+                  - ""
+                  -
+                    Ref: "ApiPublicAllowedIPs"
+              - ""
+  CondHasApiAdminAllowedIPs:
+    Fn::And:
+      -
+        Condition: "CondApiWafEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Join:
+                  - ""
+                  -
+                    Ref: "ApiAdminAllowedIPs"
+              - ""
+  CondHasApiBlockedIPs:
+    Fn::And:
+      -
+        Condition: "CondApiWafEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Join:
+                  - ""
+                  -
+                    Ref: "ApiBlockedIPs"
+              - ""
   CustomSenderKmsKeyTemplateEnabledCondition:
     Fn::And:
       -
@@ -881,6 +986,382 @@ Conditions:
       -
         Condition: "CondEnableEmailSender"
 Resources:
+  SharedApiPublicAllowedIPSet:
+    Type: "AWS::WAFv2::IPSet"
+    Properties:
+      Name:
+        Fn::Sub:
+          - "${SharedApiPrefix}-api-public-allow"
+          -
+            SharedApiPrefix:
+              Fn::If:
+                - "CondHasSharedApiResourcePrefix"
+                -
+                  Ref: "SharedApiResourcePrefix"
+                -
+                  Ref: "AppName"
+      Scope: "REGIONAL"
+      IPAddressVersion: "IPV4"
+      Addresses:
+        Ref: "ApiPublicAllowedIPs"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CondHasApiPublicAllowedIPs"
+  SharedApiAdminAllowedIPSet:
+    Type: "AWS::WAFv2::IPSet"
+    Properties:
+      Name:
+        Fn::Sub:
+          - "${SharedApiPrefix}-api-admin-allow"
+          -
+            SharedApiPrefix:
+              Fn::If:
+                - "CondHasSharedApiResourcePrefix"
+                -
+                  Ref: "SharedApiResourcePrefix"
+                -
+                  Ref: "AppName"
+      Scope: "REGIONAL"
+      IPAddressVersion: "IPV4"
+      Addresses:
+        Ref: "ApiAdminAllowedIPs"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CondHasApiAdminAllowedIPs"
+  SharedApiBlockedIPSet:
+    Type: "AWS::WAFv2::IPSet"
+    Properties:
+      Name:
+        Fn::Sub:
+          - "${SharedApiPrefix}-api-blocked"
+          -
+            SharedApiPrefix:
+              Fn::If:
+                - "CondHasSharedApiResourcePrefix"
+                -
+                  Ref: "SharedApiResourcePrefix"
+                -
+                  Ref: "AppName"
+      Scope: "REGIONAL"
+      IPAddressVersion: "IPV4"
+      Addresses:
+        Ref: "ApiBlockedIPs"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CondHasApiBlockedIPs"
+  SharedApiWebACL:
+    Type: "AWS::WAFv2::WebACL"
+    Properties:
+      Name:
+        Fn::Sub:
+          - "${SharedApiPrefix}-api-web-acl"
+          -
+            SharedApiPrefix:
+              Fn::If:
+                - "CondHasSharedApiResourcePrefix"
+                -
+                  Ref: "SharedApiResourcePrefix"
+                -
+                  Ref: "AppName"
+      Description:
+        Fn::Sub:
+          - "${SharedApiPrefix} shared API WAF protection"
+          -
+            SharedApiPrefix:
+              Fn::If:
+                - "CondHasSharedApiResourcePrefix"
+                -
+                  Ref: "SharedApiResourcePrefix"
+                -
+                  Ref: "AppName"
+      Scope: "REGIONAL"
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName:
+          Fn::Sub:
+            - "${SharedApiPrefix}-api-web-acl"
+            -
+              SharedApiPrefix:
+                Fn::If:
+                  - "CondHasSharedApiResourcePrefix"
+                  -
+                    Ref: "SharedApiResourcePrefix"
+                  -
+                    Ref: "AppName"
+      Rules:
+        -
+          Fn::If:
+            - "CondHasApiBlockedIPs"
+            -
+              Name: "BlockMaliciousIPs"
+              Priority: 100
+              Statement:
+                IPSetReferenceStatement:
+                  Arn:
+                    Fn::GetAtt:
+                      - "SharedApiBlockedIPSet"
+                      - "Arn"
+              Action:
+                Block: {}
+              VisibilityConfig:
+                SampledRequestsEnabled: true
+                CloudWatchMetricsEnabled: true
+                MetricName:
+                  Fn::Sub:
+                    - "${SharedApiPrefix}-api-blocked"
+                    -
+                      SharedApiPrefix:
+                        Fn::If:
+                          - "CondHasSharedApiResourcePrefix"
+                          -
+                            Ref: "SharedApiResourcePrefix"
+                          -
+                            Ref: "AppName"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "CondHasApiAdminAllowedIPs"
+            -
+              Name: "DenyAdminEndpointsIfNotInAllowlist"
+              Priority: 200
+              Statement:
+                AndStatement:
+                  Statements:
+                    -
+                      NotStatement:
+                        Statement:
+                          IPSetReferenceStatement:
+                            Arn:
+                              Fn::GetAtt:
+                                - "SharedApiAdminAllowedIPSet"
+                                - "Arn"
+                    -
+                      ByteMatchStatement:
+                        SearchString: "/admin"
+                        FieldToMatch:
+                          UriPath: {}
+                        TextTransformations:
+                          -
+                            Priority: 0
+                            Type: "NONE"
+                        PositionalConstraint: "STARTS_WITH"
+              Action:
+                Block: {}
+              VisibilityConfig:
+                SampledRequestsEnabled: true
+                CloudWatchMetricsEnabled: true
+                MetricName:
+                  Fn::Sub:
+                    - "${SharedApiPrefix}-api-admin-blocked"
+                    -
+                      SharedApiPrefix:
+                        Fn::If:
+                          - "CondHasSharedApiResourcePrefix"
+                          -
+                            Ref: "SharedApiResourcePrefix"
+                          -
+                            Ref: "AppName"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
+            - "CondHasApiPublicAllowedIPs"
+            -
+              Name: "DenyPublicEndpointsIfNotInAllowlist"
+              Priority: 300
+              Statement:
+                AndStatement:
+                  Statements:
+                    -
+                      NotStatement:
+                        Statement:
+                          IPSetReferenceStatement:
+                            Arn:
+                              Fn::GetAtt:
+                                - "SharedApiPublicAllowedIPSet"
+                                - "Arn"
+                    -
+                      ByteMatchStatement:
+                        SearchString: "/frontend"
+                        FieldToMatch:
+                          UriPath: {}
+                        TextTransformations:
+                          -
+                            Priority: 0
+                            Type: "NONE"
+                        PositionalConstraint: "STARTS_WITH"
+              Action:
+                Block: {}
+              VisibilityConfig:
+                SampledRequestsEnabled: true
+                CloudWatchMetricsEnabled: true
+                MetricName:
+                  Fn::Sub:
+                    - "${SharedApiPrefix}-api-public-blocked"
+                    -
+                      SharedApiPrefix:
+                        Fn::If:
+                          - "CondHasSharedApiResourcePrefix"
+                          -
+                            Ref: "SharedApiResourcePrefix"
+                          -
+                            Ref: "AppName"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Name: "AWSManagedRulesCommonRuleSet"
+          Priority: 400
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: "AWS"
+              Name: "AWSManagedRulesCommonRuleSet"
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub:
+                - "${SharedApiPrefix}-api-common-rules"
+                -
+                  SharedApiPrefix:
+                    Fn::If:
+                      - "CondHasSharedApiResourcePrefix"
+                      -
+                        Ref: "SharedApiResourcePrefix"
+                      -
+                        Ref: "AppName"
+        -
+          Name: "AWSManagedRulesKnownBadInputsRuleSet"
+          Priority: 500
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: "AWS"
+              Name: "AWSManagedRulesKnownBadInputsRuleSet"
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub:
+                - "${SharedApiPrefix}-api-bad-inputs"
+                -
+                  SharedApiPrefix:
+                    Fn::If:
+                      - "CondHasSharedApiResourcePrefix"
+                      -
+                        Ref: "SharedApiResourcePrefix"
+                      -
+                        Ref: "AppName"
+        -
+          Name: "AWSManagedRulesAmazonIpReputationList"
+          Priority: 600
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: "AWS"
+              Name: "AWSManagedRulesAmazonIpReputationList"
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub:
+                - "${SharedApiPrefix}-api-ip-reputation"
+                -
+                  SharedApiPrefix:
+                    Fn::If:
+                      - "CondHasSharedApiResourcePrefix"
+                      -
+                        Ref: "SharedApiResourcePrefix"
+                      -
+                        Ref: "AppName"
+        -
+          Name: "RateLimitFrontendEndpoints"
+          Priority: 700
+          Statement:
+            RateBasedStatement:
+              Limit: 2000
+              AggregateKeyType: "IP"
+              ScopeDownStatement:
+                ByteMatchStatement:
+                  SearchString: "/frontend"
+                  FieldToMatch:
+                    UriPath: {}
+                  TextTransformations:
+                    -
+                      Priority: 0
+                      Type: "NONE"
+                  PositionalConstraint: "STARTS_WITH"
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub:
+                - "${SharedApiPrefix}-api-frontend-rate-limit"
+                -
+                  SharedApiPrefix:
+                    Fn::If:
+                      - "CondHasSharedApiResourcePrefix"
+                      -
+                        Ref: "SharedApiResourcePrefix"
+                      -
+                        Ref: "AppName"
+        -
+          Name: "RateLimitAdminEndpoints"
+          Priority: 800
+          Statement:
+            RateBasedStatement:
+              Limit: 500
+              AggregateKeyType: "IP"
+              ScopeDownStatement:
+                ByteMatchStatement:
+                  SearchString: "/admin"
+                  FieldToMatch:
+                    UriPath: {}
+                  TextTransformations:
+                    -
+                      Priority: 0
+                      Type: "NONE"
+                  PositionalConstraint: "STARTS_WITH"
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub:
+                - "${SharedApiPrefix}-api-admin-rate-limit"
+                -
+                  SharedApiPrefix:
+                    Fn::If:
+                      - "CondHasSharedApiResourcePrefix"
+                      -
+                        Ref: "SharedApiResourcePrefix"
+                      -
+                        Ref: "AppName"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CondApiWafEnabled"
   CustomSenderKmsKey:
     Type: "AWS::KMS::Key"
     Properties:
@@ -2573,6 +3054,16 @@ Outputs:
         -
           Fn::GetAtt:
             - "SharedRecaptchaKmsKey"
+            - "Arn"
+        - ""
+  SharedApiWebACLArn:
+    Description: "Deployment-wide shared regional API WAF WebACL ARN."
+    Value:
+      Fn::If:
+        - "CondApiWafEnabled"
+        -
+          Fn::GetAtt:
+            - "SharedApiWebACL"
             - "Arn"
         - ""
   EmailTemplateBucketName:

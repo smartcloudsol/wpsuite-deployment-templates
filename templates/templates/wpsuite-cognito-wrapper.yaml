@@ -115,6 +115,34 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter SharedRecaptchaResourcePrefix."
+  SharedApiResourcePrefix:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter SharedApiResourcePrefix."
+  DeployAiKitBackend:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter DeployAiKitBackend."
+  DeployFlowBackend:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter DeployFlowBackend."
+  EnableApiWAF:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableApiWAF."
+  ApiPublicAllowedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ApiPublicAllowedIPs."
+  ApiAdminAllowedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ApiAdminAllowedIPs."
+  ApiBlockedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter ApiBlockedIPs."
   UserPoolName:
     Type: "String"
     Default: ""
@@ -237,6 +265,13 @@ Conditions:
       -
         Ref: "DeploymentContextMode"
       - "marketplace_secret"
+  CondHasSharedApiResourcePrefix:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SharedApiResourcePrefix"
+          - ""
 Resources:
   WrappedNestedStack:
     Type: "AWS::CloudFormation::Stack"
@@ -455,6 +490,94 @@ Resources:
               Ref: "RecaptchaSecretKey"
         SharedRecaptchaResourcePrefix:
           Ref: "SharedRecaptchaResourcePrefix"
+        SharedApiResourcePrefix:
+          Fn::If:
+            - "CondHasSharedApiResourcePrefix"
+            -
+              Ref: "SharedApiResourcePrefix"
+            -
+              Fn::Sub:
+                - "${AppName}-${Environment}"
+                -
+                  AppName:
+                    Ref: "AppName"
+                  Environment:
+                    Fn::If:
+                      - "CondUseMarketplaceSecret"
+                      -
+                        Fn::Sub:
+                          - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}"
+                          -
+                            DeploymentSecretArn:
+                              Ref: "WpSuiteDeploymentSecretArn"
+                      -
+                        Ref: "Environment"
+        DeployAiKitBackend:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployAiKitBackend}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "DeployAiKitBackend"
+        DeployFlowBackend:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployFlowBackend}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "DeployFlowBackend"
+        EnableApiWAF:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:EnableApiWAF}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableApiWAF"
+        ApiPublicAllowedIPs:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiPublicAllowedIPs}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "ApiPublicAllowedIPs"
+        ApiAdminAllowedIPs:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiAdminAllowedIPs}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "ApiAdminAllowedIPs"
+        ApiBlockedIPs:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiBlockedIPs}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "ApiBlockedIPs"
         UserPoolName:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -823,3 +946,9 @@ Outputs:
       Fn::GetAtt:
         - "WrappedNestedStack"
         - "Outputs.SharedRecaptchaKmsKeyArn"
+  SharedApiWebACLArn:
+    Description: "Forwarded SharedApiWebACLArn output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.SharedApiWebACLArn"

@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.35/templates/templates"
+    Default: "releases/v1.0.37/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.35"
+    Default: "v1.0.37"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -90,6 +90,32 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable shared SNS email alerting for selected WP Suite backends. Confirm pending subscriptions from the buyer SNS console by pasting the email confirmation URL; do not open the email link directly."
+  EnableDetailedLogging:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable detailed INFO-level API Gateway and Static Guardian troubleshooting logs."
+  EnableApiWAF:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable a shared regional AWS WAF WebACL for selected WP Suite APIs."
+  ApiPublicAllowedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Optional CIDR allowlist for public API endpoints when shared API WAF is enabled."
+  ApiAdminAllowedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Optional CIDR allowlist for admin API endpoints when shared API WAF is enabled."
+  ApiBlockedIPs:
+    Type: "String"
+    Default: ""
+    Description: "Optional CIDR blocklist for all API endpoints when shared API WAF is enabled."
   AlertEmailAddress1:
     Type: "String"
     Default: ""
@@ -247,13 +273,6 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable reCAPTCHA for AI Kit frontend APIs."
-  AiKitEnableWAF:
-    Type: "String"
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
-    Description: "Enable AWS WAF for AI Kit APIs."
   FlowEnvironment:
     Type: "String"
     Default: "prod"
@@ -289,13 +308,6 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable reCAPTCHA for Flow public form submissions."
-  FlowEnableWAF:
-    Type: "String"
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
-    Description: "Enable AWS WAF for Flow APIs."
   FlowEnableKmsForSecrets:
     Type: "String"
     Default: "false"
@@ -329,6 +341,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Create and manage CloudFront signing keys for Static Site Guardian."
+  StaticGuardianEnableCloudFrontWAF:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable AWS WAF protection for the Static Guardian CloudFront distribution."
   CognitoUserPoolName:
     Type: "String"
     Default: ""
@@ -698,11 +717,6 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "StaticGuardian nested stack parameter KmsKeyId."
-    NoEcho: false
-  StaticGuardianEnableDetailedLogging:
-    Type: "String"
-    Default: ""
-    Description: "StaticGuardian nested stack parameter EnableDetailedLogging."
     NoEcho: false
   StaticGuardianLogRetentionDays:
     Type: "String"
@@ -1140,6 +1154,18 @@ Resources:
             -
               Environment:
                 Ref: "Environment"
+        DeployAiKitBackend:
+          Ref: "DeployAiKitBackend"
+        DeployFlowBackend:
+          Ref: "DeployFlowBackend"
+        EnableApiWAF:
+          Ref: "EnableApiWAF"
+        ApiPublicAllowedIPs:
+          Ref: "ApiPublicAllowedIPs"
+        ApiAdminAllowedIPs:
+          Ref: "ApiAdminAllowedIPs"
+        ApiBlockedIPs:
+          Ref: "ApiBlockedIPs"
         UserPoolName:
           Ref: "CognitoUserPoolName"
         LoginMechanisms:
@@ -1284,7 +1310,13 @@ Resources:
             - "CognitoNestedStack"
             - "Outputs.SharedRecaptchaKmsKeyArn"
         EnableWAF:
-          Ref: "FlowEnableWAF"
+          Ref: "EnableApiWAF"
+        SharedRegionalWebACLArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedApiWebACLArn"
+        EnableDetailedApiLogging:
+          Ref: "EnableDetailedLogging"
         EnableKmsForSecrets:
           Ref: "FlowEnableKmsForSecrets"
         DataRetentionDays:
@@ -1421,7 +1453,13 @@ Resources:
         RecaptchaChatTtlSeconds:
           Ref: "RecaptchaChatTtlSeconds"
         EnableWAF:
-          Ref: "AiKitEnableWAF"
+          Ref: "EnableApiWAF"
+        SharedRegionalWebACLArn:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.SharedApiWebACLArn"
+        EnableDetailedApiLogging:
+          Ref: "EnableDetailedLogging"
         FlowAttachmentBucketName:
           Fn::GetAtt:
             - "FlowBackendNestedStack"
@@ -1587,8 +1625,6 @@ Resources:
           Ref: "StaticGuardianPublicKeyContent"
         KmsKeyId:
           Ref: "StaticGuardianKmsKeyId"
-        EnableDetailedLogging:
-          Ref: "StaticGuardianEnableDetailedLogging"
         NotFoundPagePath:
           Ref: "StaticGuardianNotFoundPagePath"
         ForbiddenPagePath:
@@ -1603,6 +1639,10 @@ Resources:
           Ref: "StaticGuardianWpsuiteApiBaseUrl"
         LicenseRefreshScheduleExpression:
           Ref: "StaticGuardianLicenseRefreshScheduleExpression"
+        EnableCloudFrontWAF:
+          Ref: "StaticGuardianEnableCloudFrontWAF"
+        EnableDetailedLogging:
+          Ref: "EnableDetailedLogging"
       Tags:
         -
           Key: "aws-apn-id"

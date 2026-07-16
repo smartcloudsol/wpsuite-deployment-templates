@@ -111,6 +111,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter KmsKeyId."
+  EnableCloudFrontWAF:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableCloudFrontWAF."
   EnableDetailedLogging:
     Type: "String"
     Default: ""
@@ -351,12 +355,23 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "KmsKeyId"
+        EnableCloudFrontWAF:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianEnableCloudFrontWAF}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableCloudFrontWAF"
         EnableDetailedLogging:
           Fn::If:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianEnableDetailedLogging}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:EnableDetailedLogging}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"

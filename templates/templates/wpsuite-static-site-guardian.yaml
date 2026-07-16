@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.35"
+    Default: "v1.0.37"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -74,6 +74,13 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Manual mode only. KMS asymmetric ECC_NIST_P256 signing key ID."
+  EnableCloudFrontWAF:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable AWS WAF protection for the Static Guardian CloudFront distribution."
   EnableDetailedLogging:
     Type: "String"
     Default: "false"
@@ -143,6 +150,11 @@ Conditions:
     Fn::Equals:
       -
         Ref: "EnableDetailedLogging"
+      - "true"
+  CondEnableCloudFrontWAF:
+    Fn::Equals:
+      -
+        Ref: "EnableCloudFrontWAF"
       - "true"
   UseCustomBucketName:
     Fn::Not:
@@ -240,6 +252,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "ManageSigningKeyMaterial"
+  CloudFrontWebACLTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondEnableCloudFrontWAF"
   SiteKeyParameterTemplateEnabledCondition:
     Fn::And:
       -
@@ -461,6 +479,17 @@ Resources:
                   - "cloudfront:UpdateDistribution"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "wafv2:CreateWebACL"
+                  - "wafv2:GetWebACL"
+                  - "wafv2:ListWebACLs"
+                  - "wafv2:UpdateWebACL"
+                  - "wafv2:DeleteWebACL"
+                  - "wafv2:TagResource"
+                  - "wafv2:UntagResource"
+                Resource: "*"
               -
                 Effect: "Allow"
                 Action:
@@ -761,6 +790,20 @@ Resources:
       Name:
         Fn::Sub: "${AppName}-NoCachePolicy"
     Condition: "TemplateEnabled"
+  CloudFrontWebACL:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "WafWebACL"
+      Name:
+        Fn::Sub: "${AppName}-cf-web-acl"
+      Description:
+        Fn::Sub: "${AppName} Static Guardian CloudFront WAF"
+      Scope: "CLOUDFRONT"
+    Condition: "CloudFrontWebACLTemplateEnabledCondition"
   SiteKeyParameter:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -1038,6 +1081,15 @@ Resources:
             Ref: "CertificateArn"
           SslSupportMethod: "sni-only"
           MinimumProtocolVersion: "TLSv1.2_2021"
+        WebACLId:
+          Fn::If:
+            - "CondEnableCloudFrontWAF"
+            -
+              Fn::GetAtt:
+                - "CloudFrontWebACL"
+                - "WebACLArn"
+            -
+              Ref: "AWS::NoValue"
         Logging:
           Fn::If:
             - "EnableLogging"

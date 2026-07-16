@@ -119,6 +119,14 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter EnableWAF."
+  SharedRegionalWebACLArn:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter SharedRegionalWebACLArn."
+  EnableDetailedApiLogging:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableDetailedApiLogging."
   EnableKmsForSecrets:
     Type: "String"
     Default: ""
@@ -420,12 +428,25 @@ Resources:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnableWAF}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:EnableApiWAF}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "EnableWAF"
+        SharedRegionalWebACLArn:
+          Ref: "SharedRegionalWebACLArn"
+        EnableDetailedApiLogging:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:EnableDetailedLogging}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableDetailedApiLogging"
         EnableKmsForSecrets:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -629,7 +650,7 @@ Resources:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowPublicAllowedIPs}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiPublicAllowedIPs}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"
@@ -640,7 +661,7 @@ Resources:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowAdminAllowedIPs}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiAdminAllowedIPs}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"
@@ -651,7 +672,7 @@ Resources:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowBlockedIPs}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiBlockedIPs}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"

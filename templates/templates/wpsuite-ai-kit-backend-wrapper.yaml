@@ -135,6 +135,14 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter EnableWAF."
+  SharedRegionalWebACLArn:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter SharedRegionalWebACLArn."
+  EnableDetailedApiLogging:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableDetailedApiLogging."
   DocsBucketName:
     Type: "String"
     Default: ""
@@ -557,12 +565,25 @@ Resources:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitEnableWAF}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:EnableApiWAF}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "EnableWAF"
+        SharedRegionalWebACLArn:
+          Ref: "SharedRegionalWebACLArn"
+        EnableDetailedApiLogging:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:EnableDetailedLogging}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableDetailedApiLogging"
         DocsBucketName:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -913,7 +934,7 @@ Resources:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitPublicAllowedIPs}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiPublicAllowedIPs}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"
@@ -924,7 +945,7 @@ Resources:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitAdminAllowedIPs}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiAdminAllowedIPs}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"
@@ -935,7 +956,7 @@ Resources:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitBlockedIPs}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiBlockedIPs}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"
