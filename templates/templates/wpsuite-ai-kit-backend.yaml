@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.37"
+    Default: "v1.0.38"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -1291,6 +1291,58 @@ Resources:
             Ref: "PrmTagValue"
     DependsOn:
       - "ApiGatewayAccountConfig"
+    Condition: "TemplateEnabled"
+  Default4xxGatewayResponse:
+    Type: "AWS::ApiGateway::GatewayResponse"
+    Properties:
+      RestApiId:
+        Ref: "RestApi"
+      ResponseType: "DEFAULT_4XX"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Cache-Control: "'no-store'"
+        gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
+        gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
+    Condition: "TemplateEnabled"
+  Default5xxGatewayResponse:
+    Type: "AWS::ApiGateway::GatewayResponse"
+    Properties:
+      RestApiId:
+        Ref: "RestApi"
+      ResponseType: "DEFAULT_5XX"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Cache-Control: "'no-store'"
+        gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
+        gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
+    Condition: "TemplateEnabled"
+  UnauthorizedGatewayResponse:
+    Type: "AWS::ApiGateway::GatewayResponse"
+    Properties:
+      RestApiId:
+        Ref: "RestApi"
+      ResponseType: "UNAUTHORIZED"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Cache-Control: "'no-store'"
+        gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
+        gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
+    Condition: "TemplateEnabled"
+  AccessDeniedGatewayResponse:
+    Type: "AWS::ApiGateway::GatewayResponse"
+    Properties:
+      RestApiId:
+        Ref: "RestApi"
+      ResponseType: "ACCESS_DENIED"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Cache-Control: "'no-store'"
+        gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
+        gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
     Condition: "TemplateEnabled"
   FrontendCognitoAuth:
     Type: "Custom::ApiAuthorizer"
