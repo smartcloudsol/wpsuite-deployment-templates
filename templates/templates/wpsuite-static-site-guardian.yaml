@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.40"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -24,6 +24,10 @@ Parameters:
     Type: "String"
     Default: "wpsuite-artifacts"
     Description: "S3 bucket that stores the published deployment artifacts for this application."
+  BackupSelectionTagValue:
+    Type: "String"
+    Default: ""
+    Description: "Deployment-scoped tag value used by the optional WP Suite DR backup plan."
   AppName:
     Type: "String"
     Default: "wpsuite-site-guardian"
@@ -364,6 +368,13 @@ Resources:
       VersioningConfiguration:
         Status: "Enabled"
       Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
         -
           Key: "aws-apn-id"
           Value:

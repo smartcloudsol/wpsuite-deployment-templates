@@ -1,0 +1,436 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "WP Suite DR backup nested template for Marketplace Deployment Access"
+Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  Enabled:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create scheduled AWS Backup resources for WP Suite disaster recovery."
+  TemplateVersion:
+    Type: "String"
+    Default: "v1.0.40"
+    Description: "Immutable WP Suite deployment template version."
+  AppName:
+    Type: "String"
+    Default: "wpsuite-dr-backup"
+    Description: "Application name prefix used when naming DR backup resources."
+  BackupSelectionTagValue:
+    Type: "String"
+    Default: ""
+    Description: "Deployment-scoped tag value used to select WP Suite resources for DR backup."
+  DestinationRegion:
+    Type: "String"
+    Default: ""
+    Description: "Secondary AWS Region where copied recovery points are stored."
+  SourceBackupVaultName:
+    Type: "String"
+    Default: ""
+    Description: "Optional source-region AWS Backup vault name. Leave empty to generate one."
+  DestinationBackupVaultName:
+    Type: "String"
+    Default: ""
+    Description: "Optional secondary-region AWS Backup vault name. Leave empty to generate one."
+  BackupScheduleExpression:
+    Type: "String"
+    Default: "cron(0 3 * * ? *)"
+    Description: "AWS Backup cron or rate expression for scheduled DR backups."
+  BackupStartWindowMinutes:
+    Type: "Number"
+    Default: 60
+    Description: "Minutes after schedule start during which AWS Backup can start a backup job."
+  BackupCompletionWindowMinutes:
+    Type: "Number"
+    Default: 360
+    Description: "Minutes after backup start during which AWS Backup must complete the job."
+  BackupRetentionDays:
+    Type: "Number"
+    Default: 35
+    Description: "Days to retain source-region recovery points."
+  CopyRetentionDays:
+    Type: "Number"
+    Default: 35
+    Description: "Days to retain copied recovery points in the secondary Region."
+  IncludeDynamoDb:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Include tagged WP Suite DynamoDB tables in scheduled DR backup."
+  IncludeS3:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Include tagged WP Suite S3 buckets in scheduled DR backup."
+  LogRetentionDays:
+    Type: "Number"
+    Default: 14
+    Description: "Number of days to retain DR backup manager Lambda logs."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+Conditions:
+  TemplateEnabled:
+    Fn::Equals:
+      -
+        Ref: "Enabled"
+      - "true"
+  HasSourceBackupVaultName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SourceBackupVaultName"
+          - ""
+  HasDestinationBackupVaultName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "DestinationBackupVaultName"
+          - ""
+  CondIncludeDynamoDb:
+    Fn::Equals:
+      -
+        Ref: "IncludeDynamoDb"
+      - "true"
+  CondIncludeS3:
+    Fn::Equals:
+      -
+        Ref: "IncludeS3"
+      - "true"
+  BackupSelectionEnabled:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Fn::Or:
+          -
+            Condition: "CondIncludeDynamoDb"
+          -
+            Condition: "CondIncludeS3"
+Resources:
+  SourceBackupVault:
+    Type: "AWS::Backup::BackupVault"
+    Properties:
+      BackupVaultName:
+        Fn::If:
+          - "HasSourceBackupVaultName"
+          -
+            Ref: "SourceBackupVaultName"
+          -
+            Fn::Sub: "${AppName}-src"
+      BackupVaultTags:
+        wpsuite:dr-backup: "true"
+        wpsuite:backup-scope:
+          Ref: "BackupSelectionTagValue"
+        wpsuite:component: "dr-backup"
+        aws-apn-id:
+          Ref: "PrmTagValue"
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "Retain"
+    Condition: "TemplateEnabled"
+  DestinationVaultManagerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  DestinationVaultManagerPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+              - "logs:PutRetentionPolicy"
+            Resource:
+              Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AppName}-vault-manager:*"
+          -
+            Effect: "Allow"
+            Action:
+              - "backup:CreateBackupVault"
+              - "backup:DeleteBackupVault"
+              - "backup:DescribeBackupVault"
+              - "backup:ListRecoveryPointsByBackupVault"
+              - "backup:TagResource"
+            Resource:
+              Fn::Sub:
+                - "arn:${AWS::Partition}:backup:${DestinationRegion}:${AWS::AccountId}:backup-vault:${DestinationBackupVaultName}"
+                -
+                  DestinationRegion:
+                    Ref: "DestinationRegion"
+                  DestinationBackupVaultName:
+                    Fn::If:
+                      - "HasDestinationBackupVaultName"
+                      -
+                        Ref: "DestinationBackupVaultName"
+                      -
+                        Fn::Sub: "${AppName}-dst"
+          -
+            Effect: "Allow"
+            Action: "backup-storage:MountCapsule"
+            Resource: "*"
+      PolicyName: "destination-vault-manager"
+      Roles:
+        -
+          Ref: "DestinationVaultManagerRole"
+    Condition: "TemplateEnabled"
+  DestinationVaultManagerFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Code:
+        ZipFile: "\nconst https = require(\"https\");\nconst { URL } = require(\"url\");\nconst {\n  BackupClient,\n  CreateBackupVaultCommand,\n  DeleteBackupVaultCommand,\n  DescribeBackupVaultCommand,\n  ListRecoveryPointsByBackupVaultCommand,\n  TagResourceCommand\n} = require(\"@aws-sdk/client-backup\");\nconst { CloudWatchLogsClient, PutRetentionPolicyCommand } = require(\"@aws-sdk/client-cloudwatch-logs\");\n\nconst logs = new CloudWatchLogsClient({});\n\nfunction log(level, message, data) {\n  console.log(JSON.stringify({ level, message, data: data || {} }));\n}\n\nfunction sendResponse(event, context, status, data, physicalResourceId, reason) {\n  return new Promise((resolve, reject) => {\n    const responseBody = JSON.stringify({\n      Status: status,\n      Reason: reason || (\"See CloudWatch Log Stream: \" + context.logStreamName),\n      PhysicalResourceId: physicalResourceId || context.logStreamName,\n      StackId: event.StackId,\n      RequestId: event.RequestId,\n      LogicalResourceId: event.LogicalResourceId,\n      NoEcho: false,\n      Data: data || {}\n    });\n    const parsedUrl = new URL(event.ResponseURL);\n    const request = https.request({\n      hostname: parsedUrl.hostname,\n      path: parsedUrl.pathname + parsedUrl.search,\n      method: \"PUT\",\n      headers: {\n        \"content-type\": \"\",\n        \"content-length\": Buffer.byteLength(responseBody)\n      }\n    }, (response) => {\n      response.resume();\n      response.on(\"end\", resolve);\n    });\n    request.on(\"error\", reject);\n    request.write(responseBody);\n    request.end();\n  });\n}\n\nasync function configureLogRetention(value) {\n  const retentionInDays = Number(value || \"\");\n  if (!Number.isInteger(retentionInDays) || retentionInDays <= 0) {\n    return;\n  }\n  const logGroupName = \"/aws/lambda/\" + process.env.AWS_LAMBDA_FUNCTION_NAME;\n  try {\n    await logs.send(new PutRetentionPolicyCommand({ logGroupName, retentionInDays }));\n  } catch (error) {\n    log(\"WARN\", \"DR backup vault manager log retention could not be configured\", {\n      logGroupName,\n      errorName: error && error.name,\n      errorMessage: error && error.message ? error.message : String(error)\n    });\n  }\n}\n\nasync function describeVault(client, backupVaultName) {\n  try {\n    return await client.send(new DescribeBackupVaultCommand({ BackupVaultName: backupVaultName }));\n  } catch (error) {\n    if (error && error.name === \"ResourceNotFoundException\") {\n      return undefined;\n    }\n    throw error;\n  }\n}\n\nasync function ensureVault(client, props) {\n  const backupVaultName = props.BackupVaultName;\n  const existing = await describeVault(client, backupVaultName);\n  if (existing && existing.BackupVaultArn) {\n    await tagVault(client, existing.BackupVaultArn, props);\n    return existing.BackupVaultArn;\n  }\n  const created = await client.send(new CreateBackupVaultCommand({ BackupVaultName: backupVaultName }));\n  const backupVaultArn = created.BackupVaultArn || (await describeVault(client, backupVaultName)).BackupVaultArn;\n  await tagVault(client, backupVaultArn, props);\n  return backupVaultArn;\n}\n\nasync function tagVault(client, backupVaultArn, props) {\n  if (!backupVaultArn) {\n    return;\n  }\n  await client.send(new TagResourceCommand({\n    ResourceArn: backupVaultArn,\n    Tags: {\n      \"wpsuite:dr-backup\": \"true\",\n      \"wpsuite:backup-scope\": props.BackupSelectionTagValue || \"\",\n      \"wpsuite:component\": \"dr-backup\"\n    }\n  }));\n}\n\nasync function deleteVaultIfEmpty(client, backupVaultName) {\n  const existing = await describeVault(client, backupVaultName);\n  if (!existing || !existing.BackupVaultArn) {\n    return { backupVaultArn: \"\", retained: \"false\" };\n  }\n  const recoveryPoints = await client.send(new ListRecoveryPointsByBackupVaultCommand({\n    BackupVaultName: backupVaultName,\n    MaxResults: 1\n  }));\n  if ((recoveryPoints.RecoveryPoints || []).length > 0) {\n    return { backupVaultArn: existing.BackupVaultArn, retained: \"true\" };\n  }\n  await client.send(new DeleteBackupVaultCommand({ BackupVaultName: backupVaultName }));\n  return { backupVaultArn: existing.BackupVaultArn, retained: \"false\" };\n}\n\nexports.handler = async (event, context) => {\n  await configureLogRetention(event.ResourceProperties && event.ResourceProperties.LogRetentionDays);\n  const props = event.ResourceProperties || {};\n  const destinationRegion = props.DestinationRegion;\n  const backupVaultName = props.BackupVaultName;\n  const physicalResourceId = destinationRegion && backupVaultName\n    ? destinationRegion + \":\" + backupVaultName\n    : event.PhysicalResourceId || context.logStreamName;\n\n  try {\n    if (!destinationRegion || !backupVaultName) {\n      throw new Error(\"DestinationRegion and BackupVaultName are required\");\n    }\n    const client = new BackupClient({ region: destinationRegion });\n    if (event.RequestType === \"Delete\") {\n      const deleted = await deleteVaultIfEmpty(client, backupVaultName);\n      await sendResponse(event, context, \"SUCCESS\", {\n        BackupVaultArn: deleted.backupVaultArn,\n        BackupVaultName: backupVaultName,\n        Retained: deleted.retained\n      }, physicalResourceId);\n      return;\n    }\n    const backupVaultArn = await ensureVault(client, props);\n    await sendResponse(event, context, \"SUCCESS\", {\n      BackupVaultArn: backupVaultArn,\n      BackupVaultName: backupVaultName,\n      DestinationRegion: destinationRegion\n    }, physicalResourceId);\n  } catch (error) {\n    log(\"ERROR\", \"DR backup destination vault operation failed\", {\n      requestType: event.RequestType,\n      destinationRegion,\n      backupVaultName,\n      errorName: error && error.name,\n      errorMessage: error && error.message ? error.message : String(error),\n      stack: error && error.stack\n    });\n    await sendResponse(event, context, \"FAILED\", {}, physicalResourceId, error && error.message ? error.message : String(error));\n  }\n};\n"
+      Environment:
+        Variables:
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+      FunctionName:
+        Fn::Sub: "${AppName}-vault-manager"
+      Handler: "index.handler"
+      MemorySize: 128
+      Role:
+        Fn::GetAtt:
+          - "DestinationVaultManagerRole"
+          - "Arn"
+      Runtime: "nodejs24.x"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      Timeout: 120
+    DependsOn:
+      - "DestinationVaultManagerPolicy"
+    Condition: "TemplateEnabled"
+  DestinationBackupVault:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "DestinationVaultManagerFunction"
+          - "Arn"
+      DestinationRegion:
+        Ref: "DestinationRegion"
+      BackupVaultName:
+        Fn::If:
+          - "HasDestinationBackupVaultName"
+          -
+            Ref: "DestinationBackupVaultName"
+          -
+            Fn::Sub: "${AppName}-dst"
+      BackupSelectionTagValue:
+        Ref: "BackupSelectionTagValue"
+      LogRetentionDays:
+        Ref: "LogRetentionDays"
+    Condition: "TemplateEnabled"
+  BackupServiceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "backup.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        -
+          Fn::Sub: "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+        -
+          Fn::Sub: "arn:${AWS::Partition}:iam::aws:policy/AWSBackupServiceRolePolicyForS3Backup"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  BackupPlan:
+    Type: "AWS::Backup::BackupPlan"
+    Properties:
+      BackupPlan:
+        BackupPlanName:
+          Fn::Sub: "${AppName}-plan"
+        BackupPlanRule:
+          -
+            RuleName: "DailyCrossRegionCopy"
+            TargetBackupVault:
+              Fn::If:
+                - "HasSourceBackupVaultName"
+                -
+                  Ref: "SourceBackupVaultName"
+                -
+                  Fn::Sub: "${AppName}-src"
+            ScheduleExpression:
+              Ref: "BackupScheduleExpression"
+            StartWindowMinutes:
+              Ref: "BackupStartWindowMinutes"
+            CompletionWindowMinutes:
+              Ref: "BackupCompletionWindowMinutes"
+            Lifecycle:
+              DeleteAfterDays:
+                Ref: "BackupRetentionDays"
+            CopyActions:
+              -
+                DestinationBackupVaultArn:
+                  Fn::GetAtt:
+                    - "DestinationBackupVault"
+                    - "BackupVaultArn"
+                Lifecycle:
+                  DeleteAfterDays:
+                    Ref: "CopyRetentionDays"
+            RecoveryPointTags:
+              wpsuite:dr-backup: "true"
+              wpsuite:backup-scope:
+                Ref: "BackupSelectionTagValue"
+      BackupPlanTags:
+        wpsuite:dr-backup: "true"
+        wpsuite:backup-scope:
+          Ref: "BackupSelectionTagValue"
+        wpsuite:component: "dr-backup"
+        aws-apn-id:
+          Ref: "PrmTagValue"
+    DependsOn:
+      - "SourceBackupVault"
+    Condition: "TemplateEnabled"
+  BackupSelection:
+    Type: "AWS::Backup::BackupSelection"
+    Properties:
+      BackupPlanId:
+        Ref: "BackupPlan"
+      BackupSelection:
+        SelectionName:
+          Fn::Sub: "${AppName}-selection"
+        IamRoleArn:
+          Fn::GetAtt:
+            - "BackupServiceRole"
+            - "Arn"
+        Resources:
+          -
+            Fn::If:
+              - "CondIncludeDynamoDb"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*"
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "CondIncludeS3"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:s3:::*"
+              -
+                Ref: "AWS::NoValue"
+        Conditions:
+          StringEquals:
+            -
+              ConditionKey: "aws:ResourceTag/wpsuite:dr-backup"
+              ConditionValue: "true"
+            -
+              ConditionKey: "aws:ResourceTag/wpsuite:backup-scope"
+              ConditionValue:
+                Ref: "BackupSelectionTagValue"
+    Condition: "BackupSelectionEnabled"
+Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
+  TemplateFamily:
+    Description: "Template family identifier."
+    Value: "wpsuite-dr-backup"
+  TemplateVersion:
+    Description: "Template version used for this nested stack."
+    Value:
+      Ref: "TemplateVersion"
+  SourceBackupVaultName:
+    Description: "Source Region AWS Backup vault name."
+    Value:
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::If:
+            - "HasSourceBackupVaultName"
+            -
+              Ref: "SourceBackupVaultName"
+            -
+              Fn::Sub: "${AppName}-src"
+        - ""
+  SourceBackupVaultArn:
+    Description: "Source Region AWS Backup vault ARN."
+    Value:
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::GetAtt:
+            - "SourceBackupVault"
+            - "BackupVaultArn"
+        - ""
+  DestinationBackupVaultName:
+    Description: "Secondary Region AWS Backup vault name."
+    Value:
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::If:
+            - "HasDestinationBackupVaultName"
+            -
+              Ref: "DestinationBackupVaultName"
+            -
+              Fn::Sub: "${AppName}-dst"
+        - ""
+  DestinationBackupVaultArn:
+    Description: "Secondary Region AWS Backup vault ARN."
+    Value:
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::GetAtt:
+            - "DestinationBackupVault"
+            - "BackupVaultArn"
+        - ""
+  BackupPlanId:
+    Description: "AWS Backup plan ID."
+    Value:
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Ref: "BackupPlan"
+        - ""
+  BackupSelectionTagValue:
+    Description: "Tag value used to select resources for DR backup."
+    Value:
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Ref: "BackupSelectionTagValue"
+        - ""

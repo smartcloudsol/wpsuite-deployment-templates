@@ -13,6 +13,7 @@ This repository intentionally contains only the public deployment definitions th
 - `templates/templates/wpsuite-ai-kit-backend.yaml` — optional AI Kit backend resources.
 - `templates/templates/wpsuite-flow-backend.yaml` — optional Flow backend resources.
 - `templates/templates/wpsuite-static-site-guardian.yaml` — optional static site protection resources.
+- `templates/templates/wpsuite-dr-backup.yaml` — optional scheduled AWS Backup disaster recovery resources.
 - `templates/manifest.json` — generated metadata for the current template bundle.
 
 The nested `templates/templates/` path mirrors the S3 publication layout used by CloudFormation in the Marketplace flow.
@@ -34,11 +35,13 @@ This repository does not include:
 The deployment wizard collects configuration, then either publishes the configuration
 as an AWS Marketplace deployment parameter for Quick Launch or opens a direct
 CloudFormation launch URL for agency-credit launches. In Quick Launch, the wizard
-saves the configuration in a deployment secret. The root stack creates four wrapper
+saves the configuration in a deployment secret. The root stack creates wrapper
 nested stacks, each wrapper resolves its component parameters from that secret, and
 each wrapper passes them to a wrapped component stack. The wrapped template's
 `Enabled` parameter controls whether that component creates resources, so the full
-wrapper/wrapped topology can appear even for unselected components.
+wrapper/wrapped topology can appear even for unselected components. The current
+bundle includes Cognito, AI Kit, Flow, Static Site Guardian, and optional DR backup
+wrapper/wrapped stack pairs.
 
 The public templates let buyers and reviewers inspect:
 
@@ -50,7 +53,7 @@ The public templates let buyers and reviewers inspect:
 
 The templates are intended for review and Marketplace deployment transparency. A successful production deployment still requires a valid WP Suite Deployment Access purchase or an included agency deployment credit.
 
-See [Architecture overview](docs/architecture.md) for visual diagrams of the root orchestration template and the four optional nested templates.
+See [Architecture overview](docs/architecture.md) for visual diagrams of the root orchestration template and the optional nested templates.
 
 ## Security review notes
 

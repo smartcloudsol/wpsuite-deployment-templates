@@ -8,7 +8,7 @@ For the exact deployable definitions, review the generated YAML templates under 
 
 ## Quick Launch stack topology
 
-Marketplace Quick Launch does not pass every buyer-selected parameter directly into the component templates. The deployment wizard first saves a short-lived deployment secret, then the buyer launches the root orchestration stack. A full deployment uses one root stack, four wrapper nested stacks, and four wrapped component stacks.
+Marketplace Quick Launch does not pass every buyer-selected parameter directly into the component templates. The deployment wizard first saves a short-lived deployment secret, then the buyer launches the root orchestration stack. A full deployment can use one root stack, five wrapper nested stacks, and five wrapped component stacks.
 
 ```mermaid
 flowchart TD
@@ -18,10 +18,12 @@ flowchart TD
     Root --> FlowWrapper["Flow wrapper stack"]
     Root --> AiKitWrapper["AI Kit wrapper stack"]
     Root --> GuardianWrapper["Static Guardian wrapper stack"]
+    Root --> DrBackupWrapper["DR backup wrapper stack"]
     CognitoWrapper --> CognitoWrapped["Cognito wrapped stack"]
     FlowWrapper --> FlowWrapped["Flow wrapped stack"]
     AiKitWrapper --> AiKitWrapped["AI Kit wrapped stack"]
     GuardianWrapper --> GuardianWrapped["Static Guardian wrapped stack"]
+    DrBackupWrapper --> DrBackupWrapped["DR backup wrapped stack"]
 ```
 
 The root template creates the wrapper topology and passes deployment context to each wrapper. In Quick Launch mode, wrapper templates read component parameters from the deployment secret through CloudFormation dynamic references, then pass those values into the wrapped templates. The `Enabled` parameter controls whether the wrapped template creates the component resources. This means an unselected component can still have wrapper and wrapped nested stacks in the CloudFormation tree, while the actual component resources are suppressed by conditions.
@@ -42,6 +44,7 @@ Key review points:
 - Quick Launch parameters are stored in a deployment secret; wrappers resolve those values with dynamic references and forward them to wrapped templates.
 - The wrapper/wrapped topology can appear for every supported component; component resources are controlled by the wrapped template `Enabled` parameter.
 - Deployment outputs are reported back to the WP Suite control plane for later workspace/site configuration.
+- Optional DR backup resources use AWS Backup scheduled backup plans and cross-Region copy for tagged WP Suite DynamoDB tables and S3 buckets. The template does not enable PITR or continuous backup.
 
 ## WP Suite Cognito nested template
 
@@ -98,3 +101,15 @@ Key review points:
 - Optional Route 53 records, custom error pages, detailed logging, and WP Suite license/config refresh are configurable.
 - The current Static Site Guardian template does not create WAF resources; API WAF controls are implemented in the AI Kit and Flow backend templates.
 - Stack outputs provide the bucket, distribution, domain, key, and refresh-related identifiers needed by downstream WP Suite configuration.
+
+## WP Suite DR Backup nested template
+
+The DR Backup nested template creates scheduled AWS Backup resources for disaster recovery across Regions. It selects WP Suite resources by deployment-scoped tags and copies recovery points from a source-region vault to a destination-region vault.
+
+Key review points:
+
+- The template creates a source backup vault in the deployment Region and a destination vault in the selected secondary Region.
+- Backup selection is tag-based and scoped to resources tagged for the same WP Suite deployment.
+- DynamoDB tables and S3 buckets can be included independently.
+- Backups are scheduled. PITR and continuous backup are intentionally not enabled by this template.
+- The destination vault is created by a custom resource so buyers do not need to pre-create infrastructure in the secondary Region.

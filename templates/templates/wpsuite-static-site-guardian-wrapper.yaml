@@ -43,6 +43,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter LogRetentionDays."
+  BackupSelectionTagValue:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter BackupSelectionTagValue."
   Enabled:
     Type: "String"
     Default: ""
@@ -190,6 +194,8 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "LogRetentionDays"
+        BackupSelectionTagValue:
+          Ref: "BackupSelectionTagValue"
         Enabled:
           Fn::If:
             - "CondUseMarketplaceSecret"

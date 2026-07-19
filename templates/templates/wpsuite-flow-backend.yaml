@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.40"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -24,6 +24,10 @@ Parameters:
     Type: "String"
     Default: "wpsuite-artifacts"
     Description: "S3 bucket that stores the published deployment artifacts for this application."
+  BackupSelectionTagValue:
+    Type: "String"
+    Default: ""
+    Description: "Deployment-scoped tag value used by the optional WP Suite DR backup plan."
   AppName:
     Type: "String"
     Default: "wpsuite-flow"
@@ -1116,6 +1120,13 @@ Resources:
         Status: "Enabled"
       Tags:
         -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
@@ -1140,6 +1151,13 @@ Resources:
       VersioningConfiguration:
         Status: "Enabled"
       Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
         -
           Key: "aws-apn-id"
           Value:
@@ -1185,6 +1203,18 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-submissions"
       BillingMode: "PAY_PER_REQUEST"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Fn::If:
@@ -1260,11 +1290,6 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "expiresAt"
         Enabled: true
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
   SubmissionEventsTable:
     Type: "AWS::DynamoDB::Table"
@@ -1272,6 +1297,18 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-submission-events"
       BillingMode: "PAY_PER_REQUEST"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Fn::If:
@@ -1292,11 +1329,6 @@ Resources:
         -
           AttributeName: "SK"
           KeyType: "RANGE"
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
   TemplatesTable:
     Type: "AWS::DynamoDB::Table"
@@ -1304,6 +1336,18 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-templates"
       BillingMode: "PAY_PER_REQUEST"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Fn::If:
@@ -1342,11 +1386,6 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
   WorkflowDefinitionsTable:
     Type: "AWS::DynamoDB::Table"
@@ -1354,6 +1393,18 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-workflow-definitions"
       BillingMode: "PAY_PER_REQUEST"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Fn::If:
@@ -1392,11 +1443,6 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
   FormDefinitionsTable:
     Type: "AWS::DynamoDB::Table"
@@ -1404,6 +1450,18 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-form-definitions"
       BillingMode: "PAY_PER_REQUEST"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Fn::If:
@@ -1442,11 +1500,6 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
   WebhookEndpointsTable:
     Type: "AWS::DynamoDB::Table"
@@ -1454,6 +1507,18 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-webhook-endpoints"
       BillingMode: "PAY_PER_REQUEST"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Fn::If:
@@ -1492,11 +1557,6 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
   ProcessMapsTable:
     Type: "AWS::DynamoDB::Table"
@@ -1504,6 +1564,18 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-process-maps"
       BillingMode: "PAY_PER_REQUEST"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Fn::If:
@@ -1542,11 +1614,6 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
   CustomResourceManagerFunctionRole:
     Type: "AWS::IAM::Role"

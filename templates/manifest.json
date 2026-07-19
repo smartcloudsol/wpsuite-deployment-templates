@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-19T12:20:35.766Z",
-  "templateVersion": "v1.0.39",
+  "generatedAt": "2026-07-19T21:29:07.871Z",
+  "templateVersion": "v1.0.40",
   "sourceProject": "@wpsuite/deployment-orchestration",
   "sourceGeneratedDirectory": "generated/templates",
   "templates": [
@@ -41,6 +41,12 @@
       "description": "WP Suite Site Guardian nested template for Marketplace Deployment Access"
     },
     {
+      "name": "wpsuite-dr-backup.yaml",
+      "kind": "nested",
+      "path": "templates/templates/wpsuite-dr-backup.yaml",
+      "description": "WP Suite DR backup nested template for Marketplace Deployment Access"
+    },
+    {
       "name": "wpsuite-cognito-wrapper.yaml",
       "kind": "wrapper",
       "path": "templates/templates/wpsuite-cognito-wrapper.yaml",
@@ -63,6 +69,12 @@
       "kind": "wrapper",
       "path": "templates/templates/wpsuite-static-site-guardian-wrapper.yaml",
       "description": "WP Suite Static Site Guardian Marketplace deployment wrapper template"
+    },
+    {
+      "name": "wpsuite-dr-backup-wrapper.yaml",
+      "kind": "wrapper",
+      "path": "templates/templates/wpsuite-dr-backup-wrapper.yaml",
+      "description": "WP Suite DR Backup Marketplace deployment wrapper template"
     }
   ]
 }

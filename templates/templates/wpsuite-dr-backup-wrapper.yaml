@@ -1,0 +1,333 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "WP Suite DR Backup Marketplace deployment wrapper template"
+Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  MPS3BucketName:
+    Type: "String"
+    Description: "Public S3 bucket that contains the reviewed WP Suite CloudFormation templates."
+  MPS3BucketRegion:
+    Type: "String"
+    Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
+  MPS3KeyPrefix:
+    Type: "String"
+    Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
+  WpSuiteDeploymentSecretArn:
+    Type: "String"
+    Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
+    MinLength: 1
+    NoEcho: true
+  DeploymentContextMode:
+    Type: "String"
+    Default: "direct"
+    AllowedValues:
+      - "marketplace_secret"
+      - "direct"
+    Description: "How this wrapper receives the WP Suite deployment context."
+  TemplateVersion:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter TemplateVersion."
+  LogRetentionDays:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter LogRetentionDays."
+  BackupSelectionTagValue:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter BackupSelectionTagValue."
+  Enabled:
+    Type: "String"
+    Default: "false"
+    Description: "Forwarded WP Suite nested stack parameter Enabled."
+  AppName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AppName."
+  Environment:
+    Type: "String"
+    Default: "prod"
+    Description: "Forwarded WP Suite nested stack parameter Environment."
+  DestinationRegion:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter DestinationRegion."
+  SourceBackupVaultName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter SourceBackupVaultName."
+  DestinationBackupVaultName:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter DestinationBackupVaultName."
+  BackupScheduleExpression:
+    Type: "String"
+    Default: "cron(0 3 * * ? *)"
+    Description: "Forwarded WP Suite nested stack parameter BackupScheduleExpression."
+  BackupStartWindowMinutes:
+    Type: "String"
+    Default: "60"
+    Description: "Forwarded WP Suite nested stack parameter BackupStartWindowMinutes."
+  BackupCompletionWindowMinutes:
+    Type: "String"
+    Default: "360"
+    Description: "Forwarded WP Suite nested stack parameter BackupCompletionWindowMinutes."
+  BackupRetentionDays:
+    Type: "String"
+    Default: "35"
+    Description: "Forwarded WP Suite nested stack parameter BackupRetentionDays."
+  CopyRetentionDays:
+    Type: "String"
+    Default: "35"
+    Description: "Forwarded WP Suite nested stack parameter CopyRetentionDays."
+  IncludeDynamoDb:
+    Type: "String"
+    Default: "true"
+    Description: "Forwarded WP Suite nested stack parameter IncludeDynamoDb."
+  IncludeS3:
+    Type: "String"
+    Default: "true"
+    Description: "Forwarded WP Suite nested stack parameter IncludeS3."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+Conditions:
+  CondUseMarketplaceSecret:
+    Fn::Equals:
+      -
+        Ref: "DeploymentContextMode"
+      - "marketplace_secret"
+Resources:
+  WrappedNestedStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        PrmTagValue:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:PrmTagValue}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "PrmTagValue"
+        TemplateVersion:
+          Ref: "TemplateVersion"
+        LogRetentionDays:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupLogRetentionDays}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "LogRetentionDays"
+        BackupSelectionTagValue:
+          Ref: "BackupSelectionTagValue"
+        Enabled:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployDrBackup}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "Enabled"
+        AppName:
+          Fn::Sub:
+            - "${AppName}-${Environment}-${AppNameSuffix}"
+            -
+              AppName:
+                Ref: "AppName"
+              Environment:
+                Fn::If:
+                  - "CondUseMarketplaceSecret"
+                  -
+                    Fn::Sub:
+                      - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}"
+                      -
+                        DeploymentSecretArn:
+                          Ref: "WpSuiteDeploymentSecretArn"
+                  -
+                    Ref: "Environment"
+              AppNameSuffix: "dr-backup"
+        DestinationRegion:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupDestinationRegion}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "DestinationRegion"
+        SourceBackupVaultName:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupSourceBackupVaultName}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "SourceBackupVaultName"
+        DestinationBackupVaultName:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupDestinationBackupVaultName}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "DestinationBackupVaultName"
+        BackupScheduleExpression:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupScheduleExpression}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "BackupScheduleExpression"
+        BackupStartWindowMinutes:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupBackupStartWindowMinutes}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "BackupStartWindowMinutes"
+        BackupCompletionWindowMinutes:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupBackupCompletionWindowMinutes}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "BackupCompletionWindowMinutes"
+        BackupRetentionDays:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupBackupRetentionDays}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "BackupRetentionDays"
+        CopyRetentionDays:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupCopyRetentionDays}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "CopyRetentionDays"
+        IncludeDynamoDb:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupIncludeDynamoDb}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "IncludeDynamoDb"
+        IncludeS3:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupIncludeS3}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "IncludeS3"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      TemplateURL:
+        Fn::Sub:
+          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
+          -
+            Bucket:
+              Ref: "MPS3BucketName"
+            Region:
+              Ref: "MPS3BucketRegion"
+            Prefix:
+              Ref: "MPS3KeyPrefix"
+            TemplatePath: "wpsuite-dr-backup.yaml"
+Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
+  SourceBackupVaultName:
+    Description: "Forwarded SourceBackupVaultName output from wpsuite-dr-backup.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.SourceBackupVaultName"
+  SourceBackupVaultArn:
+    Description: "Forwarded SourceBackupVaultArn output from wpsuite-dr-backup.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.SourceBackupVaultArn"
+  DestinationBackupVaultName:
+    Description: "Forwarded DestinationBackupVaultName output from wpsuite-dr-backup.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.DestinationBackupVaultName"
+  DestinationBackupVaultArn:
+    Description: "Forwarded DestinationBackupVaultArn output from wpsuite-dr-backup.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.DestinationBackupVaultArn"
+  BackupPlanId:
+    Description: "Forwarded BackupPlanId output from wpsuite-dr-backup.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.BackupPlanId"
+  BackupSelectionTagValue:
+    Description: "Forwarded BackupSelectionTagValue output from wpsuite-dr-backup.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.BackupSelectionTagValue"

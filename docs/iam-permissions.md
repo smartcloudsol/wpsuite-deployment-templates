@@ -6,7 +6,7 @@ The exact IAM statements are defined in the templates under `templates/`. This f
 
 ## Root orchestrator
 
-The root template coordinates the four wrapper/wrapped component stack pairs and deployment support custom resources. In Quick Launch, all four pairs can appear in the CloudFormation tree; each wrapped template's `Enabled` parameter controls whether that component creates resources.
+The root template coordinates the wrapper/wrapped component stack pairs and deployment support custom resources. In Quick Launch, every supported pair can appear in the CloudFormation tree; each wrapped template's `Enabled` parameter controls whether that component creates resources.
 
 Review:
 
@@ -57,6 +57,16 @@ Review:
 - Cognito-compatible JWT validation configuration
 - optional Route 53 and custom domain resources
 - optional WP Suite configuration refresh permissions
+
+## WP Suite DR Backup
+
+Review:
+
+- AWS Backup vault, plan, and selection resources
+- AWS Backup service role and managed backup policies
+- destination-region backup vault custom resource permissions
+- tag-based selection for WP Suite DynamoDB tables and S3 buckets
+- cross-Region copy retention settings
 
 ## Least-privilege expectation
 

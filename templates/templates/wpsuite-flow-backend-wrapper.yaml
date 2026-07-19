@@ -47,6 +47,10 @@ Parameters:
     Type: "String"
     Default: "true"
     Description: "Forwarded WP Suite nested stack parameter EnableDynamoDbPointInTimeRecovery."
+  BackupSelectionTagValue:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter BackupSelectionTagValue."
   Enabled:
     Type: "String"
     Default: ""
@@ -269,6 +273,8 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "EnableDynamoDbPointInTimeRecovery"
+        BackupSelectionTagValue:
+          Ref: "BackupSelectionTagValue"
         Enabled:
           Fn::If:
             - "CondUseMarketplaceSecret"

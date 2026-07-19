@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.0/templates/templates"
+    Default: "releases/v1.0.40/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.40"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -79,6 +79,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Deploy WP Suite Static Site Guardian."
+  DeployDrBackup:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Deploy scheduled AWS Backup disaster recovery resources."
   Environment:
     Type: "String"
     Default: "prod"
@@ -355,6 +362,52 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable AWS WAF protection for the Static Guardian CloudFront distribution."
+  DrBackupDestinationRegion:
+    Type: "String"
+    Default: ""
+    Description: "Secondary AWS Region where copied DR backup recovery points are stored."
+  DrBackupSourceBackupVaultName:
+    Type: "String"
+    Default: ""
+    Description: "Optional source-region AWS Backup vault name. Leave empty to generate one."
+  DrBackupDestinationBackupVaultName:
+    Type: "String"
+    Default: ""
+    Description: "Optional secondary-region AWS Backup vault name. Leave empty to generate one."
+  DrBackupScheduleExpression:
+    Type: "String"
+    Default: "cron(0 3 * * ? *)"
+    Description: "AWS Backup cron or rate expression for scheduled DR backups."
+  DrBackupBackupStartWindowMinutes:
+    Type: "Number"
+    Default: 60
+    Description: "Minutes after schedule start during which AWS Backup can start a backup job."
+  DrBackupBackupCompletionWindowMinutes:
+    Type: "Number"
+    Default: 360
+    Description: "Minutes after backup start during which AWS Backup must complete the job."
+  DrBackupBackupRetentionDays:
+    Type: "Number"
+    Default: 35
+    Description: "Days to retain source-region recovery points."
+  DrBackupCopyRetentionDays:
+    Type: "Number"
+    Default: 35
+    Description: "Days to retain copied recovery points in the secondary Region."
+  DrBackupIncludeDynamoDb:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Include WP Suite DynamoDB tables in scheduled DR backups."
+  DrBackupIncludeS3:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Include WP Suite S3 buckets in scheduled DR backups."
   CognitoUserPoolName:
     Type: "String"
     Default: ""
@@ -1093,6 +1146,8 @@ Resources:
           Ref: "DeployFlowBackend"
         DeployStaticGuardian:
           Ref: "DeployStaticGuardian"
+        DeployDrBackup:
+          Ref: "DeployDrBackup"
         IdentityMode:
           Ref: "IdentityMode"
   CognitoNestedStack:
@@ -1274,6 +1329,8 @@ Resources:
           Ref: "FlowLogRetentionDays"
         EnableDynamoDbPointInTimeRecovery:
           Ref: "EnableDynamoDbPointInTimeRecovery"
+        BackupSelectionTagValue:
+          Fn::Sub: "${AWS::StackName}"
         Enabled:
           Ref: "DeployFlowBackend"
         AppName:
@@ -1413,6 +1470,8 @@ Resources:
           Ref: "LogRetentionDays"
         EnableDynamoDbPointInTimeRecovery:
           Ref: "EnableDynamoDbPointInTimeRecovery"
+        BackupSelectionTagValue:
+          Fn::Sub: "${AWS::StackName}"
         Enabled:
           Ref: "DeployAiKitBackend"
         AppName:
@@ -1598,6 +1657,8 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "StaticGuardianLogRetentionDays"
+        BackupSelectionTagValue:
+          Fn::Sub: "${AWS::StackName}"
         Enabled:
           Ref: "DeployStaticGuardian"
         AppName:
@@ -1671,11 +1732,79 @@ Resources:
             TemplatePath: "wpsuite-static-site-guardian-wrapper.yaml"
     DependsOn:
       - "ArtifactStager"
+  DrBackupNestedStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        MPS3BucketName:
+          Ref: "MPS3BucketName"
+        MPS3BucketRegion:
+          Ref: "MPS3BucketRegion"
+        MPS3KeyPrefix:
+          Ref: "MPS3KeyPrefix"
+        DeploymentContextMode:
+          Ref: "DeploymentContextMode"
+        WpSuiteDeploymentSecretArn:
+          Ref: "WpSuiteDeploymentSecretArn"
+        TemplateVersion:
+          Fn::GetAtt:
+            - "ArtifactStager"
+            - "TemplateVersion"
+        LogRetentionDays:
+          Ref: "LogRetentionDays"
+        BackupSelectionTagValue:
+          Fn::Sub: "${AWS::StackName}"
+        Enabled:
+          Ref: "DeployDrBackup"
+        AppName:
+          Fn::Sub: "${AWS::StackName}"
+        Environment:
+          Ref: "Environment"
+        DestinationRegion:
+          Ref: "DrBackupDestinationRegion"
+        SourceBackupVaultName:
+          Ref: "DrBackupSourceBackupVaultName"
+        DestinationBackupVaultName:
+          Ref: "DrBackupDestinationBackupVaultName"
+        BackupScheduleExpression:
+          Ref: "DrBackupScheduleExpression"
+        BackupStartWindowMinutes:
+          Ref: "DrBackupBackupStartWindowMinutes"
+        BackupCompletionWindowMinutes:
+          Ref: "DrBackupBackupCompletionWindowMinutes"
+        BackupRetentionDays:
+          Ref: "DrBackupBackupRetentionDays"
+        CopyRetentionDays:
+          Ref: "DrBackupCopyRetentionDays"
+        IncludeDynamoDb:
+          Ref: "DrBackupIncludeDynamoDb"
+        IncludeS3:
+          Ref: "DrBackupIncludeS3"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value: "pc:5d8wq5hg1d54kb933ntenntiu"
+      TemplateURL:
+        Fn::Sub:
+          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
+          -
+            Bucket:
+              Ref: "MPS3BucketName"
+            Region:
+              Ref: "MPS3BucketRegion"
+            Prefix:
+              Ref: "MPS3KeyPrefix"
+            TemplatePath: "wpsuite-dr-backup-wrapper.yaml"
+    DependsOn:
+      - "AiKitBackendNestedStack"
+      - "CognitoNestedStack"
+      - "FlowBackendNestedStack"
+      - "StaticGuardianNestedStack"
   DeploymentOutputReporterFunction:
     Type: "AWS::Lambda::Function"
     Properties:
       Code:
-        ZipFile: "\nconst https = require(\"https\");\nconst url = require(\"url\");\nconst { SecretsManagerClient, GetSecretValueCommand } = require(\"@aws-sdk/client-secrets-manager\");\nconst { CloudWatchLogsClient, PutRetentionPolicyCommand } = require(\"@aws-sdk/client-cloudwatch-logs\");\n\nconst logs = new CloudWatchLogsClient({});\n\nfunction logInfo(message, data) {\n  console.info(JSON.stringify({ level: \"INFO\", message, data: data || {} }));\n}\n\nfunction logWarn(message, data) {\n  console.warn(JSON.stringify({ level: \"WARN\", message, data: data || {} }));\n}\n\nfunction logError(message, error, data) {\n  console.error(JSON.stringify({\n    level: \"ERROR\",\n    message,\n    data: data || {},\n    error: {\n      name: error && error.name,\n      message: error && error.message ? error.message : String(error),\n      stack: error && error.stack\n    }\n  }));\n}\n\nasync function configureLogRetention(retentionValue) {\n  const retentionInDays = Number(retentionValue || \"\");\n  if (!Number.isInteger(retentionInDays) || retentionInDays <= 0) {\n    if (retentionValue) {\n      logWarn(\"Skipping OutputReporter log retention value\", { retentionValue });\n    }\n    return;\n  }\n  const functionName = process.env.AWS_LAMBDA_FUNCTION_NAME;\n  if (!functionName) {\n    logWarn(\"Skipping OutputReporter log retention because function name is unavailable\");\n    return;\n  }\n  const logGroupName = \"/aws/lambda/\" + functionName;\n  try {\n    await logs.send(new PutRetentionPolicyCommand({ logGroupName, retentionInDays }));\n    logInfo(\"OutputReporter log retention configured\", { logGroupName, retentionInDays });\n  } catch (error) {\n    logWarn(\"OutputReporter log retention could not be configured\", {\n      logGroupName,\n      retentionInDays,\n      errorName: error && error.name,\n      errorMessage: error && error.message ? error.message : String(error)\n    });\n  }\n}\n\nfunction requestJson(endpoint, body) {\n  return new Promise((resolve, reject) => {\n    const parsed = new url.URL(endpoint);\n    const payload = JSON.stringify(body);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"POST\",\n      headers: {\n        \"content-type\": \"application/json\",\n        \"content-length\": Buffer.byteLength(payload)\n      }\n    }, (res) => {\n      let data = \"\";\n      res.on(\"data\", (chunk) => { data += chunk; });\n      res.on(\"end\", () => {\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error(\"WP Suite backend returned \" + res.statusCode + (data ? \": \" + data : \"\")));\n          return;\n        }\n        resolve(data ? JSON.parse(data) : {});\n      });\n    });\n    req.on(\"error\", reject);\n    req.write(payload);\n    req.end();\n  });\n}\n\nfunction sendResponse(event, context, status, data, physicalResourceId, reason) {\n  return new Promise((resolve, reject) => {\n    const body = JSON.stringify({\n      Status: status,\n      Reason: reason || (\"See CloudWatch Log Stream: \" + context.logStreamName),\n      PhysicalResourceId: physicalResourceId || context.logStreamName,\n      StackId: event.StackId,\n      RequestId: event.RequestId,\n      LogicalResourceId: event.LogicalResourceId,\n      NoEcho: false,\n      Data: data || {}\n    });\n    const parsed = new url.URL(event.ResponseURL);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"PUT\",\n      headers: {\n        \"content-type\": \"\",\n        \"content-length\": Buffer.byteLength(body)\n      }\n    }, (res) => {\n      res.resume();\n      res.on(\"end\", resolve);\n    });\n    req.on(\"error\", reject);\n    req.write(body);\n    req.end();\n  });\n}\n\nasync function deploymentContext(props) {\n  if (props.DeploymentContextMode === \"direct\") {\n    if (!props.DeploymentId || !props.DeploymentNonce) {\n      throw new Error(\"Direct WP Suite deployment context is incomplete\");\n    }\n    return {\n      deploymentId: props.DeploymentId,\n      nonce: props.DeploymentNonce\n    };\n  }\n\n  if (!props.DeploymentSecretArn) {\n    throw new Error(\"WP Suite deployment secret ARN is missing\");\n  }\n\n  const secrets = new SecretsManagerClient({});\n  const secret = await secrets.send(new GetSecretValueCommand({\n    SecretId: props.DeploymentSecretArn\n  }));\n  if (!secret.SecretString) {\n    throw new Error(\"WP Suite deployment secret is empty\");\n  }\n\n  const parsed = JSON.parse(secret.SecretString);\n  if (!parsed.deploymentId || !parsed.nonce) {\n    throw new Error(\"WP Suite deployment secret is missing required fields\");\n  }\n  return parsed;\n}\n\nfunction mergeDeploymentContextOutputs(outputs, deployment) {\n  const normalized = outputs || {};\n  const topology = deployment.topology || {};\n  if (normalized.root) {\n    normalized.root.templateVersion = deployment.templateVersion || normalized.root.templateVersion || \"\";\n  }\n  if (normalized.cognito) {\n    normalized.cognito.deployed = topology.DeployCognito || normalized.cognito.deployed || \"false\";\n  }\n  if (normalized.aiKitBackend) {\n    normalized.aiKitBackend.deployed = topology.DeployAiKitBackend || normalized.aiKitBackend.deployed || \"false\";\n  }\n  if (normalized.flowBackend) {\n    normalized.flowBackend.deployed = topology.DeployFlowBackend || normalized.flowBackend.deployed || \"false\";\n  }\n  if (normalized.staticGuardian) {\n    normalized.staticGuardian.deployed = topology.DeployStaticGuardian || normalized.staticGuardian.deployed || \"false\";\n  }\n  return normalized;\n}\n\nexports.handler = async (event, context) => {\n  const physicalResourceId = event.PhysicalResourceId || \"wpsuite-deployment-output-reporter\";\n  const props = event.ResourceProperties || {};\n  logInfo(\"OutputReporter request received\", {\n    requestType: event.RequestType,\n    logicalResourceId: event.LogicalResourceId,\n    physicalResourceId,\n    stackId: event.StackId,\n    deploymentContextMode: props.DeploymentContextMode,\n    backendApiBaseUrl: props.BackendApiBaseUrl\n  });\n  try {\n    await configureLogRetention(props.LogRetentionDays);\n\n    const deployment = await deploymentContext(props);\n    if (event.RequestType === \"Delete\") {\n      const endpoint = String(props.BackendApiBaseUrl || \"\").replace(/\\/$/, \"\") + \"/deployment/\" + encodeURIComponent(deployment.deploymentId) + \"/outputs\";\n      logInfo(\"OutputReporter calling WP Suite backend for delete\", {\n        endpoint,\n        deploymentId: deployment.deploymentId\n      });\n      const response = await requestJson(endpoint, {\n        nonce: deployment.nonce,\n        stackId: event.StackId,\n        requestId: event.RequestId,\n        operation: event.RequestType,\n        region: process.env.AWS_REGION,\n        outputs: {}\n      });\n      logInfo(\"OutputReporter delete backend call completed\", {\n        deploymentId: deployment.deploymentId,\n        status: response.status || \"\"\n      });\n      await sendResponse(event, context, \"SUCCESS\", {\n        DeploymentId: deployment.deploymentId,\n        Status: response.status || \"\"\n      }, physicalResourceId);\n      return;\n    }\n\n    const outputs = mergeDeploymentContextOutputs(props.Outputs || {}, deployment);\n    const endpoint = String(props.BackendApiBaseUrl || \"\").replace(/\\/$/, \"\") + \"/deployment/\" + encodeURIComponent(deployment.deploymentId) + \"/outputs\";\n    logInfo(\"OutputReporter calling WP Suite backend\", {\n      endpoint,\n      deploymentId: deployment.deploymentId,\n      outputGroups: Object.keys(outputs || {})\n    });\n    const response = await requestJson(endpoint, {\n      nonce: deployment.nonce,\n      stackId: event.StackId,\n      requestId: event.RequestId,\n      operation: event.RequestType,\n      region: process.env.AWS_REGION,\n      outputs\n    });\n    logInfo(\"OutputReporter backend call completed\", {\n      deploymentId: deployment.deploymentId,\n      outputsHash: response.outputsHash || \"\",\n      capturedAt: response.capturedAt || \"\"\n    });\n\n    await sendResponse(event, context, \"SUCCESS\", {\n      DeploymentId: deployment.deploymentId,\n      OutputsHash: response.outputsHash || \"\",\n      CapturedAt: response.capturedAt || \"\"\n    }, physicalResourceId);\n  } catch (error) {\n    logError(\"OutputReporter request failed\", error, {\n      requestType: event.RequestType,\n      logicalResourceId: event.LogicalResourceId,\n      physicalResourceId\n    });\n    await sendResponse(event, context, \"FAILED\", {}, physicalResourceId, error && error.message ? error.message : String(error));\n  }\n};\n"
+        ZipFile: "\nconst https = require(\"https\");\nconst url = require(\"url\");\nconst { SecretsManagerClient, GetSecretValueCommand } = require(\"@aws-sdk/client-secrets-manager\");\nconst { CloudWatchLogsClient, PutRetentionPolicyCommand } = require(\"@aws-sdk/client-cloudwatch-logs\");\n\nconst logs = new CloudWatchLogsClient({});\n\nfunction logInfo(message, data) {\n  console.info(JSON.stringify({ level: \"INFO\", message, data: data || {} }));\n}\n\nfunction logWarn(message, data) {\n  console.warn(JSON.stringify({ level: \"WARN\", message, data: data || {} }));\n}\n\nfunction logError(message, error, data) {\n  console.error(JSON.stringify({\n    level: \"ERROR\",\n    message,\n    data: data || {},\n    error: {\n      name: error && error.name,\n      message: error && error.message ? error.message : String(error),\n      stack: error && error.stack\n    }\n  }));\n}\n\nasync function configureLogRetention(retentionValue) {\n  const retentionInDays = Number(retentionValue || \"\");\n  if (!Number.isInteger(retentionInDays) || retentionInDays <= 0) {\n    if (retentionValue) {\n      logWarn(\"Skipping OutputReporter log retention value\", { retentionValue });\n    }\n    return;\n  }\n  const functionName = process.env.AWS_LAMBDA_FUNCTION_NAME;\n  if (!functionName) {\n    logWarn(\"Skipping OutputReporter log retention because function name is unavailable\");\n    return;\n  }\n  const logGroupName = \"/aws/lambda/\" + functionName;\n  try {\n    await logs.send(new PutRetentionPolicyCommand({ logGroupName, retentionInDays }));\n    logInfo(\"OutputReporter log retention configured\", { logGroupName, retentionInDays });\n  } catch (error) {\n    logWarn(\"OutputReporter log retention could not be configured\", {\n      logGroupName,\n      retentionInDays,\n      errorName: error && error.name,\n      errorMessage: error && error.message ? error.message : String(error)\n    });\n  }\n}\n\nfunction requestJson(endpoint, body) {\n  return new Promise((resolve, reject) => {\n    const parsed = new url.URL(endpoint);\n    const payload = JSON.stringify(body);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"POST\",\n      headers: {\n        \"content-type\": \"application/json\",\n        \"content-length\": Buffer.byteLength(payload)\n      }\n    }, (res) => {\n      let data = \"\";\n      res.on(\"data\", (chunk) => { data += chunk; });\n      res.on(\"end\", () => {\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error(\"WP Suite backend returned \" + res.statusCode + (data ? \": \" + data : \"\")));\n          return;\n        }\n        resolve(data ? JSON.parse(data) : {});\n      });\n    });\n    req.on(\"error\", reject);\n    req.write(payload);\n    req.end();\n  });\n}\n\nfunction sendResponse(event, context, status, data, physicalResourceId, reason) {\n  return new Promise((resolve, reject) => {\n    const body = JSON.stringify({\n      Status: status,\n      Reason: reason || (\"See CloudWatch Log Stream: \" + context.logStreamName),\n      PhysicalResourceId: physicalResourceId || context.logStreamName,\n      StackId: event.StackId,\n      RequestId: event.RequestId,\n      LogicalResourceId: event.LogicalResourceId,\n      NoEcho: false,\n      Data: data || {}\n    });\n    const parsed = new url.URL(event.ResponseURL);\n    const req = https.request({\n      hostname: parsed.hostname,\n      path: parsed.pathname + parsed.search,\n      method: \"PUT\",\n      headers: {\n        \"content-type\": \"\",\n        \"content-length\": Buffer.byteLength(body)\n      }\n    }, (res) => {\n      res.resume();\n      res.on(\"end\", resolve);\n    });\n    req.on(\"error\", reject);\n    req.write(body);\n    req.end();\n  });\n}\n\nasync function deploymentContext(props) {\n  if (props.DeploymentContextMode === \"direct\") {\n    if (!props.DeploymentId || !props.DeploymentNonce) {\n      throw new Error(\"Direct WP Suite deployment context is incomplete\");\n    }\n    return {\n      deploymentId: props.DeploymentId,\n      nonce: props.DeploymentNonce\n    };\n  }\n\n  if (!props.DeploymentSecretArn) {\n    throw new Error(\"WP Suite deployment secret ARN is missing\");\n  }\n\n  const secrets = new SecretsManagerClient({});\n  const secret = await secrets.send(new GetSecretValueCommand({\n    SecretId: props.DeploymentSecretArn\n  }));\n  if (!secret.SecretString) {\n    throw new Error(\"WP Suite deployment secret is empty\");\n  }\n\n  const parsed = JSON.parse(secret.SecretString);\n  if (!parsed.deploymentId || !parsed.nonce) {\n    throw new Error(\"WP Suite deployment secret is missing required fields\");\n  }\n  return parsed;\n}\n\nfunction mergeDeploymentContextOutputs(outputs, deployment) {\n  const normalized = outputs || {};\n  const topology = deployment.topology || {};\n  if (normalized.root) {\n    normalized.root.templateVersion = deployment.templateVersion || normalized.root.templateVersion || \"\";\n  }\n  if (normalized.cognito) {\n    normalized.cognito.deployed = topology.DeployCognito || normalized.cognito.deployed || \"false\";\n  }\n  if (normalized.aiKitBackend) {\n    normalized.aiKitBackend.deployed = topology.DeployAiKitBackend || normalized.aiKitBackend.deployed || \"false\";\n  }\n  if (normalized.flowBackend) {\n    normalized.flowBackend.deployed = topology.DeployFlowBackend || normalized.flowBackend.deployed || \"false\";\n  }\n  if (normalized.staticGuardian) {\n    normalized.staticGuardian.deployed = topology.DeployStaticGuardian || normalized.staticGuardian.deployed || \"false\";\n  }\n  if (normalized.drBackup) {\n    normalized.drBackup.deployed = topology.DeployDrBackup || normalized.drBackup.deployed || \"false\";\n  }\n  return normalized;\n}\n\nexports.handler = async (event, context) => {\n  const physicalResourceId = event.PhysicalResourceId || \"wpsuite-deployment-output-reporter\";\n  const props = event.ResourceProperties || {};\n  logInfo(\"OutputReporter request received\", {\n    requestType: event.RequestType,\n    logicalResourceId: event.LogicalResourceId,\n    physicalResourceId,\n    stackId: event.StackId,\n    deploymentContextMode: props.DeploymentContextMode,\n    backendApiBaseUrl: props.BackendApiBaseUrl\n  });\n  try {\n    await configureLogRetention(props.LogRetentionDays);\n\n    const deployment = await deploymentContext(props);\n    if (event.RequestType === \"Delete\") {\n      const endpoint = String(props.BackendApiBaseUrl || \"\").replace(/\\/$/, \"\") + \"/deployment/\" + encodeURIComponent(deployment.deploymentId) + \"/outputs\";\n      logInfo(\"OutputReporter calling WP Suite backend for delete\", {\n        endpoint,\n        deploymentId: deployment.deploymentId\n      });\n      const response = await requestJson(endpoint, {\n        nonce: deployment.nonce,\n        stackId: event.StackId,\n        requestId: event.RequestId,\n        operation: event.RequestType,\n        region: process.env.AWS_REGION,\n        outputs: {}\n      });\n      logInfo(\"OutputReporter delete backend call completed\", {\n        deploymentId: deployment.deploymentId,\n        status: response.status || \"\"\n      });\n      await sendResponse(event, context, \"SUCCESS\", {\n        DeploymentId: deployment.deploymentId,\n        Status: response.status || \"\"\n      }, physicalResourceId);\n      return;\n    }\n\n    const outputs = mergeDeploymentContextOutputs(props.Outputs || {}, deployment);\n    const endpoint = String(props.BackendApiBaseUrl || \"\").replace(/\\/$/, \"\") + \"/deployment/\" + encodeURIComponent(deployment.deploymentId) + \"/outputs\";\n    logInfo(\"OutputReporter calling WP Suite backend\", {\n      endpoint,\n      deploymentId: deployment.deploymentId,\n      outputGroups: Object.keys(outputs || {})\n    });\n    const response = await requestJson(endpoint, {\n      nonce: deployment.nonce,\n      stackId: event.StackId,\n      requestId: event.RequestId,\n      operation: event.RequestType,\n      region: process.env.AWS_REGION,\n      outputs\n    });\n    logInfo(\"OutputReporter backend call completed\", {\n      deploymentId: deployment.deploymentId,\n      outputsHash: response.outputsHash || \"\",\n      capturedAt: response.capturedAt || \"\"\n    });\n\n    await sendResponse(event, context, \"SUCCESS\", {\n      DeploymentId: deployment.deploymentId,\n      OutputsHash: response.outputsHash || \"\",\n      CapturedAt: response.capturedAt || \"\"\n    }, physicalResourceId);\n  } catch (error) {\n    logError(\"OutputReporter request failed\", error, {\n      requestType: event.RequestType,\n      logicalResourceId: event.LogicalResourceId,\n      physicalResourceId\n    });\n    await sendResponse(event, context, \"FAILED\", {}, physicalResourceId, error && error.message ? error.message : String(error));\n  }\n};\n"
       Environment:
         Variables:
           WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
@@ -1819,6 +1948,35 @@ Resources:
             Fn::GetAtt:
               - "StaticGuardianNestedStack"
               - "Outputs.PublicKeyParameterName"
+        drBackup:
+          deployed:
+            Ref: "DeployDrBackup"
+          stackId:
+            Ref: "DrBackupNestedStack"
+          sourceBackupVaultName:
+            Fn::GetAtt:
+              - "DrBackupNestedStack"
+              - "Outputs.SourceBackupVaultName"
+          sourceBackupVaultArn:
+            Fn::GetAtt:
+              - "DrBackupNestedStack"
+              - "Outputs.SourceBackupVaultArn"
+          destinationBackupVaultName:
+            Fn::GetAtt:
+              - "DrBackupNestedStack"
+              - "Outputs.DestinationBackupVaultName"
+          destinationBackupVaultArn:
+            Fn::GetAtt:
+              - "DrBackupNestedStack"
+              - "Outputs.DestinationBackupVaultArn"
+          backupPlanId:
+            Fn::GetAtt:
+              - "DrBackupNestedStack"
+              - "Outputs.BackupPlanId"
+          backupSelectionTagValue:
+            Fn::GetAtt:
+              - "DrBackupNestedStack"
+              - "Outputs.BackupSelectionTagValue"
 Outputs:
   PrmProductCode:
     Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."

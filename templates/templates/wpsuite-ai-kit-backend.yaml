@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.0"
+    Default: "v1.0.40"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -24,6 +24,10 @@ Parameters:
     Type: "String"
     Default: "wpsuite-artifacts"
     Description: "S3 bucket that stores the published deployment artifacts for this application."
+  BackupSelectionTagValue:
+    Type: "String"
+    Default: ""
+    Description: "Deployment-scoped tag value used by the optional WP Suite DR backup plan."
   AppName:
     Type: "String"
     Default: "wpsuite-ai-kit"
@@ -2560,6 +2564,13 @@ Resources:
               DaysAfterInitiation: 1
       Tags:
         -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
@@ -2975,6 +2986,18 @@ Resources:
         -
           AttributeName: "KnowledgeBaseId"
           KeyType: "HASH"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Fn::If:
@@ -2984,11 +3007,6 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "TTL"
         Enabled: true
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
     Condition: "KBSyncStateTableTemplateEnabledCondition"
   ChatSessionsTable:
     Type: "AWS::DynamoDB::Table"
@@ -3004,6 +3022,18 @@ Resources:
         -
           AttributeName: "SessionId"
           KeyType: "HASH"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Fn::If:
@@ -3013,11 +3043,6 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "TTL"
         Enabled: true
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
   ChatMessagesTable:
     Type: "AWS::DynamoDB::Table"
@@ -3039,6 +3064,18 @@ Resources:
         -
           AttributeName: "MessageId"
           KeyType: "RANGE"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Fn::If:
@@ -3048,11 +3085,6 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "TTL"
         Enabled: true
-      Tags:
-        -
-          Key: "aws-apn-id"
-          Value:
-            Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
   CommonDependenciesLayer:
     Type: "AWS::Lambda::LayerVersion"
