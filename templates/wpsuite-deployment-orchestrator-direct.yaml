@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.38/templates/templates"
+    Default: "releases/v1.0.0/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.38"
+    Default: "v1.0.0"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -104,6 +104,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable a shared regional AWS WAF WebACL for selected WP Suite APIs."
+  EnableDynamoDbPointInTimeRecovery:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable DynamoDB point-in-time recovery for persistent WP Suite nested-stack tables."
   ApiPublicAllowedIPs:
     Type: "String"
     Default: ""
@@ -1265,6 +1272,8 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "FlowLogRetentionDays"
+        EnableDynamoDbPointInTimeRecovery:
+          Ref: "EnableDynamoDbPointInTimeRecovery"
         Enabled:
           Ref: "DeployFlowBackend"
         AppName:
@@ -1402,6 +1411,8 @@ Resources:
             - "ArtifactRootPrefix"
         LogRetentionDays:
           Ref: "LogRetentionDays"
+        EnableDynamoDbPointInTimeRecovery:
+          Ref: "EnableDynamoDbPointInTimeRecovery"
         Enabled:
           Ref: "DeployAiKitBackend"
         AppName:

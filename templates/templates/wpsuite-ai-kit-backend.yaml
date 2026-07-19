@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.38"
+    Default: "v1.0.0"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -365,6 +365,13 @@ Parameters:
     Type: "CommaDelimitedList"
     Default: ""
     Description: "CIDR ranges to block for all endpoints."
+  EnableDynamoDbPointInTimeRecovery:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable point-in-time recovery for persistent AI Kit DynamoDB tables."
   MaxTokens:
     Type: "Number"
     Default: 300
@@ -817,6 +824,11 @@ Conditions:
         Condition: "HasChatbotBackendEnabled"
       -
         Condition: "HasLanguageAIBackendEnabled"
+  DynamoDbPointInTimeRecoveryEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableDynamoDbPointInTimeRecovery"
+      - "true"
   RecaptchaKmsKeyTemplateEnabledCondition:
     Fn::And:
       -
@@ -2963,6 +2975,12 @@ Resources:
         -
           AttributeName: "KnowledgeBaseId"
           KeyType: "HASH"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
       TimeToLiveSpecification:
         AttributeName: "TTL"
         Enabled: true
@@ -2986,6 +3004,12 @@ Resources:
         -
           AttributeName: "SessionId"
           KeyType: "HASH"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
       TimeToLiveSpecification:
         AttributeName: "TTL"
         Enabled: true
@@ -3015,6 +3039,12 @@ Resources:
         -
           AttributeName: "MessageId"
           KeyType: "RANGE"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
       TimeToLiveSpecification:
         AttributeName: "TTL"
         Enabled: true

@@ -43,6 +43,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter LogRetentionDays."
+  EnableDynamoDbPointInTimeRecovery:
+    Type: "String"
+    Default: "true"
+    Description: "Forwarded WP Suite nested stack parameter EnableDynamoDbPointInTimeRecovery."
   Enabled:
     Type: "String"
     Default: ""
@@ -254,6 +258,17 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "LogRetentionDays"
+        EnableDynamoDbPointInTimeRecovery:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:EnableDynamoDbPointInTimeRecovery}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableDynamoDbPointInTimeRecovery"
         Enabled:
           Fn::If:
             - "CondUseMarketplaceSecret"

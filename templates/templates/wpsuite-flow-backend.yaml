@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.38"
+    Default: "v1.0.0"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -148,6 +148,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable GuardDuty Malware Protection for the payload bucket."
+  EnableDynamoDbPointInTimeRecovery:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable point-in-time recovery for persistent Flow DynamoDB tables."
   EnableAlerts:
     Type: "String"
     Default: "false"
@@ -536,6 +543,11 @@ Conditions:
           -
             Ref: "DefaultWebhookSigningSecret"
           - ""
+  DynamoDbPointInTimeRecoveryEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableDynamoDbPointInTimeRecovery"
+      - "true"
   ApiDomainNameTemplateEnabledCondition:
     Fn::And:
       -
@@ -1173,6 +1185,12 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-submissions"
       BillingMode: "PAY_PER_REQUEST"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
       AttributeDefinitions:
         -
           AttributeName: "PK"
@@ -1254,6 +1272,12 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-submission-events"
       BillingMode: "PAY_PER_REQUEST"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
       AttributeDefinitions:
         -
           AttributeName: "PK"
@@ -1280,6 +1304,12 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-templates"
       BillingMode: "PAY_PER_REQUEST"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
       AttributeDefinitions:
         -
           AttributeName: "PK"
@@ -1324,6 +1354,12 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-workflow-definitions"
       BillingMode: "PAY_PER_REQUEST"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
       AttributeDefinitions:
         -
           AttributeName: "PK"
@@ -1368,6 +1404,12 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-form-definitions"
       BillingMode: "PAY_PER_REQUEST"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
       AttributeDefinitions:
         -
           AttributeName: "PK"
@@ -1412,6 +1454,12 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-webhook-endpoints"
       BillingMode: "PAY_PER_REQUEST"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
       AttributeDefinitions:
         -
           AttributeName: "PK"
@@ -1456,6 +1504,12 @@ Resources:
       TableName:
         Fn::Sub: "${AppName}-process-maps"
       BillingMode: "PAY_PER_REQUEST"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
       AttributeDefinitions:
         -
           AttributeName: "PK"
