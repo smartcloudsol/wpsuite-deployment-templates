@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.43/templates/templates"
+    Default: "releases/v1.0.44/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.43"
+    Default: "v1.0.44"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -602,11 +602,6 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "AiKit nested stack parameter CreateS3Trigger."
-    NoEcho: false
-  AiKitEnableRerank:
-    Type: "String"
-    Default: ""
-    Description: "AiKit nested stack parameter EnableRerank."
     NoEcho: false
   AiKitStrictMetadataFiltering:
     Type: "String"
@@ -1572,8 +1567,6 @@ Resources:
           Ref: "AiKitAcmCertificateArn"
         CreateS3Trigger:
           Ref: "AiKitCreateS3Trigger"
-        EnableRerank:
-          Ref: "AiKitEnableRerank"
         StrictMetadataFiltering:
           Ref: "AiKitStrictMetadataFiltering"
         StrictKBGroundingForChat:

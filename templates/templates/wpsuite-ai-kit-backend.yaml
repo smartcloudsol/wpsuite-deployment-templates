@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.43"
+    Default: "v1.0.44"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -228,13 +228,6 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Email recipient 5 for SNS critical alerts. Confirm from the buyer SNS console to require authenticated unsubscribe."
-  EnableRerank:
-    Type: "String"
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
-    Description: "Enable semantic reranking."
   StrictMetadataFiltering:
     Type: "String"
     Default: "false"
@@ -2628,7 +2621,6 @@ Resources:
               - "bedrock:ListFoundationModels"
               - "bedrock:ListInferenceProfiles"
               - "bedrock:InvokeModel"
-              - "bedrock:Rerank"
               - "aws-marketplace:ViewSubscriptions"
             Resource: "*"
     Condition: "TemplateEnabled"
@@ -2774,34 +2766,6 @@ Resources:
               Ref: "ArtifactRootPrefix"
             - "wpsuite-ai-kit/templates/query-template.txt"
       SourcePath: "/opt/nodejs/templates/query-template.txt"
-      ContentType: "text/plain"
-    Condition: "TemplateEnabled"
-  RerankTemplateUpload:
-    Type: "Custom::S3Upload"
-    Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - "CustomResourceManager"
-          - "Arn"
-      BucketName:
-        Fn::If:
-          - "UseProvidedDocsBucket"
-          -
-            Ref: "DocsBucketName"
-          -
-            Ref: "DocsBucket"
-      Key:
-        Fn::Sub: "${ConfigPrefix}rerank-template.txt"
-      SourceBucketName:
-        Ref: "ArtifactBucketName"
-      SourceKey:
-        Fn::Join:
-          - ""
-          -
-            -
-              Ref: "ArtifactRootPrefix"
-            - "wpsuite-ai-kit/templates/rerank-template.txt"
-      SourcePath: "/opt/nodejs/templates/rerank-template.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
   SummaryTemplateUpload:
@@ -3424,8 +3388,6 @@ Resources:
           MAX_TOKENS_BEFORE_SUMMARIZE: "10000"
           CONFIG_PREFIX:
             Ref: "ConfigPrefix"
-          ENABLE_RERANK:
-            Ref: "EnableRerank"
           STRICT_METADATA_FILTERING:
             Ref: "StrictMetadataFiltering"
           STRICT_KB_GROUNDING_FOR_CHAT:
@@ -3692,8 +3654,6 @@ Resources:
             Ref: "RecaptchaScoreThreshold"
           CONFIG_PREFIX:
             Ref: "ConfigPrefix"
-          ENABLE_RERANK:
-            Ref: "EnableRerank"
           STRICT_METADATA_FILTERING:
             Ref: "StrictMetadataFiltering"
           STRICT_KB_GROUNDING_FOR_CHAT:

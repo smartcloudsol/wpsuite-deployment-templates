@@ -203,10 +203,6 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter CreateS3Trigger."
-  EnableRerank:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnableRerank."
   StrictMetadataFiltering:
     Type: "String"
     Default: ""
@@ -730,17 +726,6 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "CreateS3Trigger"
-        EnableRerank:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitEnableRerank}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnableRerank"
         StrictMetadataFiltering:
           Fn::If:
             - "CondUseMarketplaceSecret"
