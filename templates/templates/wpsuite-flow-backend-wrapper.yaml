@@ -111,6 +111,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter RecaptchaScoreThreshold."
+  RecaptchaSecretKey:
+    Type: "String"
+    Description: "Forwarded WP Suite nested stack parameter RecaptchaSecretKey."
+    NoEcho: true
   SharedRecaptchaSecretParameterName:
     Type: "String"
     Default: ""
@@ -438,6 +442,17 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "RecaptchaScoreThreshold"
+        RecaptchaSecretKey:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaSecretKey}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "RecaptchaSecretKey"
         SharedRecaptchaSecretParameterName:
           Ref: "SharedRecaptchaSecretParameterName"
         SharedRecaptchaSecretParameterArn:
