@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.45/templates/templates"
+    Default: "releases/v1.0.46/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.45"
+    Default: "v1.0.46"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -415,92 +415,92 @@ Parameters:
     NoEcho: false
   CognitoLoginMechanisms:
     Type: "String"
-    Default: ""
+    Default: "email"
     Description: "Cognito nested stack parameter LoginMechanisms."
     NoEcho: false
   CognitoOAuthScopes:
     Type: "String"
-    Default: ""
+    Default: "aws.cognito.signin.user.admin,email,openid,profile"
     Description: "Cognito nested stack parameter OAuthScopes."
     NoEcho: false
   CognitoRequireEmailAttribute:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Cognito nested stack parameter RequireEmailAttribute."
     NoEcho: false
   CognitoRequireGivenNameAttribute:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Cognito nested stack parameter RequireGivenNameAttribute."
     NoEcho: false
   CognitoRequireFamilyNameAttribute:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Cognito nested stack parameter RequireFamilyNameAttribute."
     NoEcho: false
   CognitoRequirePhoneNumberAttribute:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Cognito nested stack parameter RequirePhoneNumberAttribute."
     NoEcho: false
   CognitoEnablePreSignUp:
     Type: "String"
-    Default: ""
+    Default: "true"
     Description: "Cognito nested stack parameter EnablePreSignUp."
     NoEcho: false
   CognitoEnablePreTokenGeneration:
     Type: "String"
-    Default: ""
+    Default: "true"
     Description: "Cognito nested stack parameter EnablePreTokenGeneration."
     NoEcho: false
   CognitoEnablePostConfirmation:
     Type: "String"
-    Default: ""
+    Default: "true"
     Description: "Cognito nested stack parameter EnablePostConfirmation."
     NoEcho: false
   CognitoMfaMode:
     Type: "String"
-    Default: ""
+    Default: "no"
     Description: "Cognito nested stack parameter MfaMode."
     NoEcho: false
   CognitoDeviceTrackingMode:
     Type: "String"
-    Default: ""
+    Default: "none"
     Description: "Cognito nested stack parameter DeviceTrackingMode."
     NoEcho: false
   CognitoVerifyAttributeChanges:
     Type: "String"
-    Default: ""
+    Default: "true"
     Description: "Cognito nested stack parameter VerifyAttributeChanges."
     NoEcho: false
   CognitoVerifyAttributeChangesMode:
     Type: "String"
-    Default: ""
+    Default: "auto"
     Description: "Cognito nested stack parameter VerifyAttributeChangesMode."
     NoEcho: false
   CognitoEnableSoftwareTokenMfa:
     Type: "String"
-    Default: ""
+    Default: "true"
     Description: "Cognito nested stack parameter EnableSoftwareTokenMfa."
     NoEcho: false
   CognitoEnableEmailOtpMfa:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Cognito nested stack parameter EnableEmailOtpMfa."
     NoEcho: false
   CognitoEnableSmsMfa:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Cognito nested stack parameter EnableSmsMfa."
     NoEcho: false
   CognitoCreateCustomDomain:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Cognito nested stack parameter CreateCustomDomain."
     NoEcho: false
   CognitoRegisterRoute53Alias:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Cognito nested stack parameter RegisterRoute53Alias."
     NoEcho: false
   CognitoUserPoolCustomDomainSubdomain:
@@ -515,12 +515,12 @@ Parameters:
     NoEcho: false
   CognitoAutoCreateSesIdentity:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Cognito nested stack parameter AutoCreateSesIdentity."
     NoEcho: false
   CognitoDeleteSesIdentityOnStackDelete:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Cognito nested stack parameter DeleteSesIdentityOnStackDelete."
     NoEcho: false
   CognitoEmailTemplateBucketName:
