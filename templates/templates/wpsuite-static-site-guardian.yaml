@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.44"
+    Default: "v1.0.45"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -1240,7 +1240,7 @@ Resources:
                 Action:
                   - "s3:PutObject"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:s3:::${StaticSiteBucket}/${S3WWWRoot}/wp-content/uploads/hub-for-wpsuiteio/*"
+                  Fn::Sub: "arn:${AWS::Partition}:s3:::${StaticSiteBucket}/${S3WWWRoot}/smartcloud-wpsuiteio/*"
               -
                 Effect: "Allow"
                 Action:
@@ -1518,7 +1518,7 @@ Outputs:
       Fn::If:
         - "TemplateEnabled"
         -
-          Fn::Sub: "1. Upload your static WordPress files to S3 bucket: ${StaticSiteBucket}/${S3WWWRoot}\n2. Include custom error pages (if configured): ${NotFoundPagePath} and ${ForbiddenPagePath}\n3. DNS Configuration: Check CreateDNSRecords parameter (${CreateDNSRecords})\n4. Configure Cognito User Pool and App Clients for JWT authentication\n5. Test cookie issuance via main domain: https://${DomainName}/issue-cookie?action=signin\n6. Verify protected paths redirect unauthenticated users to ${SigninPagePath}\n7. Test error pages by accessing non-existent URLs\n8. If weekly refresh is enabled, confirm config.enc and lic.jws appear under ${S3WWWRoot}/wp-content/uploads/hub-for-wpsuiteio/\n\nS3 Bucket: ${StaticSiteBucket}\nS3 WWWRoot Prefix: ${S3WWWRoot}\nCloudFront Domain: ${CloudFrontDistribution.DomainName}\nCookie Endpoint: https://${DomainName}/issue-cookie\nAuthentication: JWT Bearer token required for cookie issuance"
+          Fn::Sub: "1. Upload your static WordPress files to S3 bucket: ${StaticSiteBucket}/${S3WWWRoot}\n2. Include custom error pages (if configured): ${NotFoundPagePath} and ${ForbiddenPagePath}\n3. DNS Configuration: Check CreateDNSRecords parameter (${CreateDNSRecords})\n4. Configure Cognito User Pool and App Clients for JWT authentication\n5. Test cookie issuance via main domain: https://${DomainName}/issue-cookie?action=signin\n6. Verify protected paths redirect unauthenticated users to ${SigninPagePath}\n7. Test error pages by accessing non-existent URLs\n8. If weekly refresh is enabled, confirm config.enc and lic.jws appear under ${S3WWWRoot}/smartcloud-wpsuiteio/\n\nS3 Bucket: ${StaticSiteBucket}\nS3 WWWRoot Prefix: ${S3WWWRoot}\nCloudFront Domain: ${CloudFrontDistribution.DomainName}\nCookie Endpoint: https://${DomainName}/issue-cookie\nAuthentication: JWT Bearer token required for cookie issuance"
         - ""
   SiteKeyParameterName:
     Description: "SSM SecureString parameter that stores the WP Suite site key."
