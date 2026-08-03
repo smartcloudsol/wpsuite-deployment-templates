@@ -124,7 +124,7 @@ Resources:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DrBackupLogRetentionDays}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:LogRetentionDays}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"
