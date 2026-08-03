@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.46/templates/templates"
+    Default: "releases/v1.0.47/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.46"
+    Default: "v1.0.47"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -555,22 +555,22 @@ Parameters:
     NoEcho: false
   AiKitInclusionPrefix:
     Type: "String"
-    Default: ""
+    Default: "documents/"
     Description: "AiKit nested stack parameter InclusionPrefix."
     NoEcho: false
   AiKitTempAssetsPrefix:
     Type: "String"
-    Default: ""
+    Default: "temp-assets/"
     Description: "AiKit nested stack parameter TempAssetsPrefix."
     NoEcho: false
   AiKitConfigPrefix:
     Type: "String"
-    Default: ""
+    Default: "config/"
     Description: "AiKit nested stack parameter ConfigPrefix."
     NoEcho: false
   AiKitAgentModelId:
     Type: "String"
-    Default: ""
+    Default: "global.amazon.nova-2-lite-v1:0"
     Description: "AiKit nested stack parameter AgentModelId."
     NoEcho: false
   AiKitAgentReasoningEffortLevel:
@@ -585,7 +585,7 @@ Parameters:
     NoEcho: false
   AiKitBedrockGuardrailVersion:
     Type: "String"
-    Default: ""
+    Default: "DRAFT"
     Description: "AiKit nested stack parameter BedrockGuardrailVersion."
     NoEcho: false
   AiKitApiCustomDomainName:
@@ -600,72 +600,72 @@ Parameters:
     NoEcho: false
   AiKitCreateS3Trigger:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "AiKit nested stack parameter CreateS3Trigger."
     NoEcho: false
   AiKitStrictMetadataFiltering:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "AiKit nested stack parameter StrictMetadataFiltering."
     NoEcho: false
   AiKitStrictKBGroundingForChat:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "AiKit nested stack parameter StrictKBGroundingForChat."
     NoEcho: false
   AiKitEnableAgentModeForChatbot:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "AiKit nested stack parameter EnableAgentModeForChatbot."
     NoEcho: false
   AiKitGuardrailsEnabled:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "AiKit nested stack parameter GuardrailsEnabled."
     NoEcho: false
   AiKitEnableRoute53:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "AiKit nested stack parameter EnableRoute53."
     NoEcho: false
   AiKitMaxTokens:
     Type: "String"
-    Default: ""
+    Default: "300"
     Description: "AiKit nested stack parameter MaxTokens."
     NoEcho: false
   AiKitOverlapPercentage:
     Type: "String"
-    Default: ""
+    Default: "20"
     Description: "AiKit nested stack parameter OverlapPercentage."
     NoEcho: false
   AiKitSessionTTLDays:
     Type: "String"
-    Default: ""
+    Default: "1"
     Description: "AiKit nested stack parameter SessionTTLDays."
     NoEcho: false
   AiKitLambdaMemorySize:
     Type: "String"
-    Default: ""
+    Default: "2048"
     Description: "AiKit nested stack parameter LambdaMemorySize."
     NoEcho: false
   AiKitLambdaTimeout:
     Type: "String"
-    Default: ""
+    Default: "30"
     Description: "AiKit nested stack parameter LambdaTimeout."
     NoEcho: false
   AiKitAiHandlerTimeout:
     Type: "String"
-    Default: ""
+    Default: "30"
     Description: "AiKit nested stack parameter AiHandlerTimeout."
     NoEcho: false
   AiKitAiAgentDispatcherTimeout:
     Type: "String"
-    Default: ""
+    Default: "30"
     Description: "AiKit nested stack parameter AiAgentDispatcherTimeout."
     NoEcho: false
   AiKitProductionLogLevel:
     Type: "String"
-    Default: ""
+    Default: "INFO"
     Description: "AiKit nested stack parameter ProductionLogLevel."
     NoEcho: false
   AiKitPublicAllowedIPs:
@@ -685,12 +685,12 @@ Parameters:
     NoEcho: false
   FlowPayloadPrefix:
     Type: "String"
-    Default: ""
+    Default: "uploads/"
     Description: "Flow nested stack parameter PayloadPrefix."
     NoEcho: false
   FlowTemplatesPrefix:
     Type: "String"
-    Default: ""
+    Default: "templates/"
     Description: "Flow nested stack parameter TemplatesPrefix."
     NoEcho: false
   FlowDefaultWebhookSigningSecret:
@@ -710,32 +710,32 @@ Parameters:
     NoEcho: false
   FlowEnableRoute53:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Flow nested stack parameter EnableRoute53."
     NoEcho: false
   FlowEnableGuardDutyMalwareProtection:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Flow nested stack parameter EnableGuardDutyMalwareProtection."
     NoEcho: false
   FlowLogRetentionDays:
     Type: "String"
-    Default: ""
+    Default: "14"
     Description: "Flow nested stack parameter LogRetentionDays."
     NoEcho: false
   FlowLambdaMemorySize:
     Type: "String"
-    Default: ""
+    Default: "1024"
     Description: "Flow nested stack parameter LambdaMemorySize."
     NoEcho: false
   FlowLambdaTimeout:
     Type: "String"
-    Default: ""
+    Default: "30"
     Description: "Flow nested stack parameter LambdaTimeout."
     NoEcho: false
   FlowLogLevel:
     Type: "String"
-    Default: ""
+    Default: "INFO"
     Description: "Flow nested stack parameter LogLevel."
     NoEcho: false
   FlowPublicAllowedIPs:
@@ -755,12 +755,12 @@ Parameters:
     NoEcho: false
   StaticGuardianProtectedPathGroupMap:
     Type: "String"
-    Default: ""
+    Default: "{}"
     Description: "StaticGuardian nested stack parameter ProtectedPathGroupMap."
     NoEcho: false
   StaticGuardianCookieExpirationDays:
     Type: "String"
-    Default: ""
+    Default: "30"
     Description: "StaticGuardian nested stack parameter CookieExpirationDays."
     NoEcho: false
   StaticGuardianPublicKeyContent:
@@ -775,7 +775,7 @@ Parameters:
     NoEcho: false
   StaticGuardianLogRetentionDays:
     Type: "String"
-    Default: ""
+    Default: "14"
     Description: "StaticGuardian nested stack parameter LogRetentionDays."
     NoEcho: false
   StaticGuardianNotFoundPagePath:
@@ -805,12 +805,12 @@ Parameters:
     NoEcho: true
   StaticGuardianWpsuiteApiBaseUrl:
     Type: "String"
-    Default: ""
+    Default: "https://api.wpsuite.io"
     Description: "StaticGuardian nested stack parameter WpsuiteApiBaseUrl."
     NoEcho: false
   StaticGuardianLicenseRefreshScheduleExpression:
     Type: "String"
-    Default: ""
+    Default: "rate(7 days)"
     Description: "StaticGuardian nested stack parameter LicenseRefreshScheduleExpression."
     NoEcho: false
   IdentityMode:
