@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.49"
+    Default: "v1.0.50"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -517,6 +517,8 @@ Resources:
                   - "lambda:ListVersionsByFunction"
                   - "lambda:UpdateFunctionCode"
                   - "lambda:PublishVersion"
+                  - "lambda:EnableReplication*"
+                  - "lambda:DisableReplication*"
                 Resource:
                   -
                     Fn::Sub: "arn:${AWS::Partition}:lambda:us-east-1:${AWS::AccountId}:function:${AppName}-cookie-signing"
@@ -541,6 +543,16 @@ Resources:
                   Fn::GetAtt:
                     - "LambdaEdgeExecutionRole"
                     - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "iam:CreateServiceLinkedRole"
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    iam:AWSServiceName:
+                      - "replicator.lambda.amazonaws.com"
+                      - "logger.cloudfront.amazonaws.com"
               -
                 Effect: "Allow"
                 Action:
@@ -986,6 +998,10 @@ Resources:
       ResourceType: "DistributionUpdate"
       DistributionId:
         Ref: "CloudFrontDistribution"
+      LambdaEdgeFunctionVersionArn:
+        Fn::GetAtt:
+          - "CookieSigningEdgeFunction"
+          - "VersionArn"
       ProtectedPaths:
         Fn::Join:
           - ","
@@ -1053,13 +1069,6 @@ Resources:
               - "GET"
               - "HEAD"
             Compress: false
-            LambdaFunctionAssociations:
-              -
-                EventType: "viewer-request"
-                LambdaFunctionARN:
-                  Fn::GetAtt:
-                    - "CookieSigningEdgeFunction"
-                    - "VersionArn"
           -
             PathPattern: "/restricted*"
             TargetOriginId: "S3Origin"

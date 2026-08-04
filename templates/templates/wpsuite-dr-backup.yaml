@@ -15,7 +15,7 @@ Parameters:
     Description: "Create scheduled AWS Backup resources for WP Suite disaster recovery."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.49"
+    Default: "v1.0.50"
     Description: "Immutable WP Suite deployment template version."
   AppName:
     Type: "String"
