@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.59"
+    Default: "v1.0.60"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -4376,7 +4376,7 @@ Resources:
                   - "scheduler:GetSchedule"
                   - "scheduler:DeleteSchedule"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/${AppName}-kb-sync-*"
+                  Fn::Sub: "arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/${AppName}-${Environment}-kb-sync-*"
               -
                 Effect: "Allow"
                 Action:
