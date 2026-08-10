@@ -87,6 +87,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter EnableCustomEmailSender."
+  OverwriteEmailTemplates:
+    Type: "String"
+    Default: "false"
+    Description: "Forwarded WP Suite nested stack parameter OverwriteEmailTemplates."
   EnableRecaptcha:
     Type: "String"
     Default: ""
@@ -183,6 +187,22 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter EnablePostConfirmation."
+  EnablePasskeySignIn:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnablePasskeySignIn."
+  EnableEmailOtpSignIn:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableEmailOtpSignIn."
+  PasskeyRelyingPartyId:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter PasskeyRelyingPartyId."
+  PasskeyThirdPartyDomain:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter PasskeyThirdPartyDomain."
   MfaMode:
     Type: "String"
     Default: ""
@@ -203,6 +223,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter EnableSoftwareTokenMfa."
+  EnablePasskeyMfa:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnablePasskeyMfa."
   EnableEmailOtpMfa:
     Type: "String"
     Default: ""
@@ -243,6 +267,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter SesIdentity."
+  SesRegion:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter SesRegion."
   EmailFromAddress:
     Type: "String"
     Default: ""
@@ -422,6 +450,17 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "EnableCustomEmailSender"
+        OverwriteEmailTemplates:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoOverwriteEmailTemplates}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "OverwriteEmailTemplates"
         EnableRecaptcha:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -688,6 +727,50 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "EnablePostConfirmation"
+        EnablePasskeySignIn:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePasskeySignIn}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnablePasskeySignIn"
+        EnableEmailOtpSignIn:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableEmailOtpSignIn}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableEmailOtpSignIn"
+        PasskeyRelyingPartyId:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoPasskeyRelyingPartyId}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "PasskeyRelyingPartyId"
+        PasskeyThirdPartyDomain:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoPasskeyThirdPartyDomain}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "PasskeyThirdPartyDomain"
         MfaMode:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -743,6 +826,17 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "EnableSoftwareTokenMfa"
+        EnablePasskeyMfa:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePasskeyMfa}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnablePasskeyMfa"
         EnableEmailOtpMfa:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -853,6 +947,17 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "SesIdentity"
+        SesRegion:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoSesRegion}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "SesRegion"
         EmailFromAddress:
           Fn::If:
             - "CondUseMarketplaceSecret"

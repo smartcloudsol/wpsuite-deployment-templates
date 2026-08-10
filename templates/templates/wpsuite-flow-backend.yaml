@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.50"
+    Default: "v1.0.59"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -190,6 +190,8 @@ Parameters:
     Type: "Number"
     Default: 30
     Description: "Number of days to retain submission data before TTL cleanup."
+    MaxValue: 3650
+    MinValue: 1
   LogRetentionDays:
     Type: "Number"
     Default: "14"
@@ -220,6 +222,11 @@ Parameters:
     Type: "Number"
     Default: 30
     Description: "Maximum execution time in seconds for Flow Lambda functions."
+  FormsApiDurationAlarmThresholdMilliseconds:
+    Type: "Number"
+    Default: 24000
+    Description: "Forms API P99 duration alarm threshold in milliseconds. Keep this at or below 80 percent of LambdaTimeout."
+    MinValue: 1
   LogLevel:
     Type: "String"
     Default: "INFO"
@@ -475,6 +482,12 @@ Conditions:
       -
         Ref: "EnableAlerts"
       - "true"
+  LocalWafAlertsEnabled:
+    Fn::And:
+      -
+        Condition: "AlertsEnabled"
+      -
+        Condition: "CreateLocalWAF"
   HasAlertEmailAddress1:
     Fn::Not:
       -
@@ -720,6 +733,48 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "UseSharedRecaptchaSecret"
+  FormsApiErrorsAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  FormsApiThrottlesAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  FormsApiP99DurationAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  SubmissionsTableUserErrorsAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  SubmissionsTableSystemErrorsAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  SubmissionsTableThrottledRequestsAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  WafFrontendBlockedRequestsAnomalyAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "LocalWafAlertsEnabled"
   ApiBasePathMappingTemplateEnabledCondition:
     Fn::And:
       -
@@ -756,6 +811,24 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CreateKmsKey"
+  SubmissionRetentionCleanupErrorsAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  SubmissionRetentionCleanupIteratorAgeAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  SubmissionRetentionCleanupQueueAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
   OutputRecaptchaSecretParameterNameTemplateEnabledCondition:
     Fn::And:
       -
@@ -851,7 +924,7 @@ Resources:
       ResponseType: "DEFAULT_4XX"
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token,Idempotency-Key'"
         gatewayresponse.header.Cache-Control: "'no-store'"
         gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
         gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
@@ -864,7 +937,7 @@ Resources:
       ResponseType: "DEFAULT_5XX"
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token,Idempotency-Key'"
         gatewayresponse.header.Cache-Control: "'no-store'"
         gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
         gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
@@ -877,7 +950,7 @@ Resources:
       ResponseType: "UNAUTHORIZED"
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token,Idempotency-Key'"
         gatewayresponse.header.Cache-Control: "'no-store'"
         gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
         gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
@@ -890,7 +963,7 @@ Resources:
       ResponseType: "ACCESS_DENIED"
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token,Idempotency-Key'"
         gatewayresponse.header.Cache-Control: "'no-store'"
         gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
         gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
@@ -1150,6 +1223,13 @@ Resources:
             MaxAge: 3600
       VersioningConfiguration:
         Status: "Enabled"
+      LifecycleConfiguration:
+        Rules:
+          -
+            Id: "RemoveNoncurrentPayloadVersions"
+            Status: "Enabled"
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 7
       Tags:
         -
           Key: "wpsuite:dr-backup"
@@ -1290,6 +1370,10 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "expiresAt"
         Enabled: true
+      StreamSpecification:
+        StreamViewType: "NEW_AND_OLD_IMAGES"
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "Retain"
     Condition: "TemplateEnabled"
   SubmissionEventsTable:
     Type: "AWS::DynamoDB::Table"
@@ -1329,6 +1413,11 @@ Resources:
         -
           AttributeName: "SK"
           KeyType: "RANGE"
+      TimeToLiveSpecification:
+        AttributeName: "expiresAt"
+        Enabled: true
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "Retain"
     Condition: "TemplateEnabled"
   TemplatesTable:
     Type: "AWS::DynamoDB::Table"
@@ -1678,6 +1767,12 @@ Resources:
                         Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/domainnames/${ApiCustomDomainName}/*"
                       -
                         Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action:
+                  - "apigateway:DELETE"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/domainnames/*/basepathmappings/*"
               -
                 Effect: "Allow"
                 Action:
@@ -2547,6 +2642,19 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "dynamodb:TransactWriteItems"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "SubmissionsTable"
+                      - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "SubmissionEventsTable"
+                      - "Arn"
+              -
+                Effect: "Allow"
+                Action:
                   - "s3:AbortMultipartUpload"
                   - "s3:DeleteObject"
                   - "s3:GetObject"
@@ -2795,6 +2903,192 @@ Resources:
       SourceArn:
         Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*/*"
     Condition: "TemplateEnabled"
+  FormsApiErrorsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-errors"
+      AlarmDescription:
+        Fn::Sub: "${AppName} Forms API Lambda errors are above zero."
+      Namespace: "AWS/Lambda"
+      MetricName: "Errors"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "FormsApiFunction"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "FormsApiErrorsAlarmTemplateEnabledCondition"
+  FormsApiThrottlesAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-throttles"
+      AlarmDescription:
+        Fn::Sub: "${AppName} Forms API Lambda throttles are above zero."
+      Namespace: "AWS/Lambda"
+      MetricName: "Throttles"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "FormsApiFunction"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "FormsApiThrottlesAlarmTemplateEnabledCondition"
+  FormsApiP99DurationAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-p99-duration"
+      AlarmDescription:
+        Fn::Sub: "${AppName} Forms API P99 duration exceeds the configured 80-percent timeout boundary."
+      Namespace: "AWS/Lambda"
+      MetricName: "Duration"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "FormsApiFunction"
+      ExtendedStatistic: "p99"
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold:
+        Ref: "FormsApiDurationAlarmThresholdMilliseconds"
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "FormsApiP99DurationAlarmTemplateEnabledCondition"
+  SubmissionsTableUserErrorsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-submissions-usererrors"
+      AlarmDescription:
+        Fn::Sub: "${AppName} submission table user errors are above zero."
+      Namespace: "AWS/DynamoDB"
+      MetricName: "UserErrors"
+      Dimensions:
+        -
+          Name: "TableName"
+          Value:
+            Ref: "SubmissionsTable"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "SubmissionsTableUserErrorsAlarmTemplateEnabledCondition"
+  SubmissionsTableSystemErrorsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-submissions-systemerrors"
+      AlarmDescription:
+        Fn::Sub: "${AppName} submission table system errors are above zero."
+      Namespace: "AWS/DynamoDB"
+      MetricName: "SystemErrors"
+      Dimensions:
+        -
+          Name: "TableName"
+          Value:
+            Ref: "SubmissionsTable"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "SubmissionsTableSystemErrorsAlarmTemplateEnabledCondition"
+  SubmissionsTableThrottledRequestsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-submissions-throttledrequests"
+      AlarmDescription:
+        Fn::Sub: "${AppName} submission table requests are being throttled."
+      Namespace: "AWS/DynamoDB"
+      MetricName: "ThrottledRequests"
+      Dimensions:
+        -
+          Name: "TableName"
+          Value:
+            Ref: "SubmissionsTable"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "SubmissionsTableThrottledRequestsAlarmTemplateEnabledCondition"
+  WafFrontendBlockedRequestsAnomalyAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-waf-frontend-blocked-anomaly"
+      AlarmDescription:
+        Fn::Sub: "${AppName} frontend WAF blocked requests are outside their expected band."
+      ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
+      EvaluationPeriods: 2
+      ThresholdMetricId: "anomalyBand"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+      Metrics:
+        -
+          Id: "blockedRequests"
+          ReturnData: true
+          MetricStat:
+            Metric:
+              Namespace: "AWS/WAFV2"
+              MetricName: "BlockedRequests"
+              Dimensions:
+                -
+                  Name: "WebACL"
+                  Value:
+                    Fn::Sub: "${AppName}-webacl"
+                -
+                  Name: "Rule"
+                  Value: "ALL"
+                -
+                  Name: "Region"
+                  Value:
+                    Ref: "AWS::Region"
+            Period: 300
+            Stat: "Sum"
+        -
+          Id: "anomalyBand"
+          Expression: "ANOMALY_DETECTION_BAND(blockedRequests, 2)"
+          ReturnData: true
+    Condition: "WafFrontendBlockedRequestsAnomalyAlarmTemplateEnabledCondition"
   ApiRoutes:
     Type: "Custom::ApiRoutes"
     Properties:
@@ -2831,6 +3125,12 @@ Resources:
         -
           path: "/frontend/forms/{formId}/submit"
           method: "POST"
+        -
+          path: "/frontend/forms/{formId}/discussion"
+          method: "GET"
+        -
+          path: "/frontend/forms/{formId}/discussion/{submissionId}/replies"
+          method: "GET"
         -
           path: "/frontend/forms/{formId}/drafts"
           method: "POST"
@@ -3303,8 +3603,11 @@ Resources:
           - "wpsuite.ai-kit"
         detail-type:
           - "submission.created"
+          - "submission.reply-created"
           - "submission.updated"
           - "submission.status-changed"
+          - "submission.publication-status-changed"
+          - "submission.privacy-purged"
           - "submission.action-invoked"
           - "ai.agent.completed"
           - "ai.agent.failed"
@@ -3858,6 +4161,293 @@ Resources:
                 - "SecretsKmsKey"
                 - "Arn"
     Condition: "WebhookDispatcherFunctionKmsPolicyTemplateEnabledCondition"
+  SubmissionRetentionCleanupFailureQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName:
+        Fn::Sub: "${AppName}-submission-retention-cleanup-failures"
+      MessageRetentionPeriod: 1209600
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  SubmissionRetentionCleanupLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-submission-retention-cleanup"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  SubmissionRetentionCleanupFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "SubmissionRetentionCleanupFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:DescribeStream"
+                  - "dynamodb:GetRecords"
+                  - "dynamodb:GetShardIterator"
+                  - "dynamodb:ListStreams"
+                Resource:
+                  Fn::GetAtt:
+                    - "SubmissionsTable"
+                    - "StreamArn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:DeleteObject"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedPayloadBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${PayloadBucketName}/${PayloadPrefix}*"
+                    -
+                      Fn::Sub: "${PayloadBucket.Arn}/${PayloadPrefix}*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "SubmissionRetentionCleanupFailureQueue"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  SubmissionRetentionCleanupFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-submission-retention-cleanup"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-flow/functions/submission-retention-cleanup.zip"
+      Handler: "index.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout:
+        Ref: "LambdaTimeout"
+      TracingConfig:
+        Mode: "Active"
+      Role:
+        Fn::GetAtt:
+          - "SubmissionRetentionCleanupFunctionRole"
+          - "Arn"
+      Environment:
+        Variables:
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+          EVENT_BUS_NAME: "default"
+          SUBMISSIONS_TABLE:
+            Ref: "SubmissionsTable"
+          SUBMISSION_EVENTS_TABLE:
+            Ref: "SubmissionEventsTable"
+          TEMPLATES_TABLE:
+            Ref: "TemplatesTable"
+          WORKFLOW_DEFINITIONS_TABLE:
+            Ref: "WorkflowDefinitionsTable"
+          FORM_DEFINITIONS_TABLE:
+            Ref: "FormDefinitionsTable"
+          WEBHOOK_ENDPOINTS_TABLE:
+            Ref: "WebhookEndpointsTable"
+          PROCESS_MAPS_TABLE:
+            Ref: "ProcessMapsTable"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          TEMPLATES_BUCKET:
+            Fn::If:
+              - "UseProvidedTemplatesBucket"
+              -
+                Ref: "TemplatesBucketName"
+              -
+                Ref: "TemplatesBucket"
+          PAYLOAD_BUCKET:
+            Fn::If:
+              - "UseProvidedPayloadBucket"
+              -
+                Ref: "PayloadBucketName"
+              -
+                Ref: "PayloadBucket"
+          PAYLOAD_PREFIX:
+            Ref: "PayloadPrefix"
+          TEMPLATES_PREFIX:
+            Ref: "TemplatesPrefix"
+          FROM_EMAIL:
+            Ref: "FromEmail"
+          LOG_LEVEL:
+            Ref: "LogLevel"
+          DATA_RETENTION_DAYS:
+            Ref: "DataRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      ReservedConcurrentExecutions: 5
+    Condition: "TemplateEnabled"
+  SubmissionRetentionCleanupEventSourceMapping:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties:
+      FunctionName:
+        Ref: "SubmissionRetentionCleanupFunction"
+      EventSourceArn:
+        Fn::GetAtt:
+          - "SubmissionsTable"
+          - "StreamArn"
+      StartingPosition: "LATEST"
+      BatchSize: 100
+      BisectBatchOnFunctionError: true
+      MaximumRetryAttempts: 3
+      MaximumRecordAgeInSeconds: 3600
+      FunctionResponseTypes:
+        - "ReportBatchItemFailures"
+      DestinationConfig:
+        OnFailure:
+          Destination:
+            Fn::GetAtt:
+              - "SubmissionRetentionCleanupFailureQueue"
+              - "Arn"
+      FilterCriteria:
+        Filters:
+          -
+            Pattern: "{\"eventName\":[\"REMOVE\"],\"userIdentity\":{\"type\":[\"Service\"],\"principalId\":[\"dynamodb.amazonaws.com\"]}}"
+    Condition: "TemplateEnabled"
+  SubmissionRetentionCleanupErrorsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-submission-retention-cleanup-errors"
+      AlarmDescription:
+        Fn::Sub: "${AppName} submission retention cleanup has Lambda errors."
+      Namespace: "AWS/Lambda"
+      MetricName: "Errors"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "SubmissionRetentionCleanupFunction"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "SubmissionRetentionCleanupErrorsAlarmTemplateEnabledCondition"
+  SubmissionRetentionCleanupIteratorAgeAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-submission-retention-cleanup-iterator-age"
+      AlarmDescription:
+        Fn::Sub: "${AppName} submission retention cleanup iterator age is high."
+      Namespace: "AWS/Lambda"
+      MetricName: "IteratorAge"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "SubmissionRetentionCleanupFunction"
+      Statistic: "Maximum"
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 300000
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "SubmissionRetentionCleanupIteratorAgeAlarmTemplateEnabledCondition"
+  SubmissionRetentionCleanupQueueAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-submission-retention-cleanup-failure-queue"
+      AlarmDescription:
+        Fn::Sub: "${AppName} submission retention cleanup failure queue has messages."
+      Namespace: "AWS/SQS"
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Dimensions:
+        -
+          Name: "QueueName"
+          Value:
+            Fn::GetAtt:
+              - "SubmissionRetentionCleanupFailureQueue"
+              - "QueueName"
+      Statistic: "Maximum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "SubmissionRetentionCleanupQueueAlarmTemplateEnabledCondition"
 Outputs:
   PrmProductCode:
     Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."

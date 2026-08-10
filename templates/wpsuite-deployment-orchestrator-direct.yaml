@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.50/templates/templates"
+    Default: "releases/v1.0.59/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.50"
+    Default: "v1.0.59"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -192,6 +192,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable the Cognito custom email sender Lambda."
+  CognitoOverwriteEmailTemplates:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Replace existing Cognito email templates with the bundled WP Suite defaults. Leave false to preserve custom templates."
   CognitoEnableRecaptcha:
     Type: "String"
     Default: "false"
@@ -333,6 +340,8 @@ Parameters:
     Type: "Number"
     Default: 30
     Description: "Number of days to retain Flow submission data."
+    MaxValue: 3650
+    MinValue: 1
   StaticGuardianS3BucketName:
     Type: "String"
     Default: ""
@@ -458,6 +467,26 @@ Parameters:
     Default: "true"
     Description: "Cognito nested stack parameter EnablePostConfirmation."
     NoEcho: false
+  CognitoEnablePasskeySignIn:
+    Type: "String"
+    Default: "true"
+    Description: "Cognito nested stack parameter EnablePasskeySignIn."
+    NoEcho: false
+  CognitoEnableEmailOtpSignIn:
+    Type: "String"
+    Default: "false"
+    Description: "Cognito nested stack parameter EnableEmailOtpSignIn."
+    NoEcho: false
+  CognitoPasskeyRelyingPartyId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter PasskeyRelyingPartyId."
+    NoEcho: false
+  CognitoPasskeyThirdPartyDomain:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter PasskeyThirdPartyDomain."
+    NoEcho: false
   CognitoMfaMode:
     Type: "String"
     Default: "no"
@@ -482,6 +511,11 @@ Parameters:
     Type: "String"
     Default: "true"
     Description: "Cognito nested stack parameter EnableSoftwareTokenMfa."
+    NoEcho: false
+  CognitoEnablePasskeyMfa:
+    Type: "String"
+    Default: "true"
+    Description: "Cognito nested stack parameter EnablePasskeyMfa."
     NoEcho: false
   CognitoEnableEmailOtpMfa:
     Type: "String"
@@ -532,6 +566,11 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Cognito nested stack parameter SesIdentity."
+    NoEcho: false
+  CognitoSesRegion:
+    Type: "String"
+    Default: ""
+    Description: "Cognito nested stack parameter SesRegion."
     NoEcho: false
   CognitoEmailFromAddress:
     Type: "String"
@@ -1193,6 +1232,8 @@ Resources:
           Ref: "CognitoCreateIdentityPool"
         EnableCustomEmailSender:
           Ref: "CognitoEnableCustomEmailSender"
+        OverwriteEmailTemplates:
+          Ref: "CognitoOverwriteEmailTemplates"
         EnableRecaptcha:
           Ref: "CognitoEnableRecaptcha"
         RecaptchaMode:
@@ -1243,6 +1284,14 @@ Resources:
           Ref: "CognitoEnablePreTokenGeneration"
         EnablePostConfirmation:
           Ref: "CognitoEnablePostConfirmation"
+        EnablePasskeySignIn:
+          Ref: "CognitoEnablePasskeySignIn"
+        EnableEmailOtpSignIn:
+          Ref: "CognitoEnableEmailOtpSignIn"
+        PasskeyRelyingPartyId:
+          Ref: "CognitoPasskeyRelyingPartyId"
+        PasskeyThirdPartyDomain:
+          Ref: "CognitoPasskeyThirdPartyDomain"
         MfaMode:
           Ref: "CognitoMfaMode"
         DeviceTrackingMode:
@@ -1253,6 +1302,8 @@ Resources:
           Ref: "CognitoVerifyAttributeChangesMode"
         EnableSoftwareTokenMfa:
           Ref: "CognitoEnableSoftwareTokenMfa"
+        EnablePasskeyMfa:
+          Ref: "CognitoEnablePasskeyMfa"
         EnableEmailOtpMfa:
           Ref: "CognitoEnableEmailOtpMfa"
         EnableSmsMfa:
@@ -1273,6 +1324,8 @@ Resources:
           Ref: "CognitoEmailTemplateBucketName"
         SesIdentity:
           Ref: "CognitoSesIdentity"
+        SesRegion:
+          Ref: "CognitoSesRegion"
         EmailFromAddress:
           Ref: "CognitoEmailFromAddress"
         CallbackBaseUrl:

@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.50"
+    Default: "v1.0.59"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -2765,7 +2765,6 @@ Resources:
             -
               Ref: "ArtifactRootPrefix"
             - "wpsuite-ai-kit/templates/query-template.txt"
-      SourcePath: "/opt/nodejs/templates/query-template.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
   SummaryTemplateUpload:
@@ -2793,7 +2792,6 @@ Resources:
             -
               Ref: "ArtifactRootPrefix"
             - "wpsuite-ai-kit/templates/summary-template.txt"
-      SourcePath: "/opt/nodejs/templates/summary-template.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
   AnswerTemplateUpload:
@@ -2821,7 +2819,6 @@ Resources:
             -
               Ref: "ArtifactRootPrefix"
             - "wpsuite-ai-kit/templates/answer-template.txt"
-      SourcePath: "/opt/nodejs/templates/answer-template.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
   AnswerTemplateAskWhenNoKbUpload:
@@ -2849,7 +2846,6 @@ Resources:
             -
               Ref: "ArtifactRootPrefix"
             - "wpsuite-ai-kit/templates/answer-template-ask-when-no-kb.txt"
-      SourcePath: "/opt/nodejs/templates/answer-template-ask-when-no-kb.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
   AnswerTemplateKbOnlyUpload:
@@ -2877,7 +2873,6 @@ Resources:
             -
               Ref: "ArtifactRootPrefix"
             - "wpsuite-ai-kit/templates/answer-template-kb-only.txt"
-      SourcePath: "/opt/nodejs/templates/answer-template-kb-only.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
   AnswerTemplateKbPreferredUpload:
@@ -2905,7 +2900,6 @@ Resources:
             -
               Ref: "ArtifactRootPrefix"
             - "wpsuite-ai-kit/templates/answer-template-kb-preferred.txt"
-      SourcePath: "/opt/nodejs/templates/answer-template-kb-preferred.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
   AnswerTemplateKbRagUpload:
@@ -2933,7 +2927,6 @@ Resources:
             -
               Ref: "ArtifactRootPrefix"
             - "wpsuite-ai-kit/templates/answer-template-kb-rag.txt"
-      SourcePath: "/opt/nodejs/templates/answer-template-kb-rag.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
   KBSyncStateTable:
@@ -3049,28 +3042,6 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "TTL"
         Enabled: true
-    Condition: "TemplateEnabled"
-  CommonDependenciesLayer:
-    Type: "AWS::Lambda::LayerVersion"
-    Properties:
-      LayerName:
-        Fn::Sub: "${AppName}-common-dependencies"
-      Description:
-        Fn::Sub: "Shared dependencies for WP Suite AI Kit Lambda functions (${TemplateVersion})"
-      Content:
-        S3Bucket:
-          Ref: "ArtifactBucketName"
-        S3Key:
-          Fn::Join:
-            - ""
-            -
-              -
-                Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/layers/common-layer.zip"
-      CompatibleRuntimes:
-        - "nodejs24.x"
-      CompatibleArchitectures:
-        - "arm64"
     Condition: "TemplateEnabled"
   RecaptchaSecretParameter:
     Type: "Custom::SSMParameter"
@@ -3301,9 +3272,6 @@ Resources:
         Fn::GetAtt:
           - "AiHandlerFunctionRole"
           - "Arn"
-      Layers:
-        -
-          Ref: "CommonDependenciesLayer"
       DeadLetterConfig:
         TargetArn:
           Fn::GetAtt:
@@ -3575,9 +3543,6 @@ Resources:
         Fn::GetAtt:
           - "AiAgentDispatcherFunctionRole"
           - "Arn"
-      Layers:
-        -
-          Ref: "CommonDependenciesLayer"
       DeadLetterConfig:
         TargetArn:
           Fn::GetAtt:
@@ -3858,9 +3823,6 @@ Resources:
         Fn::GetAtt:
           - "AiEmailIntakeDispatcherFunctionRole"
           - "Arn"
-      Layers:
-        -
-          Ref: "CommonDependenciesLayer"
       DeadLetterConfig:
         TargetArn:
           Fn::GetAtt:
@@ -4087,6 +4049,12 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "apigateway:DELETE"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}::/domainnames/*/basepathmappings/*"
+              -
+                Effect: "Allow"
+                Action:
                   - "logs:CreateLogGroup"
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
@@ -4244,9 +4212,6 @@ Resources:
         Fn::GetAtt:
           - "CustomResourceManagerRole"
           - "Arn"
-      Layers:
-        -
-          Ref: "CommonDependenciesLayer"
       DeadLetterConfig:
         TargetArn:
           Fn::GetAtt:
@@ -4475,9 +4440,6 @@ Resources:
         Fn::GetAtt:
           - "KnowledgeBaseSyncFunctionRole"
           - "Arn"
-      Layers:
-        -
-          Ref: "CommonDependenciesLayer"
       DeadLetterConfig:
         TargetArn:
           Fn::GetAtt:

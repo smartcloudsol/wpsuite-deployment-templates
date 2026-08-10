@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.50"
+    Default: "v1.0.59"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -92,6 +92,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable the custom email sender Lambda and HTML email templates."
+  OverwriteEmailTemplates:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Replace existing email templates with the bundled WP Suite defaults. Leave false to preserve existing templates."
   AutoCreateSesIdentity:
     Type: "String"
     Default: "false"
@@ -127,6 +134,20 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable the post confirmation Lambda trigger."
+  EnablePasskeySignIn:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable passkey as a passwordless first sign-in factor."
+  EnableEmailOtpSignIn:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable email OTP as a passwordless first sign-in factor."
   EnableRecaptcha:
     Type: "String"
     Default: "false"
@@ -169,6 +190,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable authenticator app MFA."
+  EnablePasskeyMfa:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Allow passkey user verification to satisfy MFA."
   EnableEmailOtpMfa:
     Type: "String"
     Default: "false"
@@ -214,6 +242,14 @@ Parameters:
     Type: "String"
     Default: "https://example.com/signin"
     Description: "OAuth callback URL used by the default user pool app client."
+  PasskeyRelyingPartyId:
+    Type: "String"
+    Default: ""
+    Description: "Optional passkey relying party hostname. Leave empty to use Cognito's managed login domain."
+  PasskeyThirdPartyDomain:
+    Type: "String"
+    Default: ""
+    Description: "Optional third-party domain for passkey authentication. This is the WebAuthn relying party ID used instead of a Cognito domain."
   UserPoolName:
     Type: "String"
     Default: ""
@@ -238,6 +274,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "SES verified identity used by custom email sender or email OTP MFA."
+  SesRegion:
+    Type: "String"
+    Default: ""
+    Description: "AWS Region that contains the verified SES identity. Leave empty to use the stack Region."
   EmailFromAddress:
     Type: "String"
     Default: ""
@@ -1867,27 +1907,6 @@ Resources:
     UpdateReplacePolicy: "Delete"
     DeletionPolicy: "Delete"
     Condition: "EmailTemplateBucketTemplateEnabledCondition"
-  CognitoCommonLayer:
-    Type: "AWS::Lambda::LayerVersion"
-    Properties:
-      LayerName:
-        Fn::Sub: "${AppName}-common"
-      Description: "Shared layer for Cognito triggers and custom resource manager"
-      Content:
-        S3Bucket:
-          Ref: "ArtifactBucketName"
-        S3Key:
-          Fn::Join:
-            - ""
-            -
-              -
-                Ref: "ArtifactRootPrefix"
-              - "wpsuite-cognito/layers/cognito-common-layer.zip"
-      CompatibleRuntimes:
-        - "nodejs24.x"
-    UpdateReplacePolicy: "Delete"
-    DeletionPolicy: "Delete"
-    Condition: "TemplateEnabled"
   CustomResourceFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -2012,6 +2031,7 @@ Resources:
                 Action:
                   - "cognito-idp:DescribeUserPool"
                   - "cognito-idp:UpdateUserPool"
+                  - "cognito-idp:SetUserPoolMfaConfig"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
               -
@@ -2034,7 +2054,7 @@ Resources:
                   - "ses:CreateEmailIdentity"
                   - "ses:DeleteEmailIdentity"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/*"
+                  Fn::Sub: "arn:${AWS::Partition}:ses:*:${AWS::AccountId}:identity/*"
       Tags:
         -
           Key: "aws-apn-id"
@@ -2066,9 +2086,6 @@ Resources:
         Fn::GetAtt:
           - "CustomResourceFunctionRole"
           - "Arn"
-      Layers:
-        -
-          Ref: "CognitoCommonLayer"
       Environment:
         Variables:
           AWS_PARTITION:
@@ -2161,6 +2178,8 @@ Resources:
           -
             Ref: "EmailTemplateBucketName"
       Prefix: "email-templates/"
+      OverwriteEmailTemplates:
+        Ref: "OverwriteEmailTemplates"
     Condition: "TemplateUploadTemplateEnabledCondition"
   HostedZoneLookup:
     Type: "Custom::HostedZoneLookup"
@@ -2323,9 +2342,6 @@ Resources:
         Fn::GetAtt:
           - "PreSignUpFunctionRole"
           - "Arn"
-      Layers:
-        -
-          Ref: "CognitoCommonLayer"
       Environment:
         Variables:
           AWS_PARTITION:
@@ -2435,9 +2451,6 @@ Resources:
         Fn::GetAtt:
           - "PreTokenGenerationFunctionRole"
           - "Arn"
-      Layers:
-        -
-          Ref: "CognitoCommonLayer"
       Environment:
         Variables:
           AWS_PARTITION:
@@ -2537,9 +2550,6 @@ Resources:
         Fn::GetAtt:
           - "PostConfirmationFunctionRole"
           - "Arn"
-      Layers:
-        -
-          Ref: "CognitoCommonLayer"
       Environment:
         Variables:
           AWS_PARTITION:
@@ -2586,6 +2596,25 @@ Resources:
                     -
                       LogGroupNamePattern:
                         Fn::Sub: "/aws/lambda/${AppName}-custom-email-sender*"
+              -
+                Fn::If:
+                  - "CondAttachCustomEmailSender"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "kms:Decrypt"
+                      - "kms:DescribeKey"
+                    Resource:
+                      Fn::If:
+                        - "HasProvidedKmsKeyId"
+                        -
+                          Ref: "KmsKeyId"
+                        -
+                          Fn::GetAtt:
+                            - "CustomSenderKmsKey"
+                            - "Arn"
+                  -
+                    Ref: "AWS::NoValue"
               -
                 Effect: "Allow"
                 Action:
@@ -2653,9 +2682,6 @@ Resources:
         Fn::GetAtt:
           - "CustomEmailSenderFunctionRole"
           - "Arn"
-      Layers:
-        -
-          Ref: "CognitoCommonLayer"
       Environment:
         Variables:
           AWS_PARTITION:
@@ -2681,6 +2707,32 @@ Resources:
                   - "Identity"
               -
                 Ref: "SesIdentity"
+          SES_REGION:
+            Ref: "SesRegion"
+          KmsKeyAlias:
+            Fn::If:
+              - "CondAttachCustomEmailSender"
+              -
+                Fn::If:
+                  - "HasProvidedKmsKeyId"
+                  -
+                    Ref: "KmsKeyId"
+                  -
+                    Fn::Sub: "alias/${AppName}-cognito-custom-sender"
+              - ""
+          KmsKeyArn:
+            Fn::If:
+              - "CondAttachCustomEmailSender"
+              -
+                Fn::If:
+                  - "HasProvidedKmsKeyId"
+                  -
+                    Ref: "KmsKeyId"
+                  -
+                    Fn::GetAtt:
+                      - "CustomSenderKmsKey"
+                      - "Arn"
+              - ""
           FROM_ADDRESS:
             Ref: "EmailFromAddress"
           CALLBACK_BASE_URL:
@@ -2729,10 +2781,20 @@ Resources:
         Ref: "RequireEmailAttribute"
       RequirePhoneNumberAttribute:
         Ref: "RequirePhoneNumberAttribute"
+      EnablePasskeySignIn:
+        Ref: "EnablePasskeySignIn"
+      EnableEmailOtpSignIn:
+        Ref: "EnableEmailOtpSignIn"
+      PasskeyRelyingPartyId:
+        Ref: "PasskeyRelyingPartyId"
+      PasskeyThirdPartyDomain:
+        Ref: "PasskeyThirdPartyDomain"
       MfaMode:
         Ref: "MfaMode"
       EnableSoftwareTokenMfa:
         Ref: "EnableSoftwareTokenMfa"
+      EnablePasskeyMfa:
+        Ref: "EnablePasskeyMfa"
       EnableEmailOtpMfa:
         Ref: "EnableEmailOtpMfa"
       EnableSmsMfa:
@@ -2751,6 +2813,8 @@ Resources:
         Ref: "SmsConfigurationSnsRegion"
       SesIdentity:
         Ref: "SesIdentity"
+      SesRegion:
+        Ref: "SesRegion"
       ResolvedSesIdentity:
         Fn::If:
           - "CondAutoCreateSesIdentity"
