@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.60"
+    Default: "v1.0.61"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -55,6 +55,16 @@ Parameters:
     Type: "String"
     Default: "{}"
     Description: "Optional JSON object mapping protected paths to allowed groups."
+  AdditionalOrigins:
+    Type: "String"
+    Default: "-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-"
+    AllowedPattern: "^[^|~]*(?:~[^|~]*){7}(?:\\|[^|~]*(?:~[^|~]*){7}){4}$"
+    Description: "Five packed optional CloudFront origin records using pipe record and tilde field delimiters."
+  AdditionalCacheBehaviors:
+    Type: "String"
+    Default: "-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-"
+    AllowedPattern: "^[^|~]*(?:~[^|~]*){7}(?:\\|[^|~]*(?:~[^|~]*){7}){9}$"
+    Description: "Ten packed optional ordered CloudFront cache behavior records using pipe record and tilde field delimiters."
   SigninPagePath:
     Type: "String"
     Default: "/signin"
@@ -220,6 +230,1646 @@ Conditions:
         Condition: "HasWpsuiteSiteId"
       -
         Condition: "HasWpsuiteSiteKey"
+  AdditionalOrigin1Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 0
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin1IsCustom:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 1
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 0
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalOrigins"
+      - "custom"
+  AdditionalOrigin1HasOriginPath:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 0
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin1HasHttpPort:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 5
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 0
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin1HasHttpsPort:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 6
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 0
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin1HasOriginAccessControl:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 7
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 0
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin2Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 1
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin2IsCustom:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 1
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 1
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalOrigins"
+      - "custom"
+  AdditionalOrigin2HasOriginPath:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 1
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin2HasHttpPort:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 5
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 1
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin2HasHttpsPort:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 6
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 1
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin2HasOriginAccessControl:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 7
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 1
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin3Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 2
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin3IsCustom:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 1
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalOrigins"
+      - "custom"
+  AdditionalOrigin3HasOriginPath:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 2
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin3HasHttpPort:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 5
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 2
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin3HasHttpsPort:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 6
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 2
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin3HasOriginAccessControl:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 7
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 2
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin4Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 3
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin4IsCustom:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 1
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 3
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalOrigins"
+      - "custom"
+  AdditionalOrigin4HasOriginPath:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 3
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin4HasHttpPort:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 5
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 3
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin4HasHttpsPort:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 6
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 3
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin4HasOriginAccessControl:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 7
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 3
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin5Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 4
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin5IsCustom:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 1
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 4
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalOrigins"
+      - "custom"
+  AdditionalOrigin5HasOriginPath:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 4
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin5HasHttpPort:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 5
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 4
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin5HasHttpsPort:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 6
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 4
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalOrigin5HasOriginAccessControl:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 7
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 4
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalOrigins"
+          - "-"
+  AdditionalCacheBehavior1Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 0
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior1HasOriginRequestPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 0
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior1HasResponseHeadersPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 0
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior1UsesAllMethods:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 0
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "ALL"
+  AdditionalCacheBehavior1UsesOptions:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 0
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "GET_HEAD_OPTIONS"
+  AdditionalCacheBehavior1Compresses:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 7
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 0
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "true"
+  AdditionalCacheBehavior2Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 1
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior2HasOriginRequestPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 1
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior2HasResponseHeadersPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 1
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior2UsesAllMethods:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 1
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "ALL"
+  AdditionalCacheBehavior2UsesOptions:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 1
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "GET_HEAD_OPTIONS"
+  AdditionalCacheBehavior2Compresses:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 7
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 1
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "true"
+  AdditionalCacheBehavior3Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 2
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior3HasOriginRequestPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 2
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior3HasResponseHeadersPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 2
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior3UsesAllMethods:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "ALL"
+  AdditionalCacheBehavior3UsesOptions:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "GET_HEAD_OPTIONS"
+  AdditionalCacheBehavior3Compresses:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 7
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "true"
+  AdditionalCacheBehavior4Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 3
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior4HasOriginRequestPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 3
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior4HasResponseHeadersPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 3
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior4UsesAllMethods:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 3
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "ALL"
+  AdditionalCacheBehavior4UsesOptions:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 3
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "GET_HEAD_OPTIONS"
+  AdditionalCacheBehavior4Compresses:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 7
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 3
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "true"
+  AdditionalCacheBehavior5Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 4
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior5HasOriginRequestPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 4
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior5HasResponseHeadersPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 4
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior5UsesAllMethods:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 4
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "ALL"
+  AdditionalCacheBehavior5UsesOptions:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 4
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "GET_HEAD_OPTIONS"
+  AdditionalCacheBehavior5Compresses:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 7
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 4
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "true"
+  AdditionalCacheBehavior6Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 5
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior6HasOriginRequestPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 5
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior6HasResponseHeadersPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 5
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior6UsesAllMethods:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 5
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "ALL"
+  AdditionalCacheBehavior6UsesOptions:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 5
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "GET_HEAD_OPTIONS"
+  AdditionalCacheBehavior6Compresses:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 7
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 5
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "true"
+  AdditionalCacheBehavior7Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 6
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior7HasOriginRequestPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 6
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior7HasResponseHeadersPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 6
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior7UsesAllMethods:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 6
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "ALL"
+  AdditionalCacheBehavior7UsesOptions:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 6
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "GET_HEAD_OPTIONS"
+  AdditionalCacheBehavior7Compresses:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 7
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 6
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "true"
+  AdditionalCacheBehavior8Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 7
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior8HasOriginRequestPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 7
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior8HasResponseHeadersPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 7
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior8UsesAllMethods:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 7
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "ALL"
+  AdditionalCacheBehavior8UsesOptions:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 7
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "GET_HEAD_OPTIONS"
+  AdditionalCacheBehavior8Compresses:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 7
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 7
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "true"
+  AdditionalCacheBehavior9Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 8
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior9HasOriginRequestPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 8
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior9HasResponseHeadersPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 8
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior9UsesAllMethods:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 8
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "ALL"
+  AdditionalCacheBehavior9UsesOptions:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 8
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "GET_HEAD_OPTIONS"
+  AdditionalCacheBehavior9Compresses:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 7
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 8
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "true"
+  AdditionalCacheBehavior10Enabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 9
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior10HasOriginRequestPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 9
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior10HasResponseHeadersPolicy:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "~"
+                  -
+                    Fn::Select:
+                      - 9
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "AdditionalCacheBehaviors"
+          - "-"
+  AdditionalCacheBehavior10UsesAllMethods:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 9
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "ALL"
+  AdditionalCacheBehavior10UsesOptions:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 6
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 9
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "GET_HEAD_OPTIONS"
+  AdditionalCacheBehavior10Compresses:
+    Fn::Equals:
+      -
+        Fn::Select:
+          - 7
+          -
+            Fn::Split:
+              - "~"
+              -
+                Fn::Select:
+                  - 9
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AdditionalCacheBehaviors"
+      - "true"
   CloudFrontSigningKmsKeyTemplateEnabledCondition:
     Fn::And:
       -
@@ -988,42 +2638,6 @@ Resources:
           -
             Ref: "CognitoAppClientIds"
     Condition: "TemplateEnabled"
-  CloudFrontDistributionUpdate:
-    Type: "AWS::CloudFormation::CustomResource"
-    Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - "CloudFrontResourceManager"
-          - "Arn"
-      ResourceType: "DistributionUpdate"
-      DistributionId:
-        Ref: "CloudFrontDistribution"
-      LambdaEdgeFunctionVersionArn:
-        Fn::GetAtt:
-          - "CookieSigningEdgeFunction"
-          - "VersionArn"
-      ProtectedPaths:
-        Fn::Join:
-          - ","
-          -
-            Ref: "ProtectedPaths"
-      ViewerRequestFunctionArn:
-        Fn::GetAtt:
-          - "ViewerRequestFunction"
-          - "FunctionARN"
-      PathRewriteFunctionArn:
-        Fn::GetAtt:
-          - "PathRewriteFunction"
-          - "FunctionARN"
-      NoCachePolicyId:
-        Fn::GetAtt:
-          - "NoCachePolicy"
-          - "ResponseHeadersPolicyId"
-      OriginAccessControlId:
-        Fn::GetAtt:
-          - "OriginAccessControl"
-          - "OriginAccessControlId"
-    Condition: "TemplateEnabled"
   CloudFrontDistribution:
     Type: "AWS::CloudFront::Distribution"
     Properties:
@@ -1043,6 +2657,696 @@ Resources:
               Fn::GetAtt:
                 - "OriginAccessControl"
                 - "OriginAccessControlId"
+          -
+            Fn::If:
+              - "AdditionalOrigin1Enabled"
+              -
+                Id:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 0
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalOrigins"
+                DomainName:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 0
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalOrigins"
+                OriginPath:
+                  Fn::If:
+                    - "AdditionalOrigin1HasOriginPath"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 0
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalOrigins"
+                    -
+                      Ref: "AWS::NoValue"
+                OriginAccessControlId:
+                  Fn::If:
+                    - "AdditionalOrigin1HasOriginAccessControl"
+                    -
+                      Fn::Select:
+                        - 7
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 0
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalOrigins"
+                    -
+                      Ref: "AWS::NoValue"
+                CustomOriginConfig:
+                  Fn::If:
+                    - "AdditionalOrigin1IsCustom"
+                    -
+                      OriginProtocolPolicy:
+                        Fn::Select:
+                          - 4
+                          -
+                            Fn::Split:
+                              - "~"
+                              -
+                                Fn::Select:
+                                  - 0
+                                  -
+                                    Fn::Split:
+                                      - "|"
+                                      -
+                                        Ref: "AdditionalOrigins"
+                      HTTPPort:
+                        Fn::If:
+                          - "AdditionalOrigin1HasHttpPort"
+                          -
+                            Fn::Select:
+                              - 5
+                              -
+                                Fn::Split:
+                                  - "~"
+                                  -
+                                    Fn::Select:
+                                      - 0
+                                      -
+                                        Fn::Split:
+                                          - "|"
+                                          -
+                                            Ref: "AdditionalOrigins"
+                          -
+                            Ref: "AWS::NoValue"
+                      HTTPSPort:
+                        Fn::If:
+                          - "AdditionalOrigin1HasHttpsPort"
+                          -
+                            Fn::Select:
+                              - 6
+                              -
+                                Fn::Split:
+                                  - "~"
+                                  -
+                                    Fn::Select:
+                                      - 0
+                                      -
+                                        Fn::Split:
+                                          - "|"
+                                          -
+                                            Ref: "AdditionalOrigins"
+                          -
+                            Ref: "AWS::NoValue"
+                      OriginSSLProtocols:
+                        - "TLSv1.2"
+                    -
+                      Ref: "AWS::NoValue"
+                S3OriginConfig:
+                  Fn::If:
+                    - "AdditionalOrigin1IsCustom"
+                    -
+                      Ref: "AWS::NoValue"
+                    - {}
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalOrigin2Enabled"
+              -
+                Id:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 1
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalOrigins"
+                DomainName:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 1
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalOrigins"
+                OriginPath:
+                  Fn::If:
+                    - "AdditionalOrigin2HasOriginPath"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 1
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalOrigins"
+                    -
+                      Ref: "AWS::NoValue"
+                OriginAccessControlId:
+                  Fn::If:
+                    - "AdditionalOrigin2HasOriginAccessControl"
+                    -
+                      Fn::Select:
+                        - 7
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 1
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalOrigins"
+                    -
+                      Ref: "AWS::NoValue"
+                CustomOriginConfig:
+                  Fn::If:
+                    - "AdditionalOrigin2IsCustom"
+                    -
+                      OriginProtocolPolicy:
+                        Fn::Select:
+                          - 4
+                          -
+                            Fn::Split:
+                              - "~"
+                              -
+                                Fn::Select:
+                                  - 1
+                                  -
+                                    Fn::Split:
+                                      - "|"
+                                      -
+                                        Ref: "AdditionalOrigins"
+                      HTTPPort:
+                        Fn::If:
+                          - "AdditionalOrigin2HasHttpPort"
+                          -
+                            Fn::Select:
+                              - 5
+                              -
+                                Fn::Split:
+                                  - "~"
+                                  -
+                                    Fn::Select:
+                                      - 1
+                                      -
+                                        Fn::Split:
+                                          - "|"
+                                          -
+                                            Ref: "AdditionalOrigins"
+                          -
+                            Ref: "AWS::NoValue"
+                      HTTPSPort:
+                        Fn::If:
+                          - "AdditionalOrigin2HasHttpsPort"
+                          -
+                            Fn::Select:
+                              - 6
+                              -
+                                Fn::Split:
+                                  - "~"
+                                  -
+                                    Fn::Select:
+                                      - 1
+                                      -
+                                        Fn::Split:
+                                          - "|"
+                                          -
+                                            Ref: "AdditionalOrigins"
+                          -
+                            Ref: "AWS::NoValue"
+                      OriginSSLProtocols:
+                        - "TLSv1.2"
+                    -
+                      Ref: "AWS::NoValue"
+                S3OriginConfig:
+                  Fn::If:
+                    - "AdditionalOrigin2IsCustom"
+                    -
+                      Ref: "AWS::NoValue"
+                    - {}
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalOrigin3Enabled"
+              -
+                Id:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 2
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalOrigins"
+                DomainName:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 2
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalOrigins"
+                OriginPath:
+                  Fn::If:
+                    - "AdditionalOrigin3HasOriginPath"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 2
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalOrigins"
+                    -
+                      Ref: "AWS::NoValue"
+                OriginAccessControlId:
+                  Fn::If:
+                    - "AdditionalOrigin3HasOriginAccessControl"
+                    -
+                      Fn::Select:
+                        - 7
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 2
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalOrigins"
+                    -
+                      Ref: "AWS::NoValue"
+                CustomOriginConfig:
+                  Fn::If:
+                    - "AdditionalOrigin3IsCustom"
+                    -
+                      OriginProtocolPolicy:
+                        Fn::Select:
+                          - 4
+                          -
+                            Fn::Split:
+                              - "~"
+                              -
+                                Fn::Select:
+                                  - 2
+                                  -
+                                    Fn::Split:
+                                      - "|"
+                                      -
+                                        Ref: "AdditionalOrigins"
+                      HTTPPort:
+                        Fn::If:
+                          - "AdditionalOrigin3HasHttpPort"
+                          -
+                            Fn::Select:
+                              - 5
+                              -
+                                Fn::Split:
+                                  - "~"
+                                  -
+                                    Fn::Select:
+                                      - 2
+                                      -
+                                        Fn::Split:
+                                          - "|"
+                                          -
+                                            Ref: "AdditionalOrigins"
+                          -
+                            Ref: "AWS::NoValue"
+                      HTTPSPort:
+                        Fn::If:
+                          - "AdditionalOrigin3HasHttpsPort"
+                          -
+                            Fn::Select:
+                              - 6
+                              -
+                                Fn::Split:
+                                  - "~"
+                                  -
+                                    Fn::Select:
+                                      - 2
+                                      -
+                                        Fn::Split:
+                                          - "|"
+                                          -
+                                            Ref: "AdditionalOrigins"
+                          -
+                            Ref: "AWS::NoValue"
+                      OriginSSLProtocols:
+                        - "TLSv1.2"
+                    -
+                      Ref: "AWS::NoValue"
+                S3OriginConfig:
+                  Fn::If:
+                    - "AdditionalOrigin3IsCustom"
+                    -
+                      Ref: "AWS::NoValue"
+                    - {}
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalOrigin4Enabled"
+              -
+                Id:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 3
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalOrigins"
+                DomainName:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 3
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalOrigins"
+                OriginPath:
+                  Fn::If:
+                    - "AdditionalOrigin4HasOriginPath"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 3
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalOrigins"
+                    -
+                      Ref: "AWS::NoValue"
+                OriginAccessControlId:
+                  Fn::If:
+                    - "AdditionalOrigin4HasOriginAccessControl"
+                    -
+                      Fn::Select:
+                        - 7
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 3
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalOrigins"
+                    -
+                      Ref: "AWS::NoValue"
+                CustomOriginConfig:
+                  Fn::If:
+                    - "AdditionalOrigin4IsCustom"
+                    -
+                      OriginProtocolPolicy:
+                        Fn::Select:
+                          - 4
+                          -
+                            Fn::Split:
+                              - "~"
+                              -
+                                Fn::Select:
+                                  - 3
+                                  -
+                                    Fn::Split:
+                                      - "|"
+                                      -
+                                        Ref: "AdditionalOrigins"
+                      HTTPPort:
+                        Fn::If:
+                          - "AdditionalOrigin4HasHttpPort"
+                          -
+                            Fn::Select:
+                              - 5
+                              -
+                                Fn::Split:
+                                  - "~"
+                                  -
+                                    Fn::Select:
+                                      - 3
+                                      -
+                                        Fn::Split:
+                                          - "|"
+                                          -
+                                            Ref: "AdditionalOrigins"
+                          -
+                            Ref: "AWS::NoValue"
+                      HTTPSPort:
+                        Fn::If:
+                          - "AdditionalOrigin4HasHttpsPort"
+                          -
+                            Fn::Select:
+                              - 6
+                              -
+                                Fn::Split:
+                                  - "~"
+                                  -
+                                    Fn::Select:
+                                      - 3
+                                      -
+                                        Fn::Split:
+                                          - "|"
+                                          -
+                                            Ref: "AdditionalOrigins"
+                          -
+                            Ref: "AWS::NoValue"
+                      OriginSSLProtocols:
+                        - "TLSv1.2"
+                    -
+                      Ref: "AWS::NoValue"
+                S3OriginConfig:
+                  Fn::If:
+                    - "AdditionalOrigin4IsCustom"
+                    -
+                      Ref: "AWS::NoValue"
+                    - {}
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalOrigin5Enabled"
+              -
+                Id:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 4
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalOrigins"
+                DomainName:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 4
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalOrigins"
+                OriginPath:
+                  Fn::If:
+                    - "AdditionalOrigin5HasOriginPath"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 4
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalOrigins"
+                    -
+                      Ref: "AWS::NoValue"
+                OriginAccessControlId:
+                  Fn::If:
+                    - "AdditionalOrigin5HasOriginAccessControl"
+                    -
+                      Fn::Select:
+                        - 7
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 4
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalOrigins"
+                    -
+                      Ref: "AWS::NoValue"
+                CustomOriginConfig:
+                  Fn::If:
+                    - "AdditionalOrigin5IsCustom"
+                    -
+                      OriginProtocolPolicy:
+                        Fn::Select:
+                          - 4
+                          -
+                            Fn::Split:
+                              - "~"
+                              -
+                                Fn::Select:
+                                  - 4
+                                  -
+                                    Fn::Split:
+                                      - "|"
+                                      -
+                                        Ref: "AdditionalOrigins"
+                      HTTPPort:
+                        Fn::If:
+                          - "AdditionalOrigin5HasHttpPort"
+                          -
+                            Fn::Select:
+                              - 5
+                              -
+                                Fn::Split:
+                                  - "~"
+                                  -
+                                    Fn::Select:
+                                      - 4
+                                      -
+                                        Fn::Split:
+                                          - "|"
+                                          -
+                                            Ref: "AdditionalOrigins"
+                          -
+                            Ref: "AWS::NoValue"
+                      HTTPSPort:
+                        Fn::If:
+                          - "AdditionalOrigin5HasHttpsPort"
+                          -
+                            Fn::Select:
+                              - 6
+                              -
+                                Fn::Split:
+                                  - "~"
+                                  -
+                                    Fn::Select:
+                                      - 4
+                                      -
+                                        Fn::Split:
+                                          - "|"
+                                          -
+                                            Ref: "AdditionalOrigins"
+                          -
+                            Ref: "AWS::NoValue"
+                      OriginSSLProtocols:
+                        - "TLSv1.2"
+                    -
+                      Ref: "AWS::NoValue"
+                S3OriginConfig:
+                  Fn::If:
+                    - "AdditionalOrigin5IsCustom"
+                    -
+                      Ref: "AWS::NoValue"
+                    - {}
+              -
+                Ref: "AWS::NoValue"
         DefaultCacheBehavior:
           TargetOriginId: "S3Origin"
           ViewerProtocolPolicy: "redirect-to-https"
@@ -1092,6 +3396,1366 @@ Resources:
                   Fn::GetAtt:
                     - "PathRewriteFunction"
                     - "FunctionARN"
+          -
+            Fn::If:
+              - "AdditionalCacheBehavior1Enabled"
+              -
+                PathPattern:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 0
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                TargetOriginId:
+                  Fn::Select:
+                    - 1
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 0
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                CachePolicyId:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 0
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                OriginRequestPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior1HasOriginRequestPolicy"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 0
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ResponseHeadersPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior1HasResponseHeadersPolicy"
+                    -
+                      Fn::Select:
+                        - 4
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 0
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ViewerProtocolPolicy:
+                  Fn::Select:
+                    - 5
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 0
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                AllowedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior1UsesAllMethods"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                      - "PUT"
+                      - "PATCH"
+                      - "POST"
+                      - "DELETE"
+                    -
+                      Fn::If:
+                        - "AdditionalCacheBehavior1UsesOptions"
+                        -
+                          - "GET"
+                          - "HEAD"
+                          - "OPTIONS"
+                        -
+                          - "GET"
+                          - "HEAD"
+                CachedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior1UsesOptions"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                    -
+                      - "GET"
+                      - "HEAD"
+                Compress:
+                  Fn::If:
+                    - "AdditionalCacheBehavior1Compresses"
+                    - true
+                    - false
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalCacheBehavior2Enabled"
+              -
+                PathPattern:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 1
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                TargetOriginId:
+                  Fn::Select:
+                    - 1
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 1
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                CachePolicyId:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 1
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                OriginRequestPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior2HasOriginRequestPolicy"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 1
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ResponseHeadersPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior2HasResponseHeadersPolicy"
+                    -
+                      Fn::Select:
+                        - 4
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 1
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ViewerProtocolPolicy:
+                  Fn::Select:
+                    - 5
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 1
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                AllowedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior2UsesAllMethods"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                      - "PUT"
+                      - "PATCH"
+                      - "POST"
+                      - "DELETE"
+                    -
+                      Fn::If:
+                        - "AdditionalCacheBehavior2UsesOptions"
+                        -
+                          - "GET"
+                          - "HEAD"
+                          - "OPTIONS"
+                        -
+                          - "GET"
+                          - "HEAD"
+                CachedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior2UsesOptions"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                    -
+                      - "GET"
+                      - "HEAD"
+                Compress:
+                  Fn::If:
+                    - "AdditionalCacheBehavior2Compresses"
+                    - true
+                    - false
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalCacheBehavior3Enabled"
+              -
+                PathPattern:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 2
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                TargetOriginId:
+                  Fn::Select:
+                    - 1
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 2
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                CachePolicyId:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 2
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                OriginRequestPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior3HasOriginRequestPolicy"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 2
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ResponseHeadersPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior3HasResponseHeadersPolicy"
+                    -
+                      Fn::Select:
+                        - 4
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 2
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ViewerProtocolPolicy:
+                  Fn::Select:
+                    - 5
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 2
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                AllowedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior3UsesAllMethods"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                      - "PUT"
+                      - "PATCH"
+                      - "POST"
+                      - "DELETE"
+                    -
+                      Fn::If:
+                        - "AdditionalCacheBehavior3UsesOptions"
+                        -
+                          - "GET"
+                          - "HEAD"
+                          - "OPTIONS"
+                        -
+                          - "GET"
+                          - "HEAD"
+                CachedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior3UsesOptions"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                    -
+                      - "GET"
+                      - "HEAD"
+                Compress:
+                  Fn::If:
+                    - "AdditionalCacheBehavior3Compresses"
+                    - true
+                    - false
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalCacheBehavior4Enabled"
+              -
+                PathPattern:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 3
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                TargetOriginId:
+                  Fn::Select:
+                    - 1
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 3
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                CachePolicyId:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 3
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                OriginRequestPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior4HasOriginRequestPolicy"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 3
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ResponseHeadersPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior4HasResponseHeadersPolicy"
+                    -
+                      Fn::Select:
+                        - 4
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 3
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ViewerProtocolPolicy:
+                  Fn::Select:
+                    - 5
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 3
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                AllowedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior4UsesAllMethods"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                      - "PUT"
+                      - "PATCH"
+                      - "POST"
+                      - "DELETE"
+                    -
+                      Fn::If:
+                        - "AdditionalCacheBehavior4UsesOptions"
+                        -
+                          - "GET"
+                          - "HEAD"
+                          - "OPTIONS"
+                        -
+                          - "GET"
+                          - "HEAD"
+                CachedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior4UsesOptions"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                    -
+                      - "GET"
+                      - "HEAD"
+                Compress:
+                  Fn::If:
+                    - "AdditionalCacheBehavior4Compresses"
+                    - true
+                    - false
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalCacheBehavior5Enabled"
+              -
+                PathPattern:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 4
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                TargetOriginId:
+                  Fn::Select:
+                    - 1
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 4
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                CachePolicyId:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 4
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                OriginRequestPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior5HasOriginRequestPolicy"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 4
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ResponseHeadersPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior5HasResponseHeadersPolicy"
+                    -
+                      Fn::Select:
+                        - 4
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 4
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ViewerProtocolPolicy:
+                  Fn::Select:
+                    - 5
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 4
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                AllowedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior5UsesAllMethods"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                      - "PUT"
+                      - "PATCH"
+                      - "POST"
+                      - "DELETE"
+                    -
+                      Fn::If:
+                        - "AdditionalCacheBehavior5UsesOptions"
+                        -
+                          - "GET"
+                          - "HEAD"
+                          - "OPTIONS"
+                        -
+                          - "GET"
+                          - "HEAD"
+                CachedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior5UsesOptions"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                    -
+                      - "GET"
+                      - "HEAD"
+                Compress:
+                  Fn::If:
+                    - "AdditionalCacheBehavior5Compresses"
+                    - true
+                    - false
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalCacheBehavior6Enabled"
+              -
+                PathPattern:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 5
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                TargetOriginId:
+                  Fn::Select:
+                    - 1
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 5
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                CachePolicyId:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 5
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                OriginRequestPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior6HasOriginRequestPolicy"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 5
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ResponseHeadersPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior6HasResponseHeadersPolicy"
+                    -
+                      Fn::Select:
+                        - 4
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 5
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ViewerProtocolPolicy:
+                  Fn::Select:
+                    - 5
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 5
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                AllowedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior6UsesAllMethods"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                      - "PUT"
+                      - "PATCH"
+                      - "POST"
+                      - "DELETE"
+                    -
+                      Fn::If:
+                        - "AdditionalCacheBehavior6UsesOptions"
+                        -
+                          - "GET"
+                          - "HEAD"
+                          - "OPTIONS"
+                        -
+                          - "GET"
+                          - "HEAD"
+                CachedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior6UsesOptions"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                    -
+                      - "GET"
+                      - "HEAD"
+                Compress:
+                  Fn::If:
+                    - "AdditionalCacheBehavior6Compresses"
+                    - true
+                    - false
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalCacheBehavior7Enabled"
+              -
+                PathPattern:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 6
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                TargetOriginId:
+                  Fn::Select:
+                    - 1
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 6
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                CachePolicyId:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 6
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                OriginRequestPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior7HasOriginRequestPolicy"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 6
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ResponseHeadersPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior7HasResponseHeadersPolicy"
+                    -
+                      Fn::Select:
+                        - 4
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 6
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ViewerProtocolPolicy:
+                  Fn::Select:
+                    - 5
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 6
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                AllowedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior7UsesAllMethods"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                      - "PUT"
+                      - "PATCH"
+                      - "POST"
+                      - "DELETE"
+                    -
+                      Fn::If:
+                        - "AdditionalCacheBehavior7UsesOptions"
+                        -
+                          - "GET"
+                          - "HEAD"
+                          - "OPTIONS"
+                        -
+                          - "GET"
+                          - "HEAD"
+                CachedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior7UsesOptions"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                    -
+                      - "GET"
+                      - "HEAD"
+                Compress:
+                  Fn::If:
+                    - "AdditionalCacheBehavior7Compresses"
+                    - true
+                    - false
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalCacheBehavior8Enabled"
+              -
+                PathPattern:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 7
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                TargetOriginId:
+                  Fn::Select:
+                    - 1
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 7
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                CachePolicyId:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 7
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                OriginRequestPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior8HasOriginRequestPolicy"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 7
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ResponseHeadersPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior8HasResponseHeadersPolicy"
+                    -
+                      Fn::Select:
+                        - 4
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 7
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ViewerProtocolPolicy:
+                  Fn::Select:
+                    - 5
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 7
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                AllowedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior8UsesAllMethods"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                      - "PUT"
+                      - "PATCH"
+                      - "POST"
+                      - "DELETE"
+                    -
+                      Fn::If:
+                        - "AdditionalCacheBehavior8UsesOptions"
+                        -
+                          - "GET"
+                          - "HEAD"
+                          - "OPTIONS"
+                        -
+                          - "GET"
+                          - "HEAD"
+                CachedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior8UsesOptions"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                    -
+                      - "GET"
+                      - "HEAD"
+                Compress:
+                  Fn::If:
+                    - "AdditionalCacheBehavior8Compresses"
+                    - true
+                    - false
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalCacheBehavior9Enabled"
+              -
+                PathPattern:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 8
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                TargetOriginId:
+                  Fn::Select:
+                    - 1
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 8
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                CachePolicyId:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 8
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                OriginRequestPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior9HasOriginRequestPolicy"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 8
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ResponseHeadersPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior9HasResponseHeadersPolicy"
+                    -
+                      Fn::Select:
+                        - 4
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 8
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ViewerProtocolPolicy:
+                  Fn::Select:
+                    - 5
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 8
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                AllowedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior9UsesAllMethods"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                      - "PUT"
+                      - "PATCH"
+                      - "POST"
+                      - "DELETE"
+                    -
+                      Fn::If:
+                        - "AdditionalCacheBehavior9UsesOptions"
+                        -
+                          - "GET"
+                          - "HEAD"
+                          - "OPTIONS"
+                        -
+                          - "GET"
+                          - "HEAD"
+                CachedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior9UsesOptions"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                    -
+                      - "GET"
+                      - "HEAD"
+                Compress:
+                  Fn::If:
+                    - "AdditionalCacheBehavior9Compresses"
+                    - true
+                    - false
+              -
+                Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "AdditionalCacheBehavior10Enabled"
+              -
+                PathPattern:
+                  Fn::Select:
+                    - 0
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 9
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                TargetOriginId:
+                  Fn::Select:
+                    - 1
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 9
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                CachePolicyId:
+                  Fn::Select:
+                    - 2
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 9
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                OriginRequestPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior10HasOriginRequestPolicy"
+                    -
+                      Fn::Select:
+                        - 3
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 9
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ResponseHeadersPolicyId:
+                  Fn::If:
+                    - "AdditionalCacheBehavior10HasResponseHeadersPolicy"
+                    -
+                      Fn::Select:
+                        - 4
+                        -
+                          Fn::Split:
+                            - "~"
+                            -
+                              Fn::Select:
+                                - 9
+                                -
+                                  Fn::Split:
+                                    - "|"
+                                    -
+                                      Ref: "AdditionalCacheBehaviors"
+                    -
+                      Ref: "AWS::NoValue"
+                ViewerProtocolPolicy:
+                  Fn::Select:
+                    - 5
+                    -
+                      Fn::Split:
+                        - "~"
+                        -
+                          Fn::Select:
+                            - 9
+                            -
+                              Fn::Split:
+                                - "|"
+                                -
+                                  Ref: "AdditionalCacheBehaviors"
+                AllowedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior10UsesAllMethods"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                      - "PUT"
+                      - "PATCH"
+                      - "POST"
+                      - "DELETE"
+                    -
+                      Fn::If:
+                        - "AdditionalCacheBehavior10UsesOptions"
+                        -
+                          - "GET"
+                          - "HEAD"
+                          - "OPTIONS"
+                        -
+                          - "GET"
+                          - "HEAD"
+                CachedMethods:
+                  Fn::If:
+                    - "AdditionalCacheBehavior10UsesOptions"
+                    -
+                      - "GET"
+                      - "HEAD"
+                      - "OPTIONS"
+                    -
+                      - "GET"
+                      - "HEAD"
+                Compress:
+                  Fn::If:
+                    - "AdditionalCacheBehavior10Compresses"
+                    - true
+                    - false
+              -
+                Ref: "AWS::NoValue"
         Enabled: true
         DefaultRootObject: "index.html"
         HttpVersion: "http2"
@@ -1165,6 +4829,72 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  CloudFrontDistributionUpdate:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "DistributionUpdate"
+      DistributionId:
+        Ref: "CloudFrontDistribution"
+      LambdaEdgeFunctionVersionArn:
+        Fn::GetAtt:
+          - "CookieSigningEdgeFunction"
+          - "VersionArn"
+      ProtectedPaths:
+        Fn::Join:
+          - ","
+          -
+            Ref: "ProtectedPaths"
+      SigninPagePath:
+        Ref: "SigninPagePath"
+      ViewerRequestFunctionArn:
+        Fn::GetAtt:
+          - "ViewerRequestFunction"
+          - "FunctionARN"
+      PathRewriteFunctionArn:
+        Fn::GetAtt:
+          - "PathRewriteFunction"
+          - "FunctionARN"
+      NoCachePolicyId:
+        Fn::GetAtt:
+          - "NoCachePolicy"
+          - "ResponseHeadersPolicyId"
+      OriginAccessControlId:
+        Fn::GetAtt:
+          - "OriginAccessControl"
+          - "OriginAccessControlId"
+      AdditionalOrigins:
+        Ref: "AdditionalOrigins"
+      AdditionalCacheBehaviors:
+        Ref: "AdditionalCacheBehaviors"
+      BaselineRevision:
+        Fn::Join:
+          - "|"
+          -
+            -
+              Ref: "DomainName"
+            -
+              Ref: "CertificateArn"
+            -
+              Ref: "S3BucketName"
+            -
+              Ref: "EnableCloudFrontWAF"
+            -
+              Ref: "EnableDetailedLogging"
+            -
+              Ref: "NotFoundPagePath"
+            -
+              Ref: "ForbiddenPagePath"
+            -
+              Ref: "AdditionalOrigins"
+            -
+              Ref: "AdditionalCacheBehaviors"
+    DependsOn:
+      - "CloudFrontDistribution"
     Condition: "TemplateEnabled"
   StaticSiteBucketPolicy:
     Type: "AWS::S3::BucketPolicy"

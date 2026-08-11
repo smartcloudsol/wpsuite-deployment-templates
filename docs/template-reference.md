@@ -70,6 +70,19 @@ The wrapper maps domain/certificate, Cognito pool/client, protected paths/group 
 
 The wrapped template loads Python artifacts below `${ArtifactRootPrefix}wpsuite-site-guardian/functions/`, notably `cloudfront-manager.zip`, `cookie-signing.zip` and `license-refresh.zip`. Cognito pool/client outputs configure protected access. The bucket receives the common backup-selection tag when DR selection is enabled.
 
+`StaticGuardianAdditionalOrigins` and `StaticGuardianAdditionalCacheBehaviors`
+carry five and ten fixed-width packed records respectively through the direct
+root or Marketplace deployment secret. The wrapper forwards them as
+`AdditionalOrigins` and `AdditionalCacheBehaviors`. Enabled entries become
+native distribution origins and ordered cache behaviors; policy fields must
+reference existing AWS managed or buyer-managed policy IDs. The manager rejects
+reserved origin IDs and any behavior that could overlap Static Guardian's
+authentication-managed paths. External S3 bucket policies remain buyer-owned,
+including access granted to a supplied Origin Access Control ID.
+Before updating a distribution that contains console-created origins or cache
+behaviors, reproduce those entries in these parameters. CloudFormation can
+remove unmanaged additions when it reconciles the native distribution.
+
 ### DR Backup
 
 The wrapper maps destination Region, optional vault names, schedule/windows, retention and DynamoDB/S3 inclusion. Unlike runtime components, it needs no `ArtifactBucketName` or runtime ZIPs. It forwards `SourceBackupVaultName`, `SourceBackupVaultArn`, `DestinationBackupVaultName`, `DestinationBackupVaultArn`, `BackupPlanId` and `BackupSelectionTagValue`.

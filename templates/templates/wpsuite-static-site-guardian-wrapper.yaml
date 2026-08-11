@@ -83,6 +83,14 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter SigninPagePath."
+  AdditionalOrigins:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AdditionalOrigins."
+  AdditionalCacheBehaviors:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AdditionalCacheBehaviors."
   S3BucketName:
     Type: "String"
     Default: ""
@@ -273,6 +281,28 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "SigninPagePath"
+        AdditionalOrigins:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianAdditionalOrigins}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AdditionalOrigins"
+        AdditionalCacheBehaviors:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianAdditionalCacheBehaviors}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AdditionalCacheBehaviors"
         S3BucketName:
           Fn::If:
             - "CondUseMarketplaceSecret"
