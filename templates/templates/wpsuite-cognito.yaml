@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.62"
+    Default: "v1.0.63"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -1270,6 +1270,27 @@ Resources:
             ManagedRuleGroupStatement:
               VendorName: "AWS"
               Name: "AWSManagedRulesCommonRuleSet"
+              RuleActionOverrides:
+                -
+                  Name: "SizeRestrictions_BODY"
+                  ActionToUse:
+                    Count: {}
+                -
+                  Name: "GenericLFI_BODY"
+                  ActionToUse:
+                    Count: {}
+                -
+                  Name: "GenericRFI_BODY"
+                  ActionToUse:
+                    Count: {}
+                -
+                  Name: "EC2MetaDataSSRF_BODY"
+                  ActionToUse:
+                    Count: {}
+                -
+                  Name: "CrossSiteScripting_BODY"
+                  ActionToUse:
+                    Count: {}
           VisibilityConfig:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true

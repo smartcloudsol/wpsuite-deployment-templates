@@ -52,6 +52,14 @@ The wrapper maps deployment-secret identity, sign-in, MFA, trigger, domain, SES,
 
 The wrapped template accepts create-or-existing identity parameters, optional identity pool/domain/email/triggers and deployment-wide reCAPTCHA/WAF inputs. Its private artifact keys are below `${ArtifactRootPrefix}wpsuite-cognito/`, including standalone trigger-function and custom-resource ZIPs with their required runtime dependencies, plus email templates. Existing `email-templates/` objects are preserved on stack create and update by default. Set `CognitoOverwriteEmailTemplates` to `true` only to explicitly replace the bundled template filenames with the WP Suite defaults. Flow and AI Kit consume the effective pool/security outputs; Static Guardian consumes the pool/client IDs.
 
+The shared regional API WebACL, together with the Flow and AI Kit local
+fallback WebACLs, keeps the Common Rule Set's `SizeRestrictions_BODY`,
+`GenericLFI_BODY`, `GenericRFI_BODY`, `EC2MetaDataSSRF_BODY` and
+`CrossSiteScripting_BODY` rules in Count mode. This permits the larger and
+richer form, prompt, HTML, URL and document payloads accepted by those APIs.
+The remaining Common Rule Set checks, Known Bad Inputs, IP reputation,
+allow/block lists and endpoint rate limits retain their blocking behavior.
+
 ### Flow backend
 
 The wrapper groups API auth, Cognito pool/scopes, supplied-or-created payload/template buckets, reCAPTCHA/shared WAF, data retention, PITR, alerts, custom domain, GuardDuty and Lambda/log settings. It forwards `ApiUrl`, `TemplatesBucketOutput`, `PayloadBucketOutput` and `PayloadPrefixOutput`.
