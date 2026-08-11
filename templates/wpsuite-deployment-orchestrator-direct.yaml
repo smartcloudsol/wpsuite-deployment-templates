@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.61/templates/templates"
+    Default: "releases/v1.0.62/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.61"
+    Default: "v1.0.62"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -171,11 +171,31 @@ Parameters:
     Default: "-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-"
     AllowedPattern: "^[^|~]*(?:~[^|~]*){7}(?:\\|[^|~]*(?:~[^|~]*){7}){4}$"
     Description: "Five packed optional CloudFront origin records for Static Site Guardian."
+    MaxLength: 4096
   StaticGuardianAdditionalCacheBehaviors:
     Type: "String"
     Default: "-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-"
     AllowedPattern: "^[^|~]*(?:~[^|~]*){7}(?:\\|[^|~]*(?:~[^|~]*){7}){9}$"
     Description: "Ten packed optional ordered CloudFront cache behavior records for Static Site Guardian."
+    MaxLength: 4096
+  StaticGuardianAdditionalFunctionAssociations:
+    Type: "String"
+    Default: "-~-|-~-|-~-|-~-|-~-|-~-|-~-|-~-|-~-|-~-"
+    AllowedPattern: "^[^|~]*(?:~[^|~]*){1}(?:\\|[^|~]*(?:~[^|~]*){1}){9}$"
+    Description: "Ten packed CloudFront Function association records for Static Guardian."
+    MaxLength: 4096
+  StaticGuardianAdditionalViewerLambdaAssociations:
+    Type: "String"
+    Default: "-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-"
+    AllowedPattern: "^[^|~]*(?:~[^|~]*){2}(?:\\|[^|~]*(?:~[^|~]*){2}){9}$"
+    Description: "Ten packed viewer Lambda@Edge association records for Static Guardian."
+    MaxLength: 4096
+  StaticGuardianAdditionalOriginLambdaAssociations:
+    Type: "String"
+    Default: "-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-"
+    AllowedPattern: "^[^|~]*(?:~[^|~]*){2}(?:\\|[^|~]*(?:~[^|~]*){2}){9}$"
+    Description: "Ten packed origin Lambda@Edge association records for Static Guardian."
+    MaxLength: 4096
   CognitoPostLoginRedirectUrl:
     Type: "String"
     Default: "https://example.com/signin"
@@ -1745,6 +1765,12 @@ Resources:
           Ref: "StaticGuardianAdditionalOrigins"
         AdditionalCacheBehaviors:
           Ref: "StaticGuardianAdditionalCacheBehaviors"
+        AdditionalFunctionAssociations:
+          Ref: "StaticGuardianAdditionalFunctionAssociations"
+        AdditionalViewerLambdaAssociations:
+          Ref: "StaticGuardianAdditionalViewerLambdaAssociations"
+        AdditionalOriginLambdaAssociations:
+          Ref: "StaticGuardianAdditionalOriginLambdaAssociations"
         S3BucketName:
           Ref: "StaticGuardianS3BucketName"
         S3WWWRoot:

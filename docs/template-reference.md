@@ -79,6 +79,20 @@ reference existing AWS managed or buyer-managed policy IDs. The manager rejects
 reserved origin IDs and any behavior that could overlap Static Guardian's
 authentication-managed paths. External S3 bucket policies remain buyer-owned,
 including access granted to a supplied Origin Access Control ID.
+
+`StaticGuardianAdditionalFunctionAssociations`,
+`StaticGuardianAdditionalViewerLambdaAssociations` and
+`StaticGuardianAdditionalOriginLambdaAssociations` carry edge-function
+associations aligned with the same ten behavior slots. The wrapper forwards
+them without the `StaticGuardian` prefix. CloudFront Functions can run on
+viewer request or viewer response events. Versioned Lambda@Edge functions can
+run on viewer or origin request/response events, with request-body forwarding
+available only for request events. The distribution manager applies, replaces
+and clears these associations during stack updates while preserving unrelated
+cache behaviors. Supplied functions must already exist in the deployment
+account; CloudFront Functions must be published to LIVE, and Lambda@Edge ARNs
+must reference numbered versions in `us-east-1`.
+
 Before updating a distribution that contains console-created origins or cache
 behaviors, reproduce those entries in these parameters. CloudFormation can
 remove unmanaged additions when it reconciles the native distribution.

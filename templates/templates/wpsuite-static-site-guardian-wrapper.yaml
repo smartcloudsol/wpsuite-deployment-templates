@@ -91,6 +91,18 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter AdditionalCacheBehaviors."
+  AdditionalFunctionAssociations:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AdditionalFunctionAssociations."
+  AdditionalViewerLambdaAssociations:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AdditionalViewerLambdaAssociations."
+  AdditionalOriginLambdaAssociations:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AdditionalOriginLambdaAssociations."
   S3BucketName:
     Type: "String"
     Default: ""
@@ -303,6 +315,39 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "AdditionalCacheBehaviors"
+        AdditionalFunctionAssociations:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianAdditionalFunctionAssociations}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AdditionalFunctionAssociations"
+        AdditionalViewerLambdaAssociations:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianAdditionalViewerLambdaAssociations}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AdditionalViewerLambdaAssociations"
+        AdditionalOriginLambdaAssociations:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianAdditionalOriginLambdaAssociations}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AdditionalOriginLambdaAssociations"
         S3BucketName:
           Fn::If:
             - "CondUseMarketplaceSecret"

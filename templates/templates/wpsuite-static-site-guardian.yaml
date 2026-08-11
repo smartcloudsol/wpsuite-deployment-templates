@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.61"
+    Default: "v1.0.62"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -60,11 +60,31 @@ Parameters:
     Default: "-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-"
     AllowedPattern: "^[^|~]*(?:~[^|~]*){7}(?:\\|[^|~]*(?:~[^|~]*){7}){4}$"
     Description: "Five packed optional CloudFront origin records using pipe record and tilde field delimiters."
+    MaxLength: 4096
   AdditionalCacheBehaviors:
     Type: "String"
     Default: "-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-"
     AllowedPattern: "^[^|~]*(?:~[^|~]*){7}(?:\\|[^|~]*(?:~[^|~]*){7}){9}$"
     Description: "Ten packed optional ordered CloudFront cache behavior records using pipe record and tilde field delimiters."
+    MaxLength: 4096
+  AdditionalFunctionAssociations:
+    Type: "String"
+    Default: "-~-|-~-|-~-|-~-|-~-|-~-|-~-|-~-|-~-|-~-"
+    AllowedPattern: "^[^|~]*(?:~[^|~]*){1}(?:\\|[^|~]*(?:~[^|~]*){1}){9}$"
+    Description: "Ten packed CloudFront Function association records aligned with the additional cache behavior slots."
+    MaxLength: 4096
+  AdditionalViewerLambdaAssociations:
+    Type: "String"
+    Default: "-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-"
+    AllowedPattern: "^[^|~]*(?:~[^|~]*){2}(?:\\|[^|~]*(?:~[^|~]*){2}){9}$"
+    Description: "Ten packed viewer Lambda@Edge association records aligned with the additional cache behavior slots."
+    MaxLength: 4096
+  AdditionalOriginLambdaAssociations:
+    Type: "String"
+    Default: "-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-|-~-~-"
+    AllowedPattern: "^[^|~]*(?:~[^|~]*){2}(?:\\|[^|~]*(?:~[^|~]*){2}){9}$"
+    Description: "Ten packed origin Lambda@Edge association records aligned with the additional cache behavior slots."
+    MaxLength: 4096
   SigninPagePath:
     Type: "String"
     Default: "/signin"
@@ -2184,6 +2204,14 @@ Resources:
                     Fn::Sub: "arn:${AWS::Partition}:lambda:us-east-1:${AWS::AccountId}:function:${AppName}-cookie-signing"
                   -
                     Fn::Sub: "arn:${AWS::Partition}:lambda:us-east-1:${AWS::AccountId}:function:${AppName}-cookie-signing:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "lambda:GetFunction"
+                  - "lambda:EnableReplication*"
+                  - "lambda:DisableReplication*"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:lambda:us-east-1:${AWS::AccountId}:function:*:*"
               -
                 Effect: "Allow"
                 Action:
@@ -4840,6 +4868,8 @@ Resources:
       ResourceType: "DistributionUpdate"
       DistributionId:
         Ref: "CloudFrontDistribution"
+      DeploymentAccountId:
+        Ref: "AWS::AccountId"
       LambdaEdgeFunctionVersionArn:
         Fn::GetAtt:
           - "CookieSigningEdgeFunction"
@@ -4871,6 +4901,12 @@ Resources:
         Ref: "AdditionalOrigins"
       AdditionalCacheBehaviors:
         Ref: "AdditionalCacheBehaviors"
+      AdditionalFunctionAssociations:
+        Ref: "AdditionalFunctionAssociations"
+      AdditionalViewerLambdaAssociations:
+        Ref: "AdditionalViewerLambdaAssociations"
+      AdditionalOriginLambdaAssociations:
+        Ref: "AdditionalOriginLambdaAssociations"
       BaselineRevision:
         Fn::Join:
           - "|"
@@ -4893,6 +4929,12 @@ Resources:
               Ref: "AdditionalOrigins"
             -
               Ref: "AdditionalCacheBehaviors"
+            -
+              Ref: "AdditionalFunctionAssociations"
+            -
+              Ref: "AdditionalViewerLambdaAssociations"
+            -
+              Ref: "AdditionalOriginLambdaAssociations"
     DependsOn:
       - "CloudFrontDistribution"
     Condition: "TemplateEnabled"
