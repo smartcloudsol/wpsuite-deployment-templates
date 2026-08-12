@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.63"
+    Default: "v1.0.64"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -1938,6 +1938,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "EnableWeeklyLicenseRefresh"
+  LicenseRefreshFunctionRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableWeeklyLicenseRefresh"
   LicenseRefreshFunctionTemplateEnabledCondition:
     Fn::And:
       -
@@ -1950,13 +1956,19 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "EnableWeeklyLicenseRefresh"
-  LicenseRefreshScheduleTemplateEnabledCondition:
+  LicenseRefreshScheduleGroupTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
       -
         Condition: "EnableWeeklyLicenseRefresh"
-  LicenseRefreshPermissionTemplateEnabledCondition:
+  LicenseRefreshSchedulerExecutionRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "EnableWeeklyLicenseRefresh"
+  LicenseRefreshScheduleTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
@@ -5033,7 +5045,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "TemplateEnabled"
+    Condition: "LicenseRefreshFunctionRoleTemplateEnabledCondition"
   LicenseRefreshFunction:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -5093,38 +5105,81 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "LicenseRefreshFunctionLogGroupTemplateEnabledCondition"
-  LicenseRefreshSchedule:
-    Type: "AWS::Events::Rule"
+  LicenseRefreshScheduleGroup:
+    Type: "AWS::Scheduler::ScheduleGroup"
     Properties:
-      Description: "Weekly WP Suite site config refresh schedule"
-      ScheduleExpression:
-        Ref: "LicenseRefreshScheduleExpression"
-      State: "ENABLED"
-      Targets:
-        -
-          Arn:
-            Fn::GetAtt:
-              - "LicenseRefreshFunction"
-              - "Arn"
-          Id: "LicenseRefreshFunctionTarget"
       Tags:
         -
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "LicenseRefreshScheduleTemplateEnabledCondition"
-  LicenseRefreshPermission:
-    Type: "AWS::Lambda::Permission"
+    Condition: "LicenseRefreshScheduleGroupTemplateEnabledCondition"
+  LicenseRefreshSchedulerExecutionRole:
+    Type: "AWS::IAM::Role"
     Properties:
-      Action: "lambda:InvokeFunction"
-      FunctionName:
-        Ref: "LicenseRefreshFunction"
-      Principal: "events.amazonaws.com"
-      SourceArn:
-        Fn::GetAtt:
-          - "LicenseRefreshSchedule"
-          - "Arn"
-    Condition: "LicenseRefreshPermissionTemplateEnabledCondition"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "scheduler.amazonaws.com"
+            Action: "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                aws:SourceAccount:
+                  Ref: "AWS::AccountId"
+              ArnEquals:
+                aws:SourceArn:
+                  Fn::GetAtt:
+                    - "LicenseRefreshScheduleGroup"
+                    - "Arn"
+      Policies:
+        -
+          PolicyName: "LicenseRefreshSchedulerInvokePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource:
+                  Fn::GetAtt:
+                    - "LicenseRefreshFunction"
+                    - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "LicenseRefreshSchedulerExecutionRoleTemplateEnabledCondition"
+  LicenseRefreshSchedule:
+    Type: "AWS::Scheduler::Schedule"
+    Properties:
+      Description: "Weekly WP Suite site config refresh schedule"
+      GroupName:
+        Ref: "LicenseRefreshScheduleGroup"
+      ScheduleExpression:
+        Ref: "LicenseRefreshScheduleExpression"
+      ScheduleExpressionTimezone: "UTC"
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      State: "ENABLED"
+      Target:
+        Arn:
+          Fn::GetAtt:
+            - "LicenseRefreshFunction"
+            - "Arn"
+        RoleArn:
+          Fn::GetAtt:
+            - "LicenseRefreshSchedulerExecutionRole"
+            - "Arn"
+        Input: "{}"
+        RetryPolicy:
+          MaximumEventAgeInSeconds: 3600
+          MaximumRetryAttempts: 3
+    Condition: "LicenseRefreshScheduleTemplateEnabledCondition"
   HostedZoneLookup:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
