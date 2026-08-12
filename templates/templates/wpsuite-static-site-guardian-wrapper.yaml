@@ -83,6 +83,15 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter SigninPagePath."
+  PublicCacheMode:
+    Type: "String"
+    Default: "fixed-7d"
+    AllowedValues:
+      - "fixed-1d"
+      - "fixed-7d"
+      - "fixed-30d"
+      - "managed-optimized"
+    Description: "Forwarded WP Suite nested stack parameter PublicCacheMode."
   AdditionalOrigins:
     Type: "String"
     Default: ""
@@ -293,6 +302,17 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "SigninPagePath"
+        PublicCacheMode:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianPublicCacheMode}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "PublicCacheMode"
         AdditionalOrigins:
           Fn::If:
             - "CondUseMarketplaceSecret"

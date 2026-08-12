@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.65"
+    Default: "v1.0.66"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -51,6 +51,15 @@ Parameters:
     Type: "CommaDelimitedList"
     Default: "/restricted"
     Description: "List of paths to protect with signed cookies."
+  PublicCacheMode:
+    Type: "String"
+    Default: "fixed-7d"
+    AllowedValues:
+      - "fixed-1d"
+      - "fixed-7d"
+      - "fixed-30d"
+      - "managed-optimized"
+    Description: "CloudFront edge cache mode for the public default cache behavior."
   ProtectedPathGroupMap:
     Type: "String"
     Default: "{}"
@@ -64,7 +73,7 @@ Parameters:
   AdditionalCacheBehaviors:
     Type: "String"
     Default: "-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-|-~-~-~-~-~-~-~-"
-    AllowedPattern: "^[^|~]*(?:~[^|~]*){7}(?:\\|[^|~]*(?:~[^|~]*){7}){9}$"
+    AllowedPattern: "^(?!(?:/issue-cookie|/restricted|/smartcloud-wpsuiteio))[^|~]*(?:~[^|~]*){7}(?:\\|(?!(?:/issue-cookie|/restricted|/smartcloud-wpsuiteio))[^|~]*(?:~[^|~]*){7}){9}$"
     Description: "Ten packed optional ordered CloudFront cache behavior records using pipe record and tilde field delimiters."
     MaxLength: 4096
   AdditionalFunctionAssociations:
@@ -250,6 +259,25 @@ Conditions:
         Condition: "HasWpsuiteSiteId"
       -
         Condition: "HasWpsuiteSiteKey"
+  UseManagedPublicCachePolicy:
+    Fn::Equals:
+      -
+        Ref: "PublicCacheMode"
+      - "managed-optimized"
+  UseFixedPublicCachePolicy:
+    Fn::Not:
+      -
+        Condition: "UseManagedPublicCachePolicy"
+  UseOneDayPublicCache:
+    Fn::Equals:
+      -
+        Ref: "PublicCacheMode"
+      - "fixed-1d"
+  UseThirtyDayPublicCache:
+    Fn::Equals:
+      -
+        Ref: "PublicCacheMode"
+      - "fixed-30d"
   AdditionalOrigin1Enabled:
     Fn::Not:
       -
@@ -1926,6 +1954,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "ManageSigningKeyMaterial"
+  PublicSiteCachePolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "UseFixedPublicCachePolicy"
   CloudFrontWebACLTemplateEnabledCondition:
     Fn::And:
       -
@@ -2502,6 +2536,64 @@ Resources:
       ResourceType: "ResponsePolicy"
       Name:
         Fn::Sub: "${AppName}-NoCachePolicy"
+    Condition: "TemplateEnabled"
+  PublicSiteCachePolicy:
+    Type: "AWS::CloudFront::CachePolicy"
+    Properties:
+      CachePolicyConfig:
+        Name:
+          Fn::Sub: "${AppName}-public-site-cache"
+        Comment: "Fixed edge TTL for the public Static Guardian default behavior"
+        MinTTL:
+          Fn::If:
+            - "UseOneDayPublicCache"
+            - 86400
+            -
+              Fn::If:
+                - "UseThirtyDayPublicCache"
+                - 2592000
+                - 604800
+        DefaultTTL:
+          Fn::If:
+            - "UseOneDayPublicCache"
+            - 86400
+            -
+              Fn::If:
+                - "UseThirtyDayPublicCache"
+                - 2592000
+                - 604800
+        MaxTTL:
+          Fn::If:
+            - "UseOneDayPublicCache"
+            - 86400
+            -
+              Fn::If:
+                - "UseThirtyDayPublicCache"
+                - 2592000
+                - 604800
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: "none"
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          HeadersConfig:
+            HeaderBehavior: "none"
+          QueryStringsConfig:
+            QueryStringBehavior: "none"
+    Condition: "PublicSiteCachePolicyTemplateEnabledCondition"
+  WpsuiteAssetResponseHeadersPolicy:
+    Type: "AWS::CloudFront::ResponseHeadersPolicy"
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name:
+          Fn::Sub: "${AppName}-wpsuite-assets"
+        Comment: "Seven day browser cache for WP Suite license and configuration assets"
+        CustomHeadersConfig:
+          Items:
+            -
+              Header: "Cache-Control"
+              Value: "public, max-age=604800, must-revalidate"
+              Override: true
     Condition: "TemplateEnabled"
   CloudFrontWebACL:
     Type: "AWS::CloudFormation::CustomResource"
@@ -3390,7 +3482,12 @@ Resources:
         DefaultCacheBehavior:
           TargetOriginId: "S3Origin"
           ViewerProtocolPolicy: "redirect-to-https"
-          CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+          CachePolicyId:
+            Fn::If:
+              - "UseManagedPublicCachePolicy"
+              - "658327ea-f89d-4fab-a63d-7e88639e58f6"
+              -
+                Ref: "PublicSiteCachePolicy"
           OriginRequestPolicyId: "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf"
           Compress: true
           FunctionAssociations:
@@ -3435,6 +3532,22 @@ Resources:
                 FunctionARN:
                   Fn::GetAtt:
                     - "PathRewriteFunction"
+                    - "FunctionARN"
+          -
+            PathPattern: "/smartcloud-wpsuiteio/*"
+            TargetOriginId: "S3Origin"
+            ViewerProtocolPolicy: "redirect-to-https"
+            CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+            OriginRequestPolicyId: "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf"
+            ResponseHeadersPolicyId:
+              Ref: "WpsuiteAssetResponseHeadersPolicy"
+            Compress: true
+            FunctionAssociations:
+              -
+                EventType: "viewer-request"
+                FunctionARN:
+                  Fn::GetAtt:
+                    - "ViewerRequestFunction"
                     - "FunctionARN"
           -
             Fn::If:
@@ -4937,6 +5050,8 @@ Resources:
               Ref: "NotFoundPagePath"
             -
               Ref: "ForbiddenPagePath"
+            -
+              Ref: "PublicCacheMode"
             -
               Ref: "AdditionalOrigins"
             -
