@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.66/templates/templates"
+    Default: "releases/v1.0.67/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.66"
+    Default: "v1.0.67"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -209,6 +209,12 @@ Parameters:
     Type: "String"
     Default: "https://example.com/signin"
     Description: "OAuth callback URL for the Cognito app client."
+  CognitoTokenValidityConfig:
+    Type: "String"
+    Default: "1,hours,1,hours,30,days"
+    AllowedPattern: "^[1-9][0-9]*,(seconds|minutes|hours|days),[1-9][0-9]*,(seconds|minutes|hours|days),[1-9][0-9]*,(seconds|minutes|hours|days)$"
+    Description: "Packed Cognito access, ID, and refresh token validity quantities and units in value,unit,value,unit,value,unit order."
+    MaxLength: 4096
   CognitoRegisteredGroupName:
     Type: "String"
     Default: "registered"
@@ -1263,6 +1269,8 @@ Resources:
           Ref: "ExistingIdentityPoolId"
         PostLoginRedirectUrl:
           Ref: "CognitoPostLoginRedirectUrl"
+        TokenValidityConfig:
+          Ref: "CognitoTokenValidityConfig"
         RegisteredGroupName:
           Ref: "CognitoRegisteredGroupName"
         AdminGroupName:

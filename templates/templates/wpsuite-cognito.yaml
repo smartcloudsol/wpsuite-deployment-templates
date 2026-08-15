@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.66"
+    Default: "v1.0.67"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -23,6 +23,11 @@ Parameters:
   ArtifactBucketName:
     Type: "String"
     Description: "S3 bucket that stores staged artifacts for this application."
+  TokenValidityConfig:
+    Type: "String"
+    Default: "1,hours,1,hours,30,days"
+    AllowedPattern: "^[1-9][0-9]*,(seconds|minutes|hours|days),[1-9][0-9]*,(seconds|minutes|hours|days),[1-9][0-9]*,(seconds|minutes|hours|days)$"
+    Description: "Packed access, ID, and refresh token validity quantities and units in value,unit,value,unit,value,unit order."
   AppName:
     Type: "String"
     Default: "wpsuite-cognito"
@@ -1800,6 +1805,55 @@ Resources:
         Fn::Sub: "${AppName}-client"
       GenerateSecret: false
       EnableTokenRevocation: true
+      AccessTokenValidity:
+        Fn::Select:
+          - 0
+          -
+            Fn::Split:
+              - ","
+              -
+                Ref: "TokenValidityConfig"
+      IdTokenValidity:
+        Fn::Select:
+          - 2
+          -
+            Fn::Split:
+              - ","
+              -
+                Ref: "TokenValidityConfig"
+      RefreshTokenValidity:
+        Fn::Select:
+          - 4
+          -
+            Fn::Split:
+              - ","
+              -
+                Ref: "TokenValidityConfig"
+      TokenValidityUnits:
+        AccessToken:
+          Fn::Select:
+            - 1
+            -
+              Fn::Split:
+                - ","
+                -
+                  Ref: "TokenValidityConfig"
+        IdToken:
+          Fn::Select:
+            - 3
+            -
+              Fn::Split:
+                - ","
+                -
+                  Ref: "TokenValidityConfig"
+        RefreshToken:
+          Fn::Select:
+            - 5
+            -
+              Fn::Split:
+                - ","
+                -
+                  Ref: "TokenValidityConfig"
       PreventUserExistenceErrors: "ENABLED"
       SupportedIdentityProviders:
         - "COGNITO"

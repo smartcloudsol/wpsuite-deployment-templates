@@ -71,6 +71,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter PostLoginRedirectUrl."
+  TokenValidityConfig:
+    Type: "String"
+    Default: "1,hours,1,hours,30,days"
+    Description: "Forwarded WP Suite nested stack parameter TokenValidityConfig."
   RegisteredGroupName:
     Type: "String"
     Default: ""
@@ -253,11 +257,11 @@ Parameters:
     Description: "Forwarded WP Suite nested stack parameter UserPoolCustomDomainCertArn."
   AutoCreateSesIdentity:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Forwarded WP Suite nested stack parameter AutoCreateSesIdentity."
   DeleteSesIdentityOnStackDelete:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Forwarded WP Suite nested stack parameter DeleteSesIdentityOnStackDelete."
   EmailTemplateBucketName:
     Type: "String"
@@ -406,6 +410,17 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "PostLoginRedirectUrl"
+        TokenValidityConfig:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoTokenValidityConfig}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "TokenValidityConfig"
         RegisteredGroupName:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -904,27 +919,9 @@ Resources:
             -
               Ref: "UserPoolCustomDomainCertArn"
         AutoCreateSesIdentity:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoAutoCreateSesIdentity}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "AutoCreateSesIdentity"
+          Ref: "AutoCreateSesIdentity"
         DeleteSesIdentityOnStackDelete:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoDeleteSesIdentityOnStackDelete}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "DeleteSesIdentityOnStackDelete"
+          Ref: "DeleteSesIdentityOnStackDelete"
         EmailTemplateBucketName:
           Fn::If:
             - "CondUseMarketplaceSecret"
