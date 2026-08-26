@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.68/templates/templates"
+    Default: "releases/v1.0.69/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.68"
+    Default: "v1.0.69"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -842,10 +842,10 @@ Parameters:
     Default: "{}"
     Description: "StaticGuardian nested stack parameter ProtectedPathGroupMap."
     NoEcho: false
-  StaticGuardianCookieExpirationDays:
+  StaticGuardianCookieExpirationSeconds:
     Type: "String"
-    Default: "30"
-    Description: "StaticGuardian nested stack parameter CookieExpirationDays."
+    Default: "2592000"
+    Description: "StaticGuardian nested stack parameter CookieExpirationSeconds."
     NoEcho: false
   StaticGuardianPublicKeyContent:
     Type: "String"
@@ -1808,8 +1808,8 @@ Resources:
           Ref: "StaticGuardianManageSigningKeys"
         ProtectedPathGroupMap:
           Ref: "StaticGuardianProtectedPathGroupMap"
-        CookieExpirationDays:
-          Ref: "StaticGuardianCookieExpirationDays"
+        CookieExpirationSeconds:
+          Ref: "StaticGuardianCookieExpirationSeconds"
         PublicKeyContent:
           Ref: "StaticGuardianPublicKeyContent"
         KmsKeyId:

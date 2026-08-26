@@ -132,10 +132,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter ProtectedPathGroupMap."
-  CookieExpirationDays:
+  CookieExpirationSeconds:
     Type: "String"
     Default: ""
-    Description: "Forwarded WP Suite nested stack parameter CookieExpirationDays."
+    Description: "Forwarded WP Suite nested stack parameter CookieExpirationSeconds."
   PublicKeyContent:
     Type: "String"
     Default: ""
@@ -423,17 +423,17 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "ProtectedPathGroupMap"
-        CookieExpirationDays:
+        CookieExpirationSeconds:
           Fn::If:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianCookieExpirationDays}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianCookieExpirationSeconds}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
-              Ref: "CookieExpirationDays"
+              Ref: "CookieExpirationSeconds"
         PublicKeyContent:
           Fn::If:
             - "CondUseMarketplaceSecret"

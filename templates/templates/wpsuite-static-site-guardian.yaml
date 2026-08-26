@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.68"
+    Default: "v1.0.69"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -98,10 +98,12 @@ Parameters:
     Type: "String"
     Default: "/signin"
     Description: "Path to redirect unauthenticated users for sign-in."
-  CookieExpirationDays:
+  CookieExpirationSeconds:
     Type: "Number"
-    Default: 30
-    Description: "Cookie expiration in days."
+    Default: 2592000
+    Description: "Signed-cookie lifetime in whole seconds, from 1 hour through 3,650 days."
+    MaxValue: 315360000
+    MinValue: 3600
   ManageSigningKeys:
     Type: "String"
     Default: "true"
@@ -2741,8 +2743,8 @@ Resources:
         Fn::GetAtt:
           - "CloudFrontSigningPublicKey"
           - "PublicKeyId"
-      CookieExpirationDays:
-        Ref: "CookieExpirationDays"
+      CookieExpirationSeconds:
+        Ref: "CookieExpirationSeconds"
       ProtectedPaths:
         Fn::Join:
           - ","
