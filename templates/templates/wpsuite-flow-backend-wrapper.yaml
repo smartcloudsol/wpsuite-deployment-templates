@@ -79,6 +79,14 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter AdminCognitoAuthScopes."
+  FrontendCognitoUserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter FrontendCognitoUserPoolId."
+  FrontendCognitoAppClientIds:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter FrontendCognitoAppClientIds."
   PayloadBucketName:
     Type: "String"
     Default: ""
@@ -354,6 +362,10 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "AdminCognitoAuthScopes"
+        FrontendCognitoUserPoolId:
+          Ref: "FrontendCognitoUserPoolId"
+        FrontendCognitoAppClientIds:
+          Ref: "FrontendCognitoAppClientIds"
         PayloadBucketName:
           Fn::If:
             - "CondUseMarketplaceSecret"

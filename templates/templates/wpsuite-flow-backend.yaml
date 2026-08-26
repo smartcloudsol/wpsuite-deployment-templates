@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.67"
+    Default: "v1.0.68"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -63,6 +63,14 @@ Parameters:
     Type: "CommaDelimitedList"
     Default: ""
     Description: "Optional OAuth scopes required on admin endpoints when Cognito auth is enabled."
+  FrontendCognitoUserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Cognito user pool ID used to verify optional discussion identity tokens."
+  FrontendCognitoAppClientIds:
+    Type: "String"
+    Default: ""
+    Description: "Comma-separated Cognito app client IDs accepted for discussion identity tokens."
   EnableRecaptcha:
     Type: "String"
     Default: "false"
@@ -2861,6 +2869,10 @@ Resources:
             Ref: "LogLevel"
           DATA_RETENTION_DAYS:
             Ref: "DataRetentionDays"
+          FRONTEND_COGNITO_USER_POOL_ID:
+            Ref: "FrontendCognitoUserPoolId"
+          FRONTEND_COGNITO_APP_CLIENT_IDS:
+            Ref: "FrontendCognitoAppClientIds"
           RECAPTCHA_SECRET_PARAMETER_NAME:
             Fn::If:
               - "EnableRecaptchaProtection"
@@ -3131,6 +3143,12 @@ Resources:
         -
           path: "/frontend/forms/{formId}/discussion/{submissionId}/replies"
           method: "GET"
+        -
+          path: "/frontend/forms/{formId}/discussion/{submissionId}"
+          method: "PATCH"
+        -
+          path: "/frontend/forms/{formId}/discussion/{submissionId}"
+          method: "DELETE"
         -
           path: "/frontend/forms/{formId}/drafts"
           method: "POST"

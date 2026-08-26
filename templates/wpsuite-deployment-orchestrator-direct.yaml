@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.67/templates/templates"
+    Default: "releases/v1.0.68/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.67"
+    Default: "v1.0.68"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -1442,6 +1442,14 @@ Resources:
             - "Outputs.UserPoolId"
         AdminCognitoAuthScopes:
           Ref: "FlowAdminCognitoAuthScopes"
+        FrontendCognitoUserPoolId:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.UserPoolId"
+        FrontendCognitoAppClientIds:
+          Fn::GetAtt:
+            - "CognitoNestedStack"
+            - "Outputs.UserPoolClientId"
         PayloadBucketName:
           Ref: "FlowPayloadBucketName"
         TemplatesBucketName:
