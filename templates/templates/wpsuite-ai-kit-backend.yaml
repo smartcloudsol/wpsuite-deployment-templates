@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.74"
+    Default: "v1.0.76"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -423,7 +423,7 @@ Parameters:
     Description: "API Gateway rate limit for admin endpoints."
   ApiSchemaVersion:
     Type: "Number"
-    Default: 3
+    Default: 5
     Description: "API schema version number."
   LogRetentionDays:
     Type: "Number"
@@ -1072,6 +1072,42 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "AlertsEnabled"
+  KnowledgeAutomationAuthorizerRejectionMetricTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeAutomationAuthorizerRejectionAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeAutomationHandlerErrorsAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeAutomationHandlerThrottlesAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeAutomationAuthorizerErrorsAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeAutomationAuthorizerThrottlesAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
   HostedZoneLookupTemplateEnabledCondition:
     Fn::And:
       -
@@ -1156,6 +1192,40 @@ Resources:
     Properties:
       LogGroupName:
         Fn::Sub: "/aws/lambda/${AppName}-ai-handler"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  KnowledgeAutomationHandlerLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub:
+          - "/aws/lambda/${FunctionName}"
+          -
+            FunctionName:
+              Ref: "KnowledgeAutomationHandlerFunction"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  KnowledgeAutomationAuthorizerLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub:
+          - "/aws/lambda/${FunctionName}"
+          -
+            FunctionName:
+              Ref: "KnowledgeAutomationAuthorizerFunction"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -1389,6 +1459,18 @@ Resources:
           Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${AdminCognitoUserPoolId}"
       AuthorizerResultTtlInSeconds: 300
     Condition: "AdminCognitoAuthTemplateEnabledCondition"
+  KnowledgeAutomationRequestAuthorizer:
+    Type: "AWS::ApiGateway::Authorizer"
+    Properties:
+      Name: "knowledge-automation-request-authorizer"
+      RestApiId:
+        Ref: "RestApi"
+      Type: "REQUEST"
+      AuthorizerUri:
+        Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationAuthorizerFunction.Arn}/invocations"
+      IdentitySource: "method.request.header.X-WPSuite-Key-Id,method.request.header.X-WPSuite-Timestamp,method.request.header.X-WPSuite-Nonce,method.request.header.X-WPSuite-Content-SHA256,method.request.header.X-WPSuite-Signature,method.request.header.Idempotency-Key"
+      AuthorizerResultTtlInSeconds: 0
+    Condition: "TemplateEnabled"
   ApiAuthorizerAttachment:
     Type: "Custom::ApiAuthorizerAttachment"
     Properties:
@@ -1614,8 +1696,42 @@ Resources:
           Method: "POST"
           IntegrationUri:
             Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/automation/pairing-codes"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/kb/automation/keys/revoke"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
+      PublicEndpoints:
+        -
+          Path: "/meta/capabilities"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/automation/kb/enroll"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
+      AutomationEndpoints:
+        -
+          Path: "/automation/kb/keys/rotate"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
+        -
+          Path: "/automation/kb/status"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
+      AutomationAuthorizerId:
+        Ref: "KnowledgeAutomationRequestAuthorizer"
     Condition: "TemplateEnabled"
-  RestApiDeployment:
+  RestApiDeploymentV5:
     Type: "AWS::ApiGateway::Deployment"
     Properties:
       RestApiId:
@@ -1632,7 +1748,7 @@ Resources:
         Ref: "RestApi"
       StageName: "prod"
       DeploymentId:
-        Ref: "RestApiDeployment"
+        Ref: "RestApiDeploymentV5"
       TracingEnabled: false
       AccessLogSetting:
         DestinationArn:
@@ -2073,6 +2189,142 @@ Resources:
               - "ERROR"
           DataTraceEnabled: false
           MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/automation/pairing-codes"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/automation/keys/revoke"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/meta/capabilities"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              - 100
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              - 50
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: true
+        -
+          ResourcePath: "/automation/kb/enroll"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              - 100
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              - 50
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: true
+        -
+          ResourcePath: "/automation/kb/keys/rotate"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              - 100
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              - 50
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: true
+        -
+          ResourcePath: "/automation/kb/status"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              - 100
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              - 50
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: true
       Tags:
         -
           Key: "aws-apn-id"
@@ -2219,6 +2471,30 @@ Resources:
       SourceArn:
         Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*/*/*"
     Condition: "AiHandlerInvokePermissionFrontendTemplateEnabledCondition"
+  KnowledgeAutomationHandlerInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        Ref: "KnowledgeAutomationHandlerFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*/*"
+    Condition: "TemplateEnabled"
+  KnowledgeAutomationAuthorizerInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        Ref: "KnowledgeAutomationAuthorizerFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/authorizers/*"
+    Condition: "TemplateEnabled"
   ApiDomainName:
     Type: "AWS::ApiGateway::DomainName"
     Properties:
@@ -2517,6 +2793,30 @@ Resources:
             CloudWatchMetricsEnabled: true
             MetricName:
               Fn::Sub: "${AppName}-admin-rate-limit"
+        -
+          Name: "RateLimitAutomationEndpoints"
+          Priority: 900
+          Statement:
+            RateBasedStatement:
+              Limit: 1000
+              AggregateKeyType: "IP"
+              ScopeDownStatement:
+                ByteMatchStatement:
+                  SearchString: "/automation"
+                  FieldToMatch:
+                    UriPath: {}
+                  TextTransformations:
+                    -
+                      Priority: 0
+                      Type: "NONE"
+                  PositionalConstraint: "STARTS_WITH"
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName:
+              Fn::Sub: "${AppName}-automation-rate-limit"
     Condition: "WebACLTemplateEnabledCondition"
   WebACLAssociation:
     Type: "Custom::WafAssociation"
@@ -3064,6 +3364,147 @@ Resources:
         AttributeName: "TTL"
         Enabled: true
     Condition: "TemplateEnabled"
+  KnowledgeAutomationKeyRegistryTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-KnowledgeAutomationKeys"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "KeyId"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "KeyId"
+          KeyType: "HASH"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
+    Condition: "TemplateEnabled"
+  KnowledgeAutomationPairingCodeTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-KnowledgeAutomationPairing"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "CodeHash"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "CodeHash"
+          KeyType: "HASH"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
+      TimeToLiveSpecification:
+        AttributeName: "TTL"
+        Enabled: true
+    Condition: "TemplateEnabled"
+  KnowledgeAutomationNonceTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-KnowledgeAutomationNonces"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "NonceKey"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "NonceKey"
+          KeyType: "HASH"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
+      TimeToLiveSpecification:
+        AttributeName: "TTL"
+        Enabled: true
+    Condition: "TemplateEnabled"
+  KnowledgeAutomationIdempotencyTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-KnowledgeAutomationIdempotency"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "IdempotencyKey"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "IdempotencyKey"
+          KeyType: "HASH"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
+      TimeToLiveSpecification:
+        AttributeName: "TTL"
+        Enabled: true
+    Condition: "TemplateEnabled"
   RecaptchaSecretParameter:
     Type: "Custom::SSMParameter"
     Properties:
@@ -3387,6 +3828,10 @@ Resources:
             Ref: "EnableSummarizerBackend"
           ENABLE_LANGUAGE_AI_BACKEND:
             Ref: "EnableLanguageAIBackend"
+          BACKEND_RELEASE:
+            Ref: "TemplateVersion"
+          BACKEND_API_SCHEMA_VERSION:
+            Ref: "ApiSchemaVersion"
           ENABLE_AGENT_MODE_FOR_CHATBOT:
             Ref: "EnableAgentModeForChatbot"
           AGENT_REASONING_EFFORT_LEVEL:
@@ -3421,6 +3866,286 @@ Resources:
                   - "KnowledgeBaseSyncFunction"
                   - "Arn"
               - ""
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  KnowledgeAutomationHandlerFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "KnowledgeAutomationHandlerFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:TransactWriteItems"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "KnowledgeAutomationKeyRegistryTable"
+                      - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "KnowledgeAutomationPairingCodeTable"
+                      - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "KnowledgeAutomationIdempotencyTable"
+                      - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  KnowledgeAutomationHandlerFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "Handles AI Kit site-key enrollment, rotation, revocation, and signed automation status"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/functions/knowledge-automation-handler.zip"
+      Handler: "dist/handler.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize: 512
+      Timeout: 15
+      Role:
+        Fn::GetAtt:
+          - "KnowledgeAutomationHandlerFunctionRole"
+          - "Arn"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          PAIRING_CODE_TABLE_NAME:
+            Ref: "KnowledgeAutomationPairingCodeTable"
+          KEY_REGISTRY_TABLE_NAME:
+            Ref: "KnowledgeAutomationKeyRegistryTable"
+          IDEMPOTENCY_TABLE_NAME:
+            Ref: "KnowledgeAutomationIdempotencyTable"
+          PAIRING_CODE_TTL_SECONDS: "600"
+          IDEMPOTENCY_TTL_SECONDS: "86400"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  KnowledgeAutomationAuthorizerFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "KnowledgeAutomationAuthorizerFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "KnowledgeAutomationKeyRegistryTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:PutItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "KnowledgeAutomationNonceTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "TemplateEnabled"
+  KnowledgeAutomationAuthorizerFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "Verifies WP Suite Site Request Signature v1 for AI Kit automation routes"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/functions/knowledge-automation-authorizer.zip"
+      Handler: "dist/handler.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize: 256
+      Timeout: 10
+      Role:
+        Fn::GetAtt:
+          - "KnowledgeAutomationAuthorizerFunctionRole"
+          - "Arn"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          KEY_REGISTRY_TABLE_NAME:
+            Ref: "KnowledgeAutomationKeyRegistryTable"
+          NONCE_TABLE_NAME:
+            Ref: "KnowledgeAutomationNonceTable"
+          SIGNATURE_CLOCK_SKEW_SECONDS: "300"
+          NONCE_TTL_SECONDS: "600"
       Tags:
         -
           Key: "aws-apn-id"
@@ -4746,6 +5471,138 @@ Resources:
         -
           Ref: "AlertsTopic"
     Condition: "DeadLetterQueueMessagesAlarmTemplateEnabledCondition"
+  KnowledgeAutomationAuthorizerRejectionMetric:
+    Type: "AWS::Logs::MetricFilter"
+    Properties:
+      LogGroupName:
+        Fn::Sub:
+          - "/aws/lambda/${FunctionName}"
+          -
+            FunctionName:
+              Ref: "KnowledgeAutomationAuthorizerFunction"
+      FilterPattern: "\"Knowledge automation authorization rejected\""
+      MetricTransformations:
+        -
+          MetricNamespace: "WPSuite/AIKit"
+          MetricName: "KnowledgeAutomationAuthorizerRejections"
+          MetricValue: "1"
+          DefaultValue: 0
+    Condition: "KnowledgeAutomationAuthorizerRejectionMetricTemplateEnabledCondition"
+  KnowledgeAutomationAuthorizerRejectionAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-knowledge-automation-authorizer-rejections"
+      AlarmDescription:
+        Fn::Sub: "${AppName} knowledge automation authorizer is rejecting requests."
+      Namespace: "WPSuite/AIKit"
+      MetricName: "KnowledgeAutomationAuthorizerRejections"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeAutomationAuthorizerRejectionAlarmTemplateEnabledCondition"
+  KnowledgeAutomationHandlerErrorsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-knowledgeautomationhandler-errors"
+      AlarmDescription:
+        Fn::Sub: "${AppName} KnowledgeAutomationHandler Lambda errors exceeded the safe threshold."
+      Namespace: "AWS/Lambda"
+      MetricName: "Errors"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "KnowledgeAutomationHandlerFunction"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeAutomationHandlerErrorsAlarmTemplateEnabledCondition"
+  KnowledgeAutomationHandlerThrottlesAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-knowledgeautomationhandler-throttles"
+      AlarmDescription:
+        Fn::Sub: "${AppName} KnowledgeAutomationHandler Lambda throttles exceeded the safe threshold."
+      Namespace: "AWS/Lambda"
+      MetricName: "Throttles"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "KnowledgeAutomationHandlerFunction"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeAutomationHandlerThrottlesAlarmTemplateEnabledCondition"
+  KnowledgeAutomationAuthorizerErrorsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-knowledgeautomationauthorizer-errors"
+      AlarmDescription:
+        Fn::Sub: "${AppName} KnowledgeAutomationAuthorizer Lambda errors exceeded the safe threshold."
+      Namespace: "AWS/Lambda"
+      MetricName: "Errors"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "KnowledgeAutomationAuthorizerFunction"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeAutomationAuthorizerErrorsAlarmTemplateEnabledCondition"
+  KnowledgeAutomationAuthorizerThrottlesAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-knowledgeautomationauthorizer-throttles"
+      AlarmDescription:
+        Fn::Sub: "${AppName} KnowledgeAutomationAuthorizer Lambda throttles exceeded the safe threshold."
+      Namespace: "AWS/Lambda"
+      MetricName: "Throttles"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "KnowledgeAutomationAuthorizerFunction"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeAutomationAuthorizerThrottlesAlarmTemplateEnabledCondition"
   HostedZoneLookup:
     Type: "Custom::HostedZoneLookup"
     Properties:

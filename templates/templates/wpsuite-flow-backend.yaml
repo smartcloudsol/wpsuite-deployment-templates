@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.74"
+    Default: "v1.0.76"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -2869,6 +2869,8 @@ Resources:
             Ref: "LogLevel"
           DATA_RETENTION_DAYS:
             Ref: "DataRetentionDays"
+          BACKEND_RELEASE:
+            Ref: "TemplateVersion"
           FRONTEND_COGNITO_USER_POOL_ID:
             Ref: "FrontendCognitoUserPoolId"
           FRONTEND_COGNITO_APP_CLIENT_IDS:
@@ -3133,6 +3135,10 @@ Resources:
           - ","
           -
             Ref: "AdminCognitoAuthScopes"
+      PublicRoutes:
+        -
+          path: "/meta/capabilities"
+          method: "GET"
       FrontendRoutes:
         -
           path: "/frontend/forms/{formId}/submit"
