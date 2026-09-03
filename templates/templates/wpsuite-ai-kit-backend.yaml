@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.77"
+    Default: "v1.0.79"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -423,7 +423,7 @@ Parameters:
     Description: "API Gateway rate limit for admin endpoints."
   ApiSchemaVersion:
     Type: "Number"
-    Default: 5
+    Default: 7
     Description: "API schema version number."
   LogRetentionDays:
     Type: "Number"
@@ -1728,10 +1728,22 @@ Resources:
           Method: "GET"
           IntegrationUri:
             Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
+        -
+          Path: "/automation/kb/content-batches"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
+        -
+          Path: "/automation/kb/metadata-inputs/wordpress"
+          Method: "PUT"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
       AutomationAuthorizerId:
         Ref: "KnowledgeAutomationRequestAuthorizer"
+      ApiSchemaVersion:
+        Ref: "ApiSchemaVersion"
     Condition: "TemplateEnabled"
-  RestApiDeploymentV5:
+  RestApiDeploymentV7:
     Type: "AWS::ApiGateway::Deployment"
     Properties:
       RestApiId:
@@ -1750,7 +1762,7 @@ Resources:
         Ref: "RestApi"
       StageName: "prod"
       DeploymentId:
-        Ref: "RestApiDeploymentV5"
+        Ref: "RestApiDeploymentV7"
       TracingEnabled: false
       AccessLogSetting:
         DestinationArn:
@@ -2308,6 +2320,50 @@ Resources:
         -
           ResourcePath: "/automation/kb/status"
           HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              - 100
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              - 50
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: true
+        -
+          ResourcePath: "/automation/kb/content-batches"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              - 100
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              - 50
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: true
+        -
+          ResourcePath: "/automation/kb/metadata-inputs/wordpress"
+          HttpMethod: "PUT"
           ThrottlingBurstLimit:
             Fn::If:
               - "HasAdminThrottling"
@@ -3507,6 +3563,45 @@ Resources:
         AttributeName: "TTL"
         Enabled: true
     Condition: "TemplateEnabled"
+  KnowledgeAutomationSourceStateTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-KnowledgeAutomationSources"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "TenantKey"
+          AttributeType: "S"
+        -
+          AttributeName: "SourceKey"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "TenantKey"
+          KeyType: "HASH"
+        -
+          AttributeName: "SourceKey"
+          KeyType: "RANGE"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
+    Condition: "TemplateEnabled"
   RecaptchaSecretParameter:
     Type: "Custom::SSMParameter"
     Properties:
@@ -3918,6 +4013,64 @@ Resources:
                     Fn::GetAtt:
                       - "KnowledgeAutomationIdempotencyTable"
                       - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "KnowledgeAutomationSourceStateTable"
+                      - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedDocsBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}/documents/*"
+                    -
+                      Fn::Sub: "${DocsBucket.Arn}/documents/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedDocsBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}/${ConfigPrefix}*"
+                    -
+                      Fn::Sub: "${DocsBucket.Arn}/${ConfigPrefix}*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedDocsBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}"
+                    -
+                      Fn::GetAtt:
+                        - "DocsBucket"
+                        - "Arn"
+                Condition:
+                  StringLike:
+                    s3:prefix:
+                      Fn::Sub: "${ConfigPrefix}metadata-inputs/wordpress/*"
+              -
+                Fn::If:
+                  - "S3TriggerEnabled"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "lambda:InvokeFunction"
+                    Resource:
+                      Fn::GetAtt:
+                        - "KnowledgeBaseSyncFunction"
+                        - "Arn"
+                  -
+                    Ref: "AWS::NoValue"
               -
                 Effect: "Allow"
                 Action:
@@ -3935,7 +4088,7 @@ Resources:
   KnowledgeAutomationHandlerFunction:
     Type: "AWS::Lambda::Function"
     Properties:
-      Description: "Handles AI Kit site-key enrollment, rotation, revocation, and signed automation status"
+      Description: "Handles AI Kit site enrollment, key lifecycle, status, and versioned Knowledge Base content batches"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -4009,6 +4162,18 @@ Resources:
             Ref: "KnowledgeAutomationKeyRegistryTable"
           IDEMPOTENCY_TABLE_NAME:
             Ref: "KnowledgeAutomationIdempotencyTable"
+          SOURCE_STATE_TABLE_NAME:
+            Ref: "KnowledgeAutomationSourceStateTable"
+          CONFIG_PREFIX:
+            Ref: "ConfigPrefix"
+          KB_SYNC_FUNCTION_ARN:
+            Fn::If:
+              - "S3TriggerEnabled"
+              -
+                Fn::GetAtt:
+                  - "KnowledgeBaseSyncFunction"
+                  - "Arn"
+              - ""
           PAIRING_CODE_TTL_SECONDS: "600"
           IDEMPOTENCY_TTL_SECONDS: "86400"
       Tags:
