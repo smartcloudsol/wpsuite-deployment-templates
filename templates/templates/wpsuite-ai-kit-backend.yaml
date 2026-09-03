@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.76"
+    Default: "v1.0.77"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -1740,6 +1740,8 @@ Resources:
         Fn::Sub: "Template ${TemplateVersion} - API Schema v${ApiSchemaVersion}"
     DependsOn:
       - "ApiAuthorizerAttachment"
+      - "KnowledgeAutomationAuthorizerInvokePermission"
+      - "KnowledgeAutomationHandlerInvokePermission"
     Condition: "TemplateEnabled"
   ApiStage:
     Type: "AWS::ApiGateway::Stage"
@@ -5487,6 +5489,8 @@ Resources:
           MetricName: "KnowledgeAutomationAuthorizerRejections"
           MetricValue: "1"
           DefaultValue: 0
+    DependsOn:
+      - "KnowledgeAutomationAuthorizerLogGroup"
     Condition: "KnowledgeAutomationAuthorizerRejectionMetricTemplateEnabledCondition"
   KnowledgeAutomationAuthorizerRejectionAlarm:
     Type: "AWS::CloudWatch::Alarm"
