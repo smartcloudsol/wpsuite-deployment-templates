@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.79"
+    Default: "v1.0.80"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -423,7 +423,7 @@ Parameters:
     Description: "API Gateway rate limit for admin endpoints."
   ApiSchemaVersion:
     Type: "Number"
-    Default: 7
+    Default: 8
     Description: "API schema version number."
   LogRetentionDays:
     Type: "Number"
@@ -988,24 +988,6 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CreateLocalRecaptchaSecret"
-  KnowledgeBaseSyncFunctionLogGroupTemplateEnabledCondition:
-    Fn::And:
-      -
-        Condition: "TemplateEnabled"
-      -
-        Condition: "S3TriggerEnabled"
-  KnowledgeBaseSyncFunctionRoleTemplateEnabledCondition:
-    Fn::And:
-      -
-        Condition: "TemplateEnabled"
-      -
-        Condition: "S3TriggerEnabled"
-  KnowledgeBaseSyncFunctionTemplateEnabledCondition:
-    Fn::And:
-      -
-        Condition: "TemplateEnabled"
-      -
-        Condition: "S3TriggerEnabled"
   S3NotificationSetupForNewBucketTemplateEnabledCondition:
     Fn::And:
       -
@@ -1018,18 +1000,6 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "S3TriggerEnabledWithProvidedBucket"
-  KBSyncSchedulePolicyTemplateEnabledCondition:
-    Fn::And:
-      -
-        Condition: "TemplateEnabled"
-      -
-        Condition: "S3TriggerEnabled"
-  KBSyncScheduleRoleTemplateEnabledCondition:
-    Fn::And:
-      -
-        Condition: "TemplateEnabled"
-      -
-        Condition: "S3TriggerEnabled"
   AlertsTopicTemplateEnabledCondition:
     Fn::And:
       -
@@ -1084,6 +1054,66 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "AlertsEnabled"
+  KnowledgeAutomationMassDeleteMetricTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeAutomationMassDeleteAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeBaseIngestionReviewMetricTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeBaseIngestionReviewAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeBaseIngestionDeletedDocumentsMetricTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeBaseIngestionDeletedDocumentsAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeBaseIngestionOverdueDemandMetricTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeBaseIngestionOverdueDemandAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeBaseIngestionExpiredLeaseMetricTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeBaseIngestionExpiredLeaseAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
   KnowledgeAutomationHandlerErrorsAlarmTemplateEnabledCondition:
     Fn::And:
       -
@@ -1103,6 +1133,18 @@ Conditions:
       -
         Condition: "AlertsEnabled"
   KnowledgeAutomationAuthorizerThrottlesAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeBaseIngestionCoordinatorErrorsAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AlertsEnabled"
+  KnowledgeBaseIngestionCoordinatorThrottlesAlarmTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
@@ -1724,6 +1766,11 @@ Resources:
           IntegrationUri:
             Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
         -
+          Path: "/automation/kb/keys/revoke"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
+        -
           Path: "/automation/kb/status"
           Method: "GET"
           IntegrationUri:
@@ -1743,7 +1790,7 @@ Resources:
       ApiSchemaVersion:
         Ref: "ApiSchemaVersion"
     Condition: "TemplateEnabled"
-  RestApiDeploymentV7:
+  RestApiDeploymentV8:
     Type: "AWS::ApiGateway::Deployment"
     Properties:
       RestApiId:
@@ -1762,7 +1809,7 @@ Resources:
         Ref: "RestApi"
       StageName: "prod"
       DeploymentId:
-        Ref: "RestApiDeploymentV7"
+        Ref: "RestApiDeploymentV8"
       TracingEnabled: false
       AccessLogSetting:
         DestinationArn:
@@ -2297,6 +2344,28 @@ Resources:
           MetricsEnabled: true
         -
           ResourcePath: "/automation/kb/keys/rotate"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              - 100
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              - 50
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: true
+        -
+          ResourcePath: "/automation/kb/keys/revoke"
           HttpMethod: "POST"
           ThrottlingBurstLimit:
             Fn::If:
@@ -3344,6 +3413,47 @@ Resources:
         AttributeName: "TTL"
         Enabled: true
     Condition: "KBSyncStateTableTemplateEnabledCondition"
+  KnowledgeBaseIngestionCoordinatorTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-KbIngestionCoordinator"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "KnowledgeBaseId"
+          AttributeType: "S"
+        -
+          AttributeName: "DataSourceId"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "KnowledgeBaseId"
+          KeyType: "HASH"
+        -
+          AttributeName: "DataSourceId"
+          KeyType: "RANGE"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "Retain"
+    Condition: "TemplateEnabled"
   ChatSessionsTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -3726,6 +3836,10 @@ Resources:
                     Fn::GetAtt:
                       - "ChatMessagesTable"
                       - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "KnowledgeBaseIngestionCoordinatorTable"
+                      - "Arn"
               -
                 Effect: "Allow"
                 Action:
@@ -3750,7 +3864,9 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-kb-sync"
+                  Fn::GetAtt:
+                    - "KnowledgeBaseSyncFunction"
+                    - "Arn"
               -
                 Effect: "Allow"
                 Action:
@@ -3956,13 +4072,11 @@ Resources:
                   - "DataSourceId"
               - ""
           KB_SYNC_FUNCTION_ARN:
-            Fn::If:
-              - "S3TriggerEnabled"
-              -
-                Fn::GetAtt:
-                  - "KnowledgeBaseSyncFunction"
-                  - "Arn"
-              - ""
+            Fn::GetAtt:
+              - "KnowledgeBaseSyncFunction"
+              - "Arn"
+          KB_COORDINATOR_TABLE_NAME:
+            Ref: "KnowledgeBaseIngestionCoordinatorTable"
       Tags:
         -
           Key: "aws-apn-id"
@@ -3999,6 +4113,7 @@ Resources:
                   - "dynamodb:GetItem"
                   - "dynamodb:PutItem"
                   - "dynamodb:UpdateItem"
+                  - "dynamodb:Query"
                   - "dynamodb:TransactWriteItems"
                 Resource:
                   -
@@ -4017,9 +4132,14 @@ Resources:
                     Fn::GetAtt:
                       - "KnowledgeAutomationSourceStateTable"
                       - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "KnowledgeBaseIngestionCoordinatorTable"
+                      - "Arn"
               -
                 Effect: "Allow"
                 Action:
+                  - "s3:GetObject"
                   - "s3:PutObject"
                   - "s3:DeleteObject"
                 Resource:
@@ -4059,18 +4179,13 @@ Resources:
                     s3:prefix:
                       Fn::Sub: "${ConfigPrefix}metadata-inputs/wordpress/*"
               -
-                Fn::If:
-                  - "S3TriggerEnabled"
-                  -
-                    Effect: "Allow"
-                    Action:
-                      - "lambda:InvokeFunction"
-                    Resource:
-                      Fn::GetAtt:
-                        - "KnowledgeBaseSyncFunction"
-                        - "Arn"
-                  -
-                    Ref: "AWS::NoValue"
+                Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource:
+                  Fn::GetAtt:
+                    - "KnowledgeBaseSyncFunction"
+                    - "Arn"
               -
                 Effect: "Allow"
                 Action:
@@ -4167,12 +4282,27 @@ Resources:
           CONFIG_PREFIX:
             Ref: "ConfigPrefix"
           KB_SYNC_FUNCTION_ARN:
+            Fn::GetAtt:
+              - "KnowledgeBaseSyncFunction"
+              - "Arn"
+          KB_COORDINATOR_TABLE_NAME:
+            Ref: "KnowledgeBaseIngestionCoordinatorTable"
+          KNOWLEDGE_BASE_ID:
             Fn::If:
-              - "S3TriggerEnabled"
+              - "UseProvidedKnowledgeBase"
+              -
+                Ref: "KnowledgeBaseId"
               -
                 Fn::GetAtt:
-                  - "KnowledgeBaseSyncFunction"
-                  - "Arn"
+                  - "KnowledgeBase"
+                  - "KnowledgeBaseId"
+          DATA_SOURCE_ID:
+            Fn::If:
+              - "CreateNewKnowledgeBase"
+              -
+                Fn::GetAtt:
+                  - "KnowledgeBaseDataSource"
+                  - "DataSourceId"
               - ""
           PAIRING_CODE_TTL_SECONDS: "600"
           IDEMPOTENCY_TTL_SECONDS: "86400"
@@ -4987,7 +5117,10 @@ Resources:
                   - "lambda:AddPermission"
                   - "lambda:RemovePermission"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-kb-sync"
+                  Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:*"
+                Condition:
+                  StringEquals:
+                    aws:ResourceTag/wpsuite:component: "knowledge-base-ingestion-coordinator"
               -
                 Effect: "Allow"
                 Action:
@@ -5233,7 +5366,7 @@ Resources:
     Type: "AWS::Logs::LogGroup"
     Properties:
       LogGroupName:
-        Fn::Sub: "/aws/lambda/${AppName}-kb-sync"
+        Fn::Sub: "/aws/lambda/${KnowledgeBaseSyncFunction}"
       RetentionInDays:
         Ref: "LogRetentionDays"
       Tags:
@@ -5241,7 +5374,7 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "KnowledgeBaseSyncFunctionLogGroupTemplateEnabledCondition"
+    Condition: "TemplateEnabled"
   KnowledgeBaseSyncFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -5289,7 +5422,7 @@ Resources:
                   - "scheduler:GetSchedule"
                   - "scheduler:DeleteSchedule"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/${AppName}-${Environment}-kb-sync-*"
+                  Fn::Sub: "arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/wps-kb-*"
               -
                 Effect: "Allow"
                 Action:
@@ -5309,7 +5442,7 @@ Resources:
                   - "dynamodb:UpdateItem"
                 Resource:
                   Fn::GetAtt:
-                    - "KBSyncStateTable"
+                    - "KnowledgeBaseIngestionCoordinatorTable"
                     - "Arn"
               -
                 Effect: "Allow"
@@ -5324,13 +5457,11 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "KnowledgeBaseSyncFunctionRoleTemplateEnabledCondition"
+    Condition: "TemplateEnabled"
   KnowledgeBaseSyncFunction:
     Type: "AWS::Lambda::Function"
     Properties:
-      FunctionName:
-        Fn::Sub: "${AppName}-kb-sync"
-      Description: "Preview Lambda that merges the KB sync scheduler and ingestion workers"
+      Description: "Coordinates durable Knowledge Base ingestion through terminal completion"
       Code:
         S3Bucket:
           Ref: "ArtifactBucketName"
@@ -5427,8 +5558,8 @@ Resources:
             Ref: "RecaptchaSiteKey"
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
-          STATE_TABLE_NAME:
-            Ref: "KBSyncStateTable"
+          COORDINATOR_TABLE_NAME:
+            Ref: "KnowledgeBaseIngestionCoordinatorTable"
           KNOWLEDGE_BASE_ID:
             Fn::If:
               - "UseProvidedKnowledgeBase"
@@ -5450,16 +5581,23 @@ Resources:
             Fn::GetAtt:
               - "KBSyncScheduleRole"
               - "Arn"
-          SYNC_FUNCTION_ARN:
-            Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-kb-sync"
+          SCHEDULER_DLQ_ARN:
+            Fn::GetAtt:
+              - "DeadLetterQueue"
+              - "Arn"
           DEBOUNCE_DELAY_SECONDS: "60"
-          WAIT_FOR_COMPLETION: "false"
+          POLL_DELAY_SECONDS: "30"
+          LEASE_SECONDS: "90"
+          MAX_RETRY_ATTEMPTS: "5"
       Tags:
+        -
+          Key: "wpsuite:component"
+          Value: "knowledge-base-ingestion-coordinator"
         -
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "KnowledgeBaseSyncFunctionTemplateEnabledCondition"
+    Condition: "TemplateEnabled"
   S3NotificationSetupForNewBucket:
     Type: "Custom::S3Notification"
     Properties:
@@ -5476,6 +5614,7 @@ Resources:
       NotificationConfiguration:
         Events:
           - "s3:ObjectCreated:*"
+          - "s3:ObjectRemoved:*"
         Filter:
           Key:
             FilterRules:
@@ -5483,6 +5622,8 @@ Resources:
                 Name: "prefix"
                 Value:
                   Ref: "InclusionPrefix"
+    DependsOn:
+      - "KnowledgeBaseSyncFunctionLogGroup"
     Condition: "S3NotificationSetupForNewBucketTemplateEnabledCondition"
   S3NotificationSetup:
     Type: "Custom::S3Notification"
@@ -5500,6 +5641,7 @@ Resources:
       NotificationConfiguration:
         Events:
           - "s3:ObjectCreated:*"
+          - "s3:ObjectRemoved:*"
         Filter:
           Key:
             FilterRules:
@@ -5507,6 +5649,8 @@ Resources:
                 Name: "prefix"
                 Value:
                   Ref: "InclusionPrefix"
+    DependsOn:
+      - "KnowledgeBaseSyncFunctionLogGroup"
     Condition: "S3NotificationSetupTemplateEnabledCondition"
   KBSyncSchedulePolicy:
     Type: "AWS::IAM::ManagedPolicy"
@@ -5519,8 +5663,19 @@ Resources:
             Action:
               - "lambda:InvokeFunction"
             Resource:
-              Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AppName}-kb-sync"
-    Condition: "KBSyncSchedulePolicyTemplateEnabledCondition"
+              Fn::Sub: "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:*"
+            Condition:
+              StringEquals:
+                aws:ResourceTag/wpsuite:component: "knowledge-base-ingestion-coordinator"
+          -
+            Effect: "Allow"
+            Action:
+              - "sqs:SendMessage"
+            Resource:
+              Fn::GetAtt:
+                - "DeadLetterQueue"
+                - "Arn"
+    Condition: "TemplateEnabled"
   KBSyncScheduleRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -5540,7 +5695,74 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-    Condition: "KBSyncScheduleRoleTemplateEnabledCondition"
+    Condition: "TemplateEnabled"
+  KnowledgeBaseIngestionWatchdogRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Reconciles durable Knowledge Base ingestion demand and expired leases"
+      ScheduleExpression: "rate(5 minutes)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "KnowledgeBaseSyncFunction"
+              - "Arn"
+          Id: "KnowledgeBaseIngestionWatchdog"
+          Input: "{\"source\":\"aws.events\",\"action\":\"watchdog\"}"
+          DeadLetterConfig:
+            Arn:
+              Fn::GetAtt:
+                - "DeadLetterQueue"
+                - "Arn"
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 900
+            MaximumRetryAttempts: 2
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "KnowledgeBaseSyncFunctionLogGroup"
+    Condition: "TemplateEnabled"
+  KnowledgeBaseIngestionWatchdogPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "KnowledgeBaseSyncFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "KnowledgeBaseIngestionWatchdogRule"
+          - "Arn"
+    Condition: "TemplateEnabled"
+  KnowledgeBaseIngestionWatchdogDlqPolicy:
+    Type: "AWS::SQS::QueuePolicy"
+    Properties:
+      Queues:
+        -
+          Ref: "DeadLetterQueue"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "events.amazonaws.com"
+            Action: "sqs:SendMessage"
+            Resource:
+              Fn::GetAtt:
+                - "DeadLetterQueue"
+                - "Arn"
+            Condition:
+              ArnEquals:
+                aws:SourceArn:
+                  Fn::GetAtt:
+                    - "KnowledgeBaseIngestionWatchdogRule"
+                    - "Arn"
+    Condition: "TemplateEnabled"
   AlertsTopic:
     Type: "AWS::SNS::Topic"
     Properties:
@@ -5676,6 +5898,193 @@ Resources:
         -
           Ref: "AlertsTopic"
     Condition: "KnowledgeAutomationAuthorizerRejectionAlarmTemplateEnabledCondition"
+  KnowledgeAutomationMassDeleteMetric:
+    Type: "AWS::Logs::MetricFilter"
+    Properties:
+      LogGroupName:
+        Fn::Sub:
+          - "/aws/lambda/${FunctionName}"
+          -
+            FunctionName:
+              Ref: "KnowledgeAutomationHandlerFunction"
+      FilterPattern: "\"Knowledge automation mass delete blocked\""
+      MetricTransformations:
+        -
+          MetricNamespace: "WPSuite/AIKit"
+          MetricName: "KnowledgeAutomationMassDeleteBlocked"
+          MetricValue: "1"
+          DefaultValue: 0
+    DependsOn:
+      - "KnowledgeAutomationHandlerLogGroup"
+    Condition: "KnowledgeAutomationMassDeleteMetricTemplateEnabledCondition"
+  KnowledgeAutomationMassDeleteAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-knowledge-automation-mass-delete"
+      AlarmDescription:
+        Fn::Sub: "${AppName} knowledge automation blocked a high-count, high-ratio deletion request."
+      Namespace: "WPSuite/AIKit"
+      MetricName: "KnowledgeAutomationMassDeleteBlocked"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeAutomationMassDeleteAlarmTemplateEnabledCondition"
+  KnowledgeBaseIngestionReviewMetric:
+    Type: "AWS::Logs::MetricFilter"
+    Properties:
+      LogGroupName:
+        Fn::Sub:
+          - "/aws/lambda/${FunctionName}"
+          -
+            FunctionName:
+              Ref: "KnowledgeBaseSyncFunction"
+      FilterPattern: "\"Knowledge Base ingestion requires operator review\""
+      MetricTransformations:
+        -
+          MetricNamespace: "WPSuite/AIKit"
+          MetricName: "KnowledgeBaseIngestionReviewRequired"
+          MetricValue: "1"
+          DefaultValue: 0
+    DependsOn:
+      - "KnowledgeBaseSyncFunctionLogGroup"
+    Condition: "KnowledgeBaseIngestionReviewMetricTemplateEnabledCondition"
+  KnowledgeBaseIngestionReviewAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-kb-ingestion-review-required"
+      AlarmDescription:
+        Fn::Sub: "${AppName} Knowledge Base ingestion requires operator review."
+      Namespace: "WPSuite/AIKit"
+      MetricName: "KnowledgeBaseIngestionReviewRequired"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeBaseIngestionReviewAlarmTemplateEnabledCondition"
+  KnowledgeBaseIngestionDeletedDocumentsMetric:
+    Type: "AWS::Logs::MetricFilter"
+    Properties:
+      LogGroupName:
+        Fn::Sub:
+          - "/aws/lambda/${FunctionName}"
+          -
+            FunctionName:
+              Ref: "KnowledgeBaseSyncFunction"
+      FilterPattern: "{ $.message = \"Knowledge Base ingestion reported deleted documents\" }"
+      MetricTransformations:
+        -
+          MetricNamespace: "WPSuite/AIKit"
+          MetricName: "KnowledgeBaseIngestionDeletedDocuments"
+          MetricValue: "$.data.deletedDocumentCount"
+          DefaultValue: 0
+    DependsOn:
+      - "KnowledgeBaseSyncFunctionLogGroup"
+    Condition: "KnowledgeBaseIngestionDeletedDocumentsMetricTemplateEnabledCondition"
+  KnowledgeBaseIngestionDeletedDocumentsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-kb-ingestion-deleteddocuments"
+      AlarmDescription: "Knowledge Base ingestion removed one or more documents."
+      Namespace: "WPSuite/AIKit"
+      MetricName: "KnowledgeBaseIngestionDeletedDocuments"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeBaseIngestionDeletedDocumentsAlarmTemplateEnabledCondition"
+  KnowledgeBaseIngestionOverdueDemandMetric:
+    Type: "AWS::Logs::MetricFilter"
+    Properties:
+      LogGroupName:
+        Fn::Sub:
+          - "/aws/lambda/${FunctionName}"
+          -
+            FunctionName:
+              Ref: "KnowledgeBaseSyncFunction"
+      FilterPattern: "{ $.message = \"Knowledge Base ingestion demand is overdue\" }"
+      MetricTransformations:
+        -
+          MetricNamespace: "WPSuite/AIKit"
+          MetricName: "KnowledgeBaseIngestionOverdueDemand"
+          MetricValue: "1"
+          DefaultValue: 0
+    DependsOn:
+      - "KnowledgeBaseSyncFunctionLogGroup"
+    Condition: "KnowledgeBaseIngestionOverdueDemandMetricTemplateEnabledCondition"
+  KnowledgeBaseIngestionOverdueDemandAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-kb-ingestion-overduedemand"
+      AlarmDescription: "Knowledge Base ingestion demand remained uncommitted for at least 15 minutes."
+      Namespace: "WPSuite/AIKit"
+      MetricName: "KnowledgeBaseIngestionOverdueDemand"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeBaseIngestionOverdueDemandAlarmTemplateEnabledCondition"
+  KnowledgeBaseIngestionExpiredLeaseMetric:
+    Type: "AWS::Logs::MetricFilter"
+    Properties:
+      LogGroupName:
+        Fn::Sub:
+          - "/aws/lambda/${FunctionName}"
+          -
+            FunctionName:
+              Ref: "KnowledgeBaseSyncFunction"
+      FilterPattern: "{ $.message = \"Knowledge Base ingestion recovered an expired lease\" }"
+      MetricTransformations:
+        -
+          MetricNamespace: "WPSuite/AIKit"
+          MetricName: "KnowledgeBaseIngestionExpiredLease"
+          MetricValue: "1"
+          DefaultValue: 0
+    DependsOn:
+      - "KnowledgeBaseSyncFunctionLogGroup"
+    Condition: "KnowledgeBaseIngestionExpiredLeaseMetricTemplateEnabledCondition"
+  KnowledgeBaseIngestionExpiredLeaseAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-kb-ingestion-expiredlease"
+      AlarmDescription: "Knowledge Base ingestion recovered an expired coordinator lease."
+      Namespace: "WPSuite/AIKit"
+      MetricName: "KnowledgeBaseIngestionExpiredLease"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeBaseIngestionExpiredLeaseAlarmTemplateEnabledCondition"
   KnowledgeAutomationHandlerErrorsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -5772,6 +6181,54 @@ Resources:
         -
           Ref: "AlertsTopic"
     Condition: "KnowledgeAutomationAuthorizerThrottlesAlarmTemplateEnabledCondition"
+  KnowledgeBaseIngestionCoordinatorErrorsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-knowledgebaseingestioncoordinator-errors"
+      AlarmDescription:
+        Fn::Sub: "${AppName} KnowledgeBaseIngestionCoordinator Lambda errors exceeded the safe threshold."
+      Namespace: "AWS/Lambda"
+      MetricName: "Errors"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "KnowledgeBaseSyncFunction"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeBaseIngestionCoordinatorErrorsAlarmTemplateEnabledCondition"
+  KnowledgeBaseIngestionCoordinatorThrottlesAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-knowledgebaseingestioncoordinator-throttles"
+      AlarmDescription:
+        Fn::Sub: "${AppName} KnowledgeBaseIngestionCoordinator Lambda throttles exceeded the safe threshold."
+      Namespace: "AWS/Lambda"
+      MetricName: "Throttles"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "KnowledgeBaseSyncFunction"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        -
+          Ref: "AlertsTopic"
+    Condition: "KnowledgeBaseIngestionCoordinatorThrottlesAlarmTemplateEnabledCondition"
   HostedZoneLookup:
     Type: "Custom::HostedZoneLookup"
     Properties:
