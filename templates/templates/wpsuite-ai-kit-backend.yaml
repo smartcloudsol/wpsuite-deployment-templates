@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.80"
+    Default: "v1.0.81"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -423,7 +423,7 @@ Parameters:
     Description: "API Gateway rate limit for admin endpoints."
   ApiSchemaVersion:
     Type: "Number"
-    Default: 8
+    Default: 9
     Description: "API schema version number."
   LogRetentionDays:
     Type: "Number"
@@ -1421,7 +1421,7 @@ Resources:
       ResponseType: "DEFAULT_4XX"
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Requested-With,X-Api-Key,X-Amz-Date,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token,X-WPSuite-Key-Id,X-WPSuite-Timestamp,X-WPSuite-Nonce,X-WPSuite-Content-SHA256,X-WPSuite-Signature,Idempotency-Key'"
         gatewayresponse.header.Cache-Control: "'no-store'"
         gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
         gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
@@ -1434,7 +1434,7 @@ Resources:
       ResponseType: "DEFAULT_5XX"
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Requested-With,X-Api-Key,X-Amz-Date,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token,X-WPSuite-Key-Id,X-WPSuite-Timestamp,X-WPSuite-Nonce,X-WPSuite-Content-SHA256,X-WPSuite-Signature,Idempotency-Key'"
         gatewayresponse.header.Cache-Control: "'no-store'"
         gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
         gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
@@ -1447,7 +1447,7 @@ Resources:
       ResponseType: "UNAUTHORIZED"
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Requested-With,X-Api-Key,X-Amz-Date,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token,X-WPSuite-Key-Id,X-WPSuite-Timestamp,X-WPSuite-Nonce,X-WPSuite-Content-SHA256,X-WPSuite-Signature,Idempotency-Key'"
         gatewayresponse.header.Cache-Control: "'no-store'"
         gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
         gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
@@ -1460,7 +1460,7 @@ Resources:
       ResponseType: "ACCESS_DENIED"
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Requested-With,X-Api-Key,X-Amz-Date,X-Amz-Security-Token,X-Request-Id,X-Recaptcha-Token,X-WPSuite-Key-Id,X-WPSuite-Timestamp,X-WPSuite-Nonce,X-WPSuite-Content-SHA256,X-WPSuite-Signature,Idempotency-Key'"
         gatewayresponse.header.Cache-Control: "'no-store'"
         gatewayresponse.header.Strict-Transport-Security: "'max-age=31536000'"
         gatewayresponse.header.X-Content-Type-Options: "'nosniff'"
@@ -1790,7 +1790,7 @@ Resources:
       ApiSchemaVersion:
         Ref: "ApiSchemaVersion"
     Condition: "TemplateEnabled"
-  RestApiDeploymentV8:
+  RestApiDeploymentV9:
     Type: "AWS::ApiGateway::Deployment"
     Properties:
       RestApiId:
@@ -1809,7 +1809,7 @@ Resources:
         Ref: "RestApi"
       StageName: "prod"
       DeploymentId:
-        Ref: "RestApiDeploymentV8"
+        Ref: "RestApiDeploymentV9"
       TracingEnabled: false
       AccessLogSetting:
         DestinationArn:
