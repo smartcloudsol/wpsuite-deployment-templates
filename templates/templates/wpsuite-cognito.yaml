@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.86"
+    Default: "v1.0.87"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -298,31 +298,31 @@ Parameters:
   SubjectTemplateSignUp:
     Type: "String"
     Default: "Confirm your account"
-    Description: "Subject line for the sign-up confirmation email."
+    Description: "English fallback subject for the sign-up confirmation email when no S3 subject template exists."
   SubjectTemplateResendCode:
     Type: "String"
     Default: "Your confirmation code"
-    Description: "Subject line for the resend confirmation code email."
+    Description: "English fallback subject for the resend confirmation code email when no S3 subject template exists."
   SubjectTemplateAccountRecovery:
     Type: "String"
     Default: "Reset your password"
-    Description: "Subject line for the account recovery email."
+    Description: "English fallback subject for the account recovery email when no S3 subject template exists."
   SubjectTemplateAdminCreate:
     Type: "String"
     Default: "Your account has been created"
-    Description: "Subject line for the admin create user email."
+    Description: "English fallback subject for the admin create user email when no S3 subject template exists."
   SubjectTemplateVerifyAttribute:
     Type: "String"
     Default: "Verify your information"
-    Description: "Subject line for the verify attribute email."
+    Description: "English fallback subject for the verify attribute email when no S3 subject template exists."
   SubjectTemplateAuthentication:
     Type: "String"
     Default: "Your authentication code"
-    Description: "Subject line for the authentication code email."
+    Description: "English fallback subject for the authentication code email when no S3 subject template exists."
   SubjectTemplateAccountTakeover:
     Type: "String"
     Default: "Security alert"
-    Description: "Subject line for the account takeover alert email."
+    Description: "English fallback subject for the account takeover alert email when no S3 subject template exists."
   RecaptchaProjectId:
     Type: "String"
     Default: ""
