@@ -83,6 +83,26 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter SigninPagePath."
+  EnableHomepageLocaleRouting:
+    Type: "String"
+    Default: "false"
+    Description: "Forwarded WP Suite nested stack parameter EnableHomepageLocaleRouting."
+  HomepageLocaleRoutes:
+    Type: "String"
+    Default: "{}"
+    Description: "Forwarded WP Suite nested stack parameter HomepageLocaleRoutes."
+  HomepageLocaleCookieName:
+    Type: "String"
+    Default: "wpsuite_locale"
+    Description: "Forwarded WP Suite nested stack parameter HomepageLocaleCookieName."
+  HomepageDefaultLocale:
+    Type: "String"
+    Default: "en"
+    Description: "Forwarded WP Suite nested stack parameter HomepageDefaultLocale."
+  EnableAcceptLanguageHomepageRouting:
+    Type: "String"
+    Default: "false"
+    Description: "Forwarded WP Suite nested stack parameter EnableAcceptLanguageHomepageRouting."
   PublicCacheMode:
     Type: "String"
     Default: "fixed-7d"
@@ -302,6 +322,61 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "SigninPagePath"
+        EnableHomepageLocaleRouting:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianEnableHomepageLocaleRouting}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableHomepageLocaleRouting"
+        HomepageLocaleRoutes:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianHomepageLocaleRoutes}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "HomepageLocaleRoutes"
+        HomepageLocaleCookieName:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianHomepageLocaleCookieName}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "HomepageLocaleCookieName"
+        HomepageDefaultLocale:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianHomepageDefaultLocale}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "HomepageDefaultLocale"
+        EnableAcceptLanguageHomepageRouting:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:StaticGuardianEnableAcceptLanguageHomepageRouting}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableAcceptLanguageHomepageRouting"
         PublicCacheMode:
           Fn::If:
             - "CondUseMarketplaceSecret"

@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.88"
+    Default: "v1.0.89"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -51,6 +51,35 @@ Parameters:
     Type: "CommaDelimitedList"
     Default: "/restricted"
     Description: "List of paths to protect with signed cookies."
+  EnableHomepageLocaleRouting:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Redirect the exact homepage path according to an allowlisted locale route map."
+  HomepageLocaleRoutes:
+    Type: "String"
+    Default: "{}"
+    Description: "JSON object mapping BCP 47 locale tags to canonical root-relative homepage paths ending in slash."
+    MaxLength: 2048
+  HomepageLocaleCookieName:
+    Type: "String"
+    Default: "wpsuite_locale"
+    AllowedPattern: "^[A-Za-z0-9_.-]{1,64}$"
+    Description: "Cookie containing the explicit homepage locale preference."
+  HomepageDefaultLocale:
+    Type: "String"
+    Default: "en"
+    AllowedPattern: "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"
+    Description: "Default BCP 47 locale served at the unprefixed homepage."
+  EnableAcceptLanguageHomepageRouting:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Use q-weighted Accept-Language only when no supported locale preference cookie is present."
   PublicCacheMode:
     Type: "String"
     Default: "fixed-7d"
@@ -2645,6 +2674,16 @@ Resources:
         Ref: "SigninPagePath"
       S3WWWRoot:
         Ref: "S3WWWRoot"
+      EnableHomepageLocaleRouting:
+        Ref: "EnableHomepageLocaleRouting"
+      HomepageLocaleRoutes:
+        Ref: "HomepageLocaleRoutes"
+      HomepageLocaleCookieName:
+        Ref: "HomepageLocaleCookieName"
+      HomepageDefaultLocale:
+        Ref: "HomepageDefaultLocale"
+      EnableAcceptLanguageHomepageRouting:
+        Ref: "EnableAcceptLanguageHomepageRouting"
     Condition: "TemplateEnabled"
   PathRewriteFunction:
     Type: "AWS::CloudFormation::CustomResource"
@@ -5471,7 +5510,7 @@ Outputs:
       Fn::If:
         - "TemplateEnabled"
         -
-          Fn::Sub: "1. Upload your static WordPress files to S3 bucket: ${StaticSiteBucket}/${S3WWWRoot}\n2. Include custom error pages (if configured): ${NotFoundPagePath} and ${ForbiddenPagePath}\n3. DNS Configuration: Check CreateDNSRecords parameter (${CreateDNSRecords})\n4. Configure Cognito User Pool and App Clients for JWT authentication\n5. Test cookie issuance via main domain: https://${DomainName}/issue-cookie?action=signin\n6. Verify protected paths redirect unauthenticated users to ${SigninPagePath}\n7. Test error pages by accessing non-existent URLs\n8. If weekly refresh is enabled, confirm config.enc and lic.jws appear under ${S3WWWRoot}/smartcloud-wpsuiteio/\n\nS3 Bucket: ${StaticSiteBucket}\nS3 WWWRoot Prefix: ${S3WWWRoot}\nCloudFront Domain: ${CloudFrontDistribution.DomainName}\nCookie Endpoint: https://${DomainName}/issue-cookie\nAuthentication: JWT Bearer token required for cookie issuance"
+          Fn::Sub: "1. Upload your static WordPress files to S3 bucket: ${StaticSiteBucket}/${S3WWWRoot}\n2. Include custom error pages (if configured): ${NotFoundPagePath} and ${ForbiddenPagePath}\n3. DNS Configuration: Check CreateDNSRecords parameter (${CreateDNSRecords})\n4. Configure Cognito User Pool and App Clients for JWT authentication\n5. Test cookie issuance via main domain: https://${DomainName}/issue-cookie?action=signin\n6. Verify protected paths redirect unauthenticated users to ${SigninPagePath}\n7. Test error pages by accessing non-existent URLs\n8. If weekly refresh is enabled, confirm config.enc and lic.jws appear under ${S3WWWRoot}/smartcloud-wpsuiteio/\n9. If homepage locale routing is enabled, upload every allowlisted locale homepage before activating redirects\n\nS3 Bucket: ${StaticSiteBucket}\nS3 WWWRoot Prefix: ${S3WWWRoot}\nCloudFront Domain: ${CloudFrontDistribution.DomainName}\nCookie Endpoint: https://${DomainName}/issue-cookie\nAuthentication: JWT Bearer token required for cookie issuance"
         - ""
   SiteKeyParameterName:
     Description: "SSM SecureString parameter that stores the WP Suite site key."
