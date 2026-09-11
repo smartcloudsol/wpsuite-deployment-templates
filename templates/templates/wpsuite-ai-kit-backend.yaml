@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.87"
+    Default: "v1.0.88"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -139,7 +139,7 @@ Parameters:
     Description: "EventBridge detail-type emitted after AI extraction."
   InquiryFieldNames:
     Type: "String"
-    Default: "email,fullName,subject,message,requestSummary,requestedAction,intent,language,company,phone,sourceSystem,sourceChannel,messageId,organizationId,recipients,attachments"
+    Default: "email,fullName,subject,message,requestSummary,requestedAction,intent,locale,language,company,phone,sourceSystem,sourceChannel,messageId,organizationId,recipients,attachments"
     Description: "Comma-separated list of canonical inquiry field names."
   KnowledgeBaseId:
     Type: "String"
@@ -423,7 +423,7 @@ Parameters:
     Description: "API Gateway rate limit for admin endpoints."
   ApiSchemaVersion:
     Type: "Number"
-    Default: 11
+    Default: 12
     Description: "API schema version number."
   LogRetentionDays:
     Type: "Number"
