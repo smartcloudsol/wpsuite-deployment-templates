@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.89"
+    Default: "v1.0.90"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -2685,6 +2685,21 @@ Resources:
       EnableAcceptLanguageHomepageRouting:
         Ref: "EnableAcceptLanguageHomepageRouting"
     Condition: "TemplateEnabled"
+  HomepageResponseFunction:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CloudFrontResourceManager"
+          - "Arn"
+      ResourceType: "HomepageResponseFunction"
+      Name:
+        Fn::Sub: "${AppName}-homepage-response"
+      S3WWWRoot:
+        Ref: "S3WWWRoot"
+      EnableHomepageLocaleRouting:
+        Ref: "EnableHomepageLocaleRouting"
+    Condition: "TemplateEnabled"
   PathRewriteFunction:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -3537,6 +3552,12 @@ Resources:
               FunctionARN:
                 Fn::GetAtt:
                   - "ViewerRequestFunction"
+                  - "FunctionARN"
+            -
+              EventType: "viewer-response"
+              FunctionARN:
+                Fn::GetAtt:
+                  - "HomepageResponseFunction"
                   - "FunctionARN"
         CacheBehaviors:
           -
