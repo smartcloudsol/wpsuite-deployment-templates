@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.90"
+    Default: "v1.0.91"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -2647,19 +2647,6 @@ Resources:
                           Fn::GetAtt:
                             - "ProcessMapsTable"
                             - "Arn"
-              -
-                Effect: "Allow"
-                Action:
-                  - "dynamodb:TransactWriteItems"
-                Resource:
-                  -
-                    Fn::GetAtt:
-                      - "SubmissionsTable"
-                      - "Arn"
-                  -
-                    Fn::GetAtt:
-                      - "SubmissionEventsTable"
-                      - "Arn"
               -
                 Effect: "Allow"
                 Action:
