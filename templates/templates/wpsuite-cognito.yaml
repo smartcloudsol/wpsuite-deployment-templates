@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.92"
+    Default: "v1.0.93"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -28,6 +28,12 @@ Parameters:
     Default: "1,hours,1,hours,30,days"
     AllowedPattern: "^[1-9][0-9]*,(seconds|minutes|hours|days),[1-9][0-9]*,(seconds|minutes|hours|days),[1-9][0-9]*,(seconds|minutes|hours|days)$"
     Description: "Packed access, ID, and refresh token validity quantities and units in value,unit,value,unit,value,unit order."
+  AgentComposerMcpOAuthConfig:
+    Type: "String"
+    Default: "false|https://example.com/connector/oauth/callback"
+    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+$"
+    Description: "Packed optional Agent Composer MCP OAuth client configuration in enabled|https-callback-url order. The generated public client uses authorization code with PKCE and the required Composer scopes."
+    MaxLength: 2048
   AppName:
     Type: "String"
     Default: "wpsuite-cognito"
@@ -75,7 +81,7 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-    Description: "Create a Cognito custom domain for the user pool."
+    Description: "Create a Cognito hosted UI domain for the user pool. Without a certificate, UserPoolCustomDomainSubdomain is treated as an Amazon Cognito domain prefix; with a certificate, it is treated as a custom domain name."
   RegisterRoute53Alias:
     Type: "String"
     Default: "false"
@@ -262,11 +268,11 @@ Parameters:
   UserPoolCustomDomainSubdomain:
     Type: "String"
     Default: ""
-    Description: "Full custom domain name for Cognito, for example auth.example.com."
+    Description: "Amazon Cognito domain prefix, for example my-app-login, or full custom domain name, for example auth.example.com."
   UserPoolCustomDomainCertArn:
     Type: "String"
     Default: ""
-    Description: "ACM certificate ARN for the Cognito custom domain."
+    Description: "Optional us-east-1 ACM certificate ARN. Leave empty for an Amazon Cognito prefix domain; provide it for a custom domain."
   IdentityPoolName:
     Type: "String"
     Default: ""
@@ -473,6 +479,29 @@ Conditions:
               -
                 Ref: "ExistingUserPoolId"
               - ""
+  CondHasUserPool:
+    Fn::Or:
+      -
+        Condition: "CondCreateUserPool"
+      -
+        Condition: "CondUseExistingUserPool"
+  CondCreateAgentComposerMcpOAuth:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondHasUserPool"
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "AgentComposerMcpOAuthConfig"
+          - "true"
   CondCreateIdentityPool:
     Fn::And:
       -
@@ -502,6 +531,10 @@ Conditions:
               -
                 Ref: "UserPoolCustomDomainSubdomain"
               - ""
+  CondCreateCustomDomain:
+    Fn::And:
+      -
+        Condition: "CondCreateDomain"
       -
         Fn::Not:
           -
@@ -512,7 +545,7 @@ Conditions:
   CondRegisterAlias:
     Fn::And:
       -
-        Condition: "CondCreateDomain"
+        Condition: "CondCreateCustomDomain"
       -
         Fn::Equals:
           -
@@ -568,7 +601,7 @@ Conditions:
           -
             Condition: "CondHasSesIdentityInput"
           -
-            Condition: "CondCreateDomain"
+            Condition: "CondCreateCustomDomain"
   CondUseSES:
     Fn::Or:
       -
@@ -814,6 +847,18 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CondCreateUserPool"
+  AgentComposerMcpResourceServerTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateAgentComposerMcpOAuth"
+  AgentComposerMcpOAuthClientTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateAgentComposerMcpOAuth"
   UserPoolDomainTemplateEnabledCondition:
     Fn::And:
       -
@@ -1870,6 +1915,121 @@ Resources:
         - "ALLOW_REFRESH_TOKEN_AUTH"
         - "ALLOW_USER_AUTH"
     Condition: "UserPoolClientTemplateEnabledCondition"
+  AgentComposerMcpResourceServer:
+    Type: "AWS::Cognito::UserPoolResourceServer"
+    Properties:
+      UserPoolId:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Ref: "UserPool"
+          -
+            Ref: "ExistingUserPoolId"
+      Identifier: "composer"
+      Name: "Agent Composer MCP"
+      Scopes:
+        -
+          ScopeName: "read"
+          ScopeDescription: "Inspect Agent Composer configuration and governed content."
+        -
+          ScopeName: "draft"
+          ScopeDescription: "Create and update Composer-owned drafts."
+        -
+          ScopeName: "propose"
+          ScopeDescription: "Create governed published-content proposals."
+        -
+          ScopeName: "publish.request"
+          ScopeDescription: "Request human approval for an eligible proposal."
+    Condition: "AgentComposerMcpResourceServerTemplateEnabledCondition"
+  AgentComposerMcpOAuthClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      UserPoolId:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Ref: "UserPool"
+          -
+            Ref: "ExistingUserPoolId"
+      ClientName:
+        Fn::Sub: "${AppName}-agent-composer-mcp"
+      GenerateSecret: false
+      EnableTokenRevocation: true
+      AccessTokenValidity:
+        Fn::Select:
+          - 0
+          -
+            Fn::Split:
+              - ","
+              -
+                Ref: "TokenValidityConfig"
+      IdTokenValidity:
+        Fn::Select:
+          - 2
+          -
+            Fn::Split:
+              - ","
+              -
+                Ref: "TokenValidityConfig"
+      RefreshTokenValidity:
+        Fn::Select:
+          - 4
+          -
+            Fn::Split:
+              - ","
+              -
+                Ref: "TokenValidityConfig"
+      TokenValidityUnits:
+        AccessToken:
+          Fn::Select:
+            - 1
+            -
+              Fn::Split:
+                - ","
+                -
+                  Ref: "TokenValidityConfig"
+        IdToken:
+          Fn::Select:
+            - 3
+            -
+              Fn::Split:
+                - ","
+                -
+                  Ref: "TokenValidityConfig"
+        RefreshToken:
+          Fn::Select:
+            - 5
+            -
+              Fn::Split:
+                - ","
+                -
+                  Ref: "TokenValidityConfig"
+      PreventUserExistenceErrors: "ENABLED"
+      SupportedIdentityProviders:
+        - "COGNITO"
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - "code"
+      AllowedOAuthScopes:
+        - "openid"
+        - "composer/read"
+        - "composer/draft"
+        - "composer/propose"
+        - "composer/publish.request"
+      CallbackURLs:
+        -
+          Fn::Select:
+            - 1
+            -
+              Fn::Split:
+                - "|"
+                -
+                  Ref: "AgentComposerMcpOAuthConfig"
+      ExplicitAuthFlows:
+        - "ALLOW_REFRESH_TOKEN_AUTH"
+    DependsOn:
+      - "AgentComposerMcpResourceServer"
+    Condition: "AgentComposerMcpOAuthClientTemplateEnabledCondition"
   UserPoolDomain:
     Type: "AWS::Cognito::UserPoolDomain"
     Properties:
@@ -1883,8 +2043,13 @@ Resources:
       Domain:
         Ref: "UserPoolCustomDomainSubdomain"
       CustomDomainConfig:
-        CertificateArn:
-          Ref: "UserPoolCustomDomainCertArn"
+        Fn::If:
+          - "CondCreateCustomDomain"
+          -
+            CertificateArn:
+              Ref: "UserPoolCustomDomainCertArn"
+          -
+            Ref: "AWS::NoValue"
       ManagedLoginVersion: 2
     Condition: "UserPoolDomainTemplateEnabledCondition"
   IdentityPool:
@@ -3104,10 +3269,27 @@ Outputs:
           Ref: "UserPoolClient"
         -
           Ref: "ExistingUserPoolClientId"
-  UserPoolDomain:
-    Description: "Cognito User Pool custom domain."
+  AgentComposerMcpOAuthClientId:
+    Description: "Optional public Cognito app client ID for Agent Composer MCP OAuth."
     Value:
-      Ref: "UserPoolCustomDomainSubdomain"
+      Fn::If:
+        - "CondCreateAgentComposerMcpOAuth"
+        -
+          Ref: "AgentComposerMcpOAuthClient"
+        - ""
+  UserPoolDomain:
+    Description: "Cognito User Pool hosted UI domain."
+    Value:
+      Fn::If:
+        - "CondCreateCustomDomain"
+        -
+          Ref: "UserPoolCustomDomainSubdomain"
+        -
+          Fn::Sub:
+            - "${UserPoolDomainPrefix}.auth.${AWS::Region}.amazoncognito.com"
+            -
+              UserPoolDomainPrefix:
+                Ref: "UserPoolCustomDomainSubdomain"
     Condition: "OutputUserPoolDomainTemplateEnabledCondition"
   UserPoolDomainAliasTarget:
     Description: "Route 53 alias target for the Cognito custom domain."

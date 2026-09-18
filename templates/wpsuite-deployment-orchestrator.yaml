@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.92/templates/templates"
+    Default: "releases/v1.0.93/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -267,7 +267,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.92"
+      TemplateVersion: "v1.0.93"
       MarketplaceTemplateSource:
         BucketName:
           Ref: "MPS3BucketName"
@@ -283,7 +283,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.0.92/"
+            - "v1.0.93/"
       ArtifactIngressRoleArn:
         Fn::GetAtt:
           - "ArtifactIngressRole"
@@ -331,6 +331,7 @@ Resources:
         ExistingIdentityPoolId: ""
         PostLoginRedirectUrl: "https://example.com/signin"
         TokenValidityConfig: "1,hours,1,hours,30,days"
+        AgentComposerMcpOAuthConfig: "false|https://example.com/connector/oauth/callback"
         RegisteredGroupName: "registered"
         AdminGroupName: "admin"
         CreateIdentityPool: "true"
@@ -839,7 +840,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.92"
+          templateVersion: "v1.0.93"
         cognito:
           deployed: "false"
           stackId:
@@ -852,6 +853,10 @@ Resources:
             Fn::GetAtt:
               - "CognitoNestedStack"
               - "Outputs.UserPoolClientId"
+          agentComposerMcpOAuthClientId:
+            Fn::GetAtt:
+              - "CognitoNestedStack"
+              - "Outputs.AgentComposerMcpOAuthClientId"
           identityPoolId:
             Fn::GetAtt:
               - "CognitoNestedStack"
@@ -982,6 +987,12 @@ Outputs:
       Fn::GetAtt:
         - "ArtifactStager"
         - "TemplateVersion"
+  AgentComposerMcpOAuthClientId:
+    Description: "Optional public Cognito app client ID created for Agent Composer MCP OAuth."
+    Value:
+      Fn::GetAtt:
+        - "CognitoNestedStack"
+        - "Outputs.AgentComposerMcpOAuthClientId"
   DeploymentOutputCaptureId:
     Description: "Hash of the captured WP Suite deployment outputs."
     Value:

@@ -75,6 +75,10 @@ Parameters:
     Type: "String"
     Default: "1,hours,1,hours,30,days"
     Description: "Forwarded WP Suite nested stack parameter TokenValidityConfig."
+  AgentComposerMcpOAuthConfig:
+    Type: "String"
+    Default: "false|https://example.com/connector/oauth/callback"
+    Description: "Forwarded WP Suite nested stack parameter AgentComposerMcpOAuthConfig."
   RegisteredGroupName:
     Type: "String"
     Default: ""
@@ -421,6 +425,17 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "TokenValidityConfig"
+        AgentComposerMcpOAuthConfig:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoAgentComposerMcpOAuthConfig}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AgentComposerMcpOAuthConfig"
         RegisteredGroupName:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -1024,6 +1039,12 @@ Outputs:
       Fn::GetAtt:
         - "WrappedNestedStack"
         - "Outputs.UserPoolClientId"
+  AgentComposerMcpOAuthClientId:
+    Description: "Forwarded AgentComposerMcpOAuthClientId output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.AgentComposerMcpOAuthClientId"
   IdentityPoolId:
     Description: "Forwarded IdentityPoolId output from wpsuite-cognito.yaml."
     Value:
