@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.93/templates/templates"
+    Default: "releases/v1.0.94/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.93"
+    Default: "v1.0.94"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -246,9 +246,9 @@ Parameters:
     MaxLength: 4096
   CognitoAgentComposerMcpOAuthConfig:
     Type: "String"
-    Default: "false|https://example.com/connector/oauth/callback"
-    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+$"
-    Description: "Packed optional Agent Composer MCP OAuth client configuration in enabled|https-callback-url order."
+    Default: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
+    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#]$"
+    Description: "Packed optional Agent Composer MCP OAuth configuration in enabled|https-callback-url|https-resource-uri order."
     MaxLength: 4096
   CognitoRegisteredGroupName:
     Type: "String"
@@ -2041,6 +2041,10 @@ Resources:
             Fn::GetAtt:
               - "CognitoNestedStack"
               - "Outputs.AgentComposerMcpOAuthClientId"
+          agentComposerMcpResourceUri:
+            Fn::GetAtt:
+              - "CognitoNestedStack"
+              - "Outputs.AgentComposerMcpResourceUri"
           identityPoolId:
             Fn::GetAtt:
               - "CognitoNestedStack"
@@ -2181,6 +2185,12 @@ Outputs:
       Fn::GetAtt:
         - "CognitoNestedStack"
         - "Outputs.AgentComposerMcpOAuthClientId"
+  AgentComposerMcpResourceUri:
+    Description: "External MCP resource URI bound to the optional Agent Composer OAuth client."
+    Value:
+      Fn::GetAtt:
+        - "CognitoNestedStack"
+        - "Outputs.AgentComposerMcpResourceUri"
   DeploymentOutputCaptureId:
     Description: "Hash of the captured WP Suite deployment outputs."
     Value:

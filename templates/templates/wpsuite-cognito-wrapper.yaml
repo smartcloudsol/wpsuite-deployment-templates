@@ -77,7 +77,7 @@ Parameters:
     Description: "Forwarded WP Suite nested stack parameter TokenValidityConfig."
   AgentComposerMcpOAuthConfig:
     Type: "String"
-    Default: "false|https://example.com/connector/oauth/callback"
+    Default: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
     Description: "Forwarded WP Suite nested stack parameter AgentComposerMcpOAuthConfig."
   RegisteredGroupName:
     Type: "String"
@@ -1045,6 +1045,12 @@ Outputs:
       Fn::GetAtt:
         - "WrappedNestedStack"
         - "Outputs.AgentComposerMcpOAuthClientId"
+  AgentComposerMcpResourceUri:
+    Description: "Forwarded AgentComposerMcpResourceUri output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.AgentComposerMcpResourceUri"
   IdentityPoolId:
     Description: "Forwarded IdentityPoolId output from wpsuite-cognito.yaml."
     Value:

@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.93"
+    Default: "v1.0.94"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -30,9 +30,9 @@ Parameters:
     Description: "Packed access, ID, and refresh token validity quantities and units in value,unit,value,unit,value,unit order."
   AgentComposerMcpOAuthConfig:
     Type: "String"
-    Default: "false|https://example.com/connector/oauth/callback"
-    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+$"
-    Description: "Packed optional Agent Composer MCP OAuth client configuration in enabled|https-callback-url order. The generated public client uses authorization code with PKCE and the required Composer scopes."
+    Default: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
+    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#]$"
+    Description: "Packed optional Agent Composer MCP OAuth configuration in enabled|https-callback-url|https-resource-uri order. The generated public client uses authorization code with PKCE and scopes bound to the exact external MCP resource URI."
     MaxLength: 2048
   AppName:
     Type: "String"
@@ -1925,7 +1925,14 @@ Resources:
             Ref: "UserPool"
           -
             Ref: "ExistingUserPoolId"
-      Identifier: "composer"
+      Identifier:
+        Fn::Select:
+          - 2
+          -
+            Fn::Split:
+              - "|"
+              -
+                Ref: "AgentComposerMcpOAuthConfig"
       Name: "Agent Composer MCP"
       Scopes:
         -
@@ -2012,10 +2019,58 @@ Resources:
         - "code"
       AllowedOAuthScopes:
         - "openid"
-        - "composer/read"
-        - "composer/draft"
-        - "composer/propose"
-        - "composer/publish.request"
+        -
+          Fn::Join:
+            - "/"
+            -
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AgentComposerMcpOAuthConfig"
+              - "read"
+        -
+          Fn::Join:
+            - "/"
+            -
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AgentComposerMcpOAuthConfig"
+              - "draft"
+        -
+          Fn::Join:
+            - "/"
+            -
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AgentComposerMcpOAuthConfig"
+              - "propose"
+        -
+          Fn::Join:
+            - "/"
+            -
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AgentComposerMcpOAuthConfig"
+              - "publish.request"
       CallbackURLs:
         -
           Fn::Select:
@@ -3276,6 +3331,20 @@ Outputs:
         - "CondCreateAgentComposerMcpOAuth"
         -
           Ref: "AgentComposerMcpOAuthClient"
+        - ""
+  AgentComposerMcpResourceUri:
+    Description: "External MCP resource URI used by the optional Agent Composer Cognito resource server."
+    Value:
+      Fn::If:
+        - "CondCreateAgentComposerMcpOAuth"
+        -
+          Fn::Select:
+            - 2
+            -
+              Fn::Split:
+                - "|"
+                -
+                  Ref: "AgentComposerMcpOAuthConfig"
         - ""
   UserPoolDomain:
     Description: "Cognito User Pool hosted UI domain."
