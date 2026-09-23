@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.94"
+    Default: "v1.0.95"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -365,6 +365,12 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Optional SNS region for Cognito SMS sending."
+  GroupConfiguration:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^(?:|[a-z0-9][a-z0-9._-]{0,127}\\|[a-z0-9][a-z0-9._-]{0,127}\\|(?:[a-z0-9][a-z0-9._-]{0,127}(?:,[a-z0-9][a-z0-9._-]{0,127})*)?)$"
+    Description: "Packed registered|admin|additional1,additional2 Cognito group configuration. When empty, the legacy RegisteredGroupName and AdminGroupName parameters are used."
+    MaxLength: 4096
   OAuthScopes:
     Type: "CommaDelimitedList"
     Default: "aws.cognito.signin.user.admin,email,openid,profile"
@@ -485,6 +491,13 @@ Conditions:
         Condition: "CondCreateUserPool"
       -
         Condition: "CondUseExistingUserPool"
+  CondHasGroupConfiguration:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "GroupConfiguration"
+          - ""
   CondCreateAgentComposerMcpOAuth:
     Fn::And:
       -
@@ -889,6 +902,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CondCreateEmailTemplateBucket"
+  AdditionalUserPoolGroupsTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateUserPool"
   RecaptchaSecretParameterTemplateEnabledCondition:
     Fn::And:
       -
@@ -1807,7 +1826,25 @@ Resources:
     Type: "AWS::Cognito::UserPoolGroup"
     Properties:
       GroupName:
-        Ref: "RegisteredGroupName"
+        Fn::Select:
+          - 0
+          -
+            Fn::Split:
+              - "|"
+              -
+                Fn::If:
+                  - "CondHasGroupConfiguration"
+                  -
+                    Ref: "GroupConfiguration"
+                  -
+                    Fn::Join:
+                      - "|"
+                      -
+                        -
+                          Ref: "RegisteredGroupName"
+                        -
+                          Ref: "AdminGroupName"
+                        - ""
       Description: "Default role for confirmed users"
       Precedence: 1
       RoleArn:
@@ -1826,7 +1863,25 @@ Resources:
     Type: "AWS::Cognito::UserPoolGroup"
     Properties:
       GroupName:
-        Ref: "AdminGroupName"
+        Fn::Select:
+          - 1
+          -
+            Fn::Split:
+              - "|"
+              -
+                Fn::If:
+                  - "CondHasGroupConfiguration"
+                  -
+                    Ref: "GroupConfiguration"
+                  -
+                    Fn::Join:
+                      - "|"
+                      -
+                        -
+                          Ref: "RegisteredGroupName"
+                        -
+                          Ref: "AdminGroupName"
+                        - ""
       Description: "Elevated role for administrators"
       Precedence: 0
       RoleArn:
@@ -2332,6 +2387,13 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "cognito-idp:CreateGroup"
+                  - "cognito-idp:ListGroups"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+              -
+                Effect: "Allow"
+                Action:
                   - "cognito-idp:DescribeUserPoolDomain"
                 Resource: "*"
               -
@@ -2395,6 +2457,77 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
+  AdditionalUserPoolGroups:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceFunction"
+          - "Arn"
+      Action: "EnsureUserPoolGroups"
+      UserPoolId:
+        Ref: "UserPool"
+      AdditionalGroupNames:
+        Fn::Select:
+          - 2
+          -
+            Fn::Split:
+              - "|"
+              -
+                Fn::If:
+                  - "CondHasGroupConfiguration"
+                  -
+                    Ref: "GroupConfiguration"
+                  -
+                    Fn::Join:
+                      - "|"
+                      -
+                        -
+                          Ref: "RegisteredGroupName"
+                        -
+                          Ref: "AdminGroupName"
+                        - ""
+      RegisteredGroupName:
+        Fn::Select:
+          - 0
+          -
+            Fn::Split:
+              - "|"
+              -
+                Fn::If:
+                  - "CondHasGroupConfiguration"
+                  -
+                    Ref: "GroupConfiguration"
+                  -
+                    Fn::Join:
+                      - "|"
+                      -
+                        -
+                          Ref: "RegisteredGroupName"
+                        -
+                          Ref: "AdminGroupName"
+                        - ""
+      AdminGroupName:
+        Fn::Select:
+          - 1
+          -
+            Fn::Split:
+              - "|"
+              -
+                Fn::If:
+                  - "CondHasGroupConfiguration"
+                  -
+                    Ref: "GroupConfiguration"
+                  -
+                    Fn::Join:
+                      - "|"
+                      -
+                        -
+                          Ref: "RegisteredGroupName"
+                        -
+                          Ref: "AdminGroupName"
+                        - ""
+    Condition: "AdditionalUserPoolGroupsTemplateEnabledCondition"
   CustomResourceFunctionLogGroupManager:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
@@ -2854,7 +2987,25 @@ Resources:
           WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
           AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
           REGISTERED_GROUP_NAME:
-            Ref: "RegisteredGroupName"
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Fn::If:
+                      - "CondHasGroupConfiguration"
+                      -
+                        Ref: "GroupConfiguration"
+                      -
+                        Fn::Join:
+                          - "|"
+                          -
+                            -
+                              Ref: "RegisteredGroupName"
+                            -
+                              Ref: "AdminGroupName"
+                            - ""
           VERIFY_EMAIL_ON_CONFIRM: "true"
       Tags:
         -
@@ -3401,7 +3552,25 @@ Outputs:
   RegisteredGroupName:
     Description: "Default registered group name."
     Value:
-      Ref: "RegisteredGroupName"
+      Fn::Select:
+        - 0
+        -
+          Fn::Split:
+            - "|"
+            -
+              Fn::If:
+                - "CondHasGroupConfiguration"
+                -
+                  Ref: "GroupConfiguration"
+                -
+                  Fn::Join:
+                    - "|"
+                    -
+                      -
+                        Ref: "RegisteredGroupName"
+                      -
+                        Ref: "AdminGroupName"
+                      - ""
   SharedRecaptchaSecretParameterName:
     Description: "Deployment-wide reCAPTCHA secret SSM parameter name."
     Value:

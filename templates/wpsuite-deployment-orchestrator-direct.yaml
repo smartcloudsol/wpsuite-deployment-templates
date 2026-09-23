@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.94/templates/templates"
+    Default: "releases/v1.0.95/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.94"
+    Default: "v1.0.95"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -258,6 +258,12 @@ Parameters:
     Type: "String"
     Default: "admin"
     Description: "Cognito administrator group name."
+  CognitoGroupConfiguration:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^(?:|[a-z0-9][a-z0-9._-]{0,127}\\|[a-z0-9][a-z0-9._-]{0,127}\\|(?:[a-z0-9][a-z0-9._-]{0,127}(?:,[a-z0-9][a-z0-9._-]{0,127})*)?)$"
+    Description: "Packed registered|admin|additional1,additional2 Cognito group configuration. Leave empty to use the legacy group-name parameters."
+    MaxLength: 4096
   CognitoCreateIdentityPool:
     Type: "String"
     Default: "true"
@@ -961,6 +967,13 @@ Mappings:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
+  HasCognitoGroupConfiguration:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "CognitoGroupConfiguration"
+          - ""
   CondUseMarketplaceSecret:
     Fn::Equals:
       -
@@ -1312,6 +1325,20 @@ Resources:
           Ref: "CognitoRegisteredGroupName"
         AdminGroupName:
           Ref: "CognitoAdminGroupName"
+        GroupConfiguration:
+          Fn::If:
+            - "HasCognitoGroupConfiguration"
+            -
+              Ref: "CognitoGroupConfiguration"
+            -
+              Fn::Join:
+                - "|"
+                -
+                  -
+                    Ref: "CognitoRegisteredGroupName"
+                  -
+                    Ref: "CognitoAdminGroupName"
+                  - ""
         CreateIdentityPool:
           Ref: "CognitoCreateIdentityPool"
         EnableCustomEmailSender:

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-18T15:19:46.197Z",
-  "templateVersion": "v1.0.94",
+  "generatedAt": "2026-09-23T14:42:42.847Z",
+  "templateVersion": "v1.0.95",
   "sourceProject": "@wpsuite/deployment-orchestration",
   "sourceGeneratedDirectory": "generated/templates",
   "templates": [

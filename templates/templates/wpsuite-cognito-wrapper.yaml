@@ -81,12 +81,16 @@ Parameters:
     Description: "Forwarded WP Suite nested stack parameter AgentComposerMcpOAuthConfig."
   RegisteredGroupName:
     Type: "String"
-    Default: ""
+    Default: "registered"
     Description: "Forwarded WP Suite nested stack parameter RegisteredGroupName."
   AdminGroupName:
     Type: "String"
-    Default: ""
+    Default: "admin"
     Description: "Forwarded WP Suite nested stack parameter AdminGroupName."
+  GroupConfiguration:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter GroupConfiguration."
   CreateIdentityPool:
     Type: "String"
     Default: ""
@@ -437,27 +441,20 @@ Resources:
             -
               Ref: "AgentComposerMcpOAuthConfig"
         RegisteredGroupName:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRegisteredGroupName}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RegisteredGroupName"
+          Ref: "RegisteredGroupName"
         AdminGroupName:
+          Ref: "AdminGroupName"
+        GroupConfiguration:
           Fn::If:
             - "CondUseMarketplaceSecret"
             -
               Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoAdminGroupName}}"
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoGroupConfiguration}}"
                 -
                   DeploymentSecretArn:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
-              Ref: "AdminGroupName"
+              Ref: "GroupConfiguration"
         CreateIdentityPool:
           Fn::If:
             - "CondUseMarketplaceSecret"
