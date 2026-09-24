@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.98/templates/templates"
+    Default: "releases/v1.0.99/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -294,7 +294,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.98"
+      TemplateVersion: "v1.0.99"
       MarketplaceTemplateSource:
         BucketName:
           Ref: "MPS3BucketName"
@@ -310,7 +310,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.0.98/"
+            - "v1.0.99/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -649,6 +649,7 @@ Resources:
         LambdaMemorySize: "2048"
         LambdaTimeout: "30"
         AiHandlerTimeout: "30"
+        PromptIntegrationTimeoutInMillis: "29000"
         AiAgentDispatcherTimeout: "30"
         ProductionLogLevel: "INFO"
         CodeInterpreterIdentifier: "aws.codeinterpreter.v1"
@@ -874,7 +875,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.98"
+          templateVersion: "v1.0.99"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed: "false"

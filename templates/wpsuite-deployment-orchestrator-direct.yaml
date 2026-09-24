@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.98/templates/templates"
+    Default: "releases/v1.0.99/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.98"
+    Default: "v1.0.99"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -801,6 +801,11 @@ Parameters:
     Type: "String"
     Default: "30"
     Description: "AiKit nested stack parameter AiHandlerTimeout."
+    NoEcho: false
+  AiKitPromptIntegrationTimeoutInMillis:
+    Type: "String"
+    Default: "29000"
+    Description: "AiKit nested stack parameter PromptIntegrationTimeoutInMillis."
     NoEcho: false
   AiKitAiAgentDispatcherTimeout:
     Type: "String"
@@ -1824,6 +1829,8 @@ Resources:
           Ref: "AiKitLambdaTimeout"
         AiHandlerTimeout:
           Ref: "AiKitAiHandlerTimeout"
+        PromptIntegrationTimeoutInMillis:
+          Ref: "AiKitPromptIntegrationTimeoutInMillis"
         AiAgentDispatcherTimeout:
           Ref: "AiKitAiAgentDispatcherTimeout"
         ProductionLogLevel:

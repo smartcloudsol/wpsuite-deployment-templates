@@ -291,6 +291,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter AiHandlerTimeout."
+  PromptIntegrationTimeoutInMillis:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter PromptIntegrationTimeoutInMillis."
   AiAgentDispatcherTimeout:
     Type: "String"
     Default: ""
@@ -961,6 +965,17 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "AiHandlerTimeout"
+        PromptIntegrationTimeoutInMillis:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitPromptIntegrationTimeoutInMillis}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "PromptIntegrationTimeoutInMillis"
         AiAgentDispatcherTimeout:
           Fn::If:
             - "CondUseMarketplaceSecret"

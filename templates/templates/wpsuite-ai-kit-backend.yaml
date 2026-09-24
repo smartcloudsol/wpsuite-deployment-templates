@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.98"
+    Default: "v1.0.99"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -394,6 +394,18 @@ Parameters:
     Default: "aws.codeinterpreter.v1"
     AllowedPattern: "[A-Za-z0-9._-]+"
     Description: "Managed or customer-owned AgentCore Code Interpreter identifier used by the isolated script executor."
+  AiHandlerTimeout:
+    Type: "Number"
+    Default: 30
+    Description: "Timeout in seconds for the ai-handler Lambda. Set this to at least the prompt API integration timeout rounded up to seconds."
+    MaxValue: 900
+    MinValue: 30
+  PromptIntegrationTimeoutInMillis:
+    Type: "Number"
+    Default: 29000
+    Description: "API Gateway integration timeout for the synchronous frontend prompt endpoint. Values above 29000 require an approved Regional API Gateway quota increase."
+    MaxValue: 900000
+    MinValue: 50
   MaxTokens:
     Type: "Number"
     Default: 300
@@ -422,10 +434,6 @@ Parameters:
     Type: "Number"
     Default: 30
     Description: "Lambda function timeout in seconds."
-  AiHandlerTimeout:
-    Type: "Number"
-    Default: 30
-    Description: "Timeout for the ai-handler Lambda."
   AiAgentDispatcherTimeout:
     Type: "Number"
     Default: 30
@@ -448,7 +456,7 @@ Parameters:
     Description: "API Gateway rate limit for admin endpoints."
   ApiSchemaVersion:
     Type: "Number"
-    Default: 14
+    Default: 15
     Description: "API schema version number."
   LogRetentionDays:
     Type: "Number"
@@ -1633,6 +1641,8 @@ Resources:
               Method: "POST"
               IntegrationUri:
                 Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+              TimeoutInMillis:
+                Ref: "PromptIntegrationTimeoutInMillis"
             -
               Ref: "AWS::NoValue"
         -
@@ -1858,7 +1868,7 @@ Resources:
       ApiSchemaVersion:
         Ref: "ApiSchemaVersion"
     Condition: "TemplateEnabled"
-  RestApiDeploymentV14:
+  RestApiDeploymentV15:
     Type: "AWS::ApiGateway::Deployment"
     Properties:
       RestApiId:
@@ -1877,7 +1887,7 @@ Resources:
         Ref: "RestApi"
       StageName: "prod"
       DeploymentId:
-        Ref: "RestApiDeploymentV14"
+        Ref: "RestApiDeploymentV15"
       TracingEnabled: false
       AccessLogSetting:
         DestinationArn:
@@ -2685,6 +2695,8 @@ Resources:
               Method: "POST"
               IntegrationUri:
                 Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+              TimeoutInMillis:
+                Ref: "PromptIntegrationTimeoutInMillis"
             -
               Ref: "AWS::NoValue"
         -
