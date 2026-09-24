@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.99"
+    Default: "v1.0.100"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -4124,6 +4124,12 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "ce:GetCostAndUsage"
+                  - "ce:GetDimensionValues"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
                   - "bedrock:InvokeModel"
                   - "bedrock:GetFoundationModel"
                   - "bedrock:GetInferenceProfile"
@@ -4433,6 +4439,8 @@ Resources:
                   - "CodeInterpreterBrokerFunction"
                   - "Arn"
               - ""
+          AWS_ACCOUNT_ID:
+            Ref: "AWS::AccountId"
           CHAT_SESSIONS_TABLE:
             Ref: "ChatSessionsTable"
           CHAT_MESSAGES_TABLE:
@@ -6243,6 +6251,109 @@ Resources:
                   Fn::GetAtt:
                     - "KnowledgeBaseIngestionWatchdogRule"
                     - "Arn"
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "events.amazonaws.com"
+            Action: "sqs:SendMessage"
+            Resource:
+              Fn::GetAtt:
+                - "DeadLetterQueue"
+                - "Arn"
+            Condition:
+              ArnEquals:
+                aws:SourceArn:
+                  Fn::Sub:
+                    - "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${RuleName}"
+                    -
+                      RuleName:
+                        Fn::Join:
+                          - ""
+                          -
+                            - "wps-ai-cost-"
+                            -
+                              Fn::Select:
+                                - 2
+                                -
+                                  Fn::Split:
+                                    - "/"
+                                    -
+                                      Ref: "AWS::StackId"
+              StringEquals:
+                aws:SourceAccount:
+                  Ref: "AWS::AccountId"
+    Condition: "TemplateEnabled"
+  AiCostReconciliationPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "AiHandlerFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::Sub:
+          - "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${RuleName}"
+          -
+            RuleName:
+              Fn::Join:
+                - ""
+                -
+                  - "wps-ai-cost-"
+                  -
+                    Fn::Select:
+                      - 2
+                      -
+                        Fn::Split:
+                          - "/"
+                          -
+                            Ref: "AWS::StackId"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+    Condition: "TemplateEnabled"
+  AiCostReconciliationRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Name:
+        Fn::Join:
+          - ""
+          -
+            - "wps-ai-cost-"
+            -
+              Fn::Select:
+                - 2
+                -
+                  Fn::Split:
+                    - "/"
+                    -
+                      Ref: "AWS::StackId"
+      Description: "Refreshes AI cost reconciliation from Cost Explorer"
+      ScheduleExpression: "rate(6 hours)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "AiHandlerFunction"
+              - "Arn"
+          Id: "AiCostReconciliation"
+          Input: "{\"source\":\"wpsuite.ai-cost-reconciliation\",\"action\":\"refresh\"}"
+          DeadLetterConfig:
+            Arn:
+              Fn::GetAtt:
+                - "DeadLetterQueue"
+                - "Arn"
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 3600
+            MaximumRetryAttempts: 2
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "AiCostReconciliationPermission"
+      - "AiHandlerFunctionLogGroup"
+      - "KnowledgeBaseIngestionWatchdogDlqPolicy"
     Condition: "TemplateEnabled"
   AlertsTopic:
     Type: "AWS::SNS::Topic"
