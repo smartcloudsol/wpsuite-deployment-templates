@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.96"
+    Default: "v1.0.97"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -32,8 +32,9 @@ Parameters:
     Type: "String"
     Default: "wpsuite-ai-kit"
     AllowedPattern: "^[a-zA-Z0-9-]+$"
-    ConstraintDescription: "Must contain only alphanumeric characters and hyphens"
+    ConstraintDescription: "Must contain at most 37 alphanumeric characters and hyphens so generated Lambda names remain within AWS limits"
     Description: "Application name for resource naming"
+    MaxLength: 37
   Environment:
     Type: "String"
     Default: "prod"
@@ -319,6 +320,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable INFO-level API Gateway execution logs. Disabled uses ERROR-level logs."
+  EnableAgentCoreCodeInterpreter:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable isolated AgentCore Code Interpreter execution for the script runner tool."
   FrontendApiAuthMode:
     Type: "String"
     Default: "NONE"
@@ -369,6 +377,23 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable point-in-time recovery for persistent AI Kit DynamoDB tables."
+  MonthlyAiSpendLimitUsd:
+    Type: "Number"
+    Default: 0
+    Description: "Approximate monthly AI spend limit in USD. Zero disables the runtime cost gate."
+    MaxValue: 1000000
+    MinValue: 0
+  AiSpendSafetyPercent:
+    Type: "Number"
+    Default: 90
+    Description: "Percentage of the configured monthly AI spend limit at which new AI work is stopped."
+    MaxValue: 100
+    MinValue: 50
+  CodeInterpreterIdentifier:
+    Type: "String"
+    Default: "aws.codeinterpreter.v1"
+    AllowedPattern: "[A-Za-z0-9._-]+"
+    Description: "Managed or customer-owned AgentCore Code Interpreter identifier used by the isolated script executor."
   MaxTokens:
     Type: "Number"
     Default: 300
@@ -423,7 +448,7 @@ Parameters:
     Description: "API Gateway rate limit for admin endpoints."
   ApiSchemaVersion:
     Type: "Number"
-    Default: 12
+    Default: 14
     Description: "API schema version number."
   LogRetentionDays:
     Type: "Number"
@@ -826,6 +851,11 @@ Conditions:
       -
         Ref: "EnableDynamoDbPointInTimeRecovery"
       - "true"
+  AgentCoreCodeInterpreterEnabled:
+    Fn::Equals:
+      -
+        Ref: "EnableAgentCoreCodeInterpreter"
+      - "true"
   RecaptchaKmsKeyTemplateEnabledCondition:
     Fn::And:
       -
@@ -946,6 +976,24 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CreateLocalRecaptchaSecret"
+  CodeInterpreterBrokerLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AgentCoreCodeInterpreterEnabled"
+  CodeInterpreterBrokerFunctionRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AgentCoreCodeInterpreterEnabled"
+  CodeInterpreterBrokerFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "AgentCoreCodeInterpreterEnabled"
   AiHandlerFunctionSharedRecaptchaKmsPolicyTemplateEnabledCondition:
     Fn::And:
       -
@@ -1699,6 +1747,26 @@ Resources:
           IntegrationUri:
             Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
         -
+          Path: "/admin/conversation-profile"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/conversation-profile"
+          Method: "PUT"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/cost-policy"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
+          Path: "/admin/cost-policy"
+          Method: "PUT"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
           Path: "/admin/summarize"
           Method: "POST"
           IntegrationUri:
@@ -1790,7 +1858,7 @@ Resources:
       ApiSchemaVersion:
         Ref: "ApiSchemaVersion"
     Condition: "TemplateEnabled"
-  RestApiDeploymentV11:
+  RestApiDeploymentV14:
     Type: "AWS::ApiGateway::Deployment"
     Properties:
       RestApiId:
@@ -1809,7 +1877,7 @@ Resources:
         Ref: "RestApi"
       StageName: "prod"
       DeploymentId:
-        Ref: "RestApiDeploymentV11"
+        Ref: "RestApiDeploymentV14"
       TracingEnabled: false
       AccessLogSetting:
         DestinationArn:
@@ -2036,6 +2104,102 @@ Resources:
           MetricsEnabled: false
         -
           ResourcePath: "/admin/kb/prompt-templates"
+          HttpMethod: "PUT"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/conversation-profile"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/conversation-profile"
+          HttpMethod: "PUT"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/cost-policy"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/cost-policy"
           HttpMethod: "PUT"
           ThrottlingBurstLimit:
             Fn::If:
@@ -3532,6 +3696,42 @@ Resources:
         AttributeName: "TTL"
         Enabled: true
     Condition: "TemplateEnabled"
+  AiCostLedgerTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-AiCostLedger"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "Period"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "Period"
+          KeyType: "HASH"
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
+      TimeToLiveSpecification:
+        AttributeName: "TTL"
+        Enabled: true
+    Condition: "TemplateEnabled"
   KnowledgeAutomationKeyRegistryTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -3728,6 +3928,163 @@ Resources:
       KmsKeyId:
         Ref: "RecaptchaKmsKey"
     Condition: "RecaptchaSecretParameterTemplateEnabledCondition"
+  CodeInterpreterBrokerLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-code-interpreter-broker"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CodeInterpreterBrokerLogGroupTemplateEnabledCondition"
+  CodeInterpreterBrokerFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "CodeInterpreterBrokerFunctionRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  Fn::Sub: "${CodeInterpreterBrokerLogGroup.Arn}:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock-agentcore:StartCodeInterpreterSession"
+                  - "bedrock-agentcore:InvokeCodeInterpreter"
+                  - "bedrock-agentcore:StopCodeInterpreterSession"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:code-interpreter/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "AiCostLedgerTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CodeInterpreterBrokerFunctionRoleTemplateEnabledCondition"
+  CodeInterpreterBrokerFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-code-interpreter-broker"
+      Description: "Isolated broker for AgentCore Code Interpreter script execution"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/functions/code-interpreter-broker.zip"
+      Handler: "dist/handler.handler"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize: 256
+      Timeout: 20
+      Role:
+        Fn::GetAtt:
+          - "CodeInterpreterBrokerFunctionRole"
+          - "Arn"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          AI_COST_LEDGER_TABLE_NAME:
+            Ref: "AiCostLedgerTable"
+          MONTHLY_AI_SPEND_LIMIT_USD:
+            Ref: "MonthlyAiSpendLimitUsd"
+          AI_SPEND_SAFETY_PERCENT:
+            Ref: "AiSpendSafetyPercent"
+          CODE_INTERPRETER_IDENTIFIER:
+            Ref: "CodeInterpreterIdentifier"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "CodeInterpreterBrokerLogGroup"
+    Condition: "CodeInterpreterBrokerFunctionTemplateEnabledCondition"
   AiHandlerFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -3843,11 +4200,27 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "AiCostLedgerTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
                   - "ssm:GetParameter"
                   - "ssm:GetParameters"
                   - "ssm:PutParameter"
                 Resource:
                   Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "events:PutEvents"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
               -
                 Fn::If:
                   - "UseSharedRecaptchaSecret"
@@ -3867,6 +4240,19 @@ Resources:
                   Fn::GetAtt:
                     - "KnowledgeBaseSyncFunction"
                     - "Arn"
+              -
+                Fn::If:
+                  - "AgentCoreCodeInterpreterEnabled"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "lambda:InvokeFunction"
+                    Resource:
+                      Fn::GetAtt:
+                        - "CodeInterpreterBrokerFunction"
+                        - "Arn"
+                  -
+                    Ref: "AWS::NoValue"
               -
                 Effect: "Allow"
                 Action:
@@ -4021,6 +4407,20 @@ Resources:
             Ref: "RecaptchaSiteKey"
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
+          AI_COST_LEDGER_TABLE_NAME:
+            Ref: "AiCostLedgerTable"
+          MONTHLY_AI_SPEND_LIMIT_USD:
+            Ref: "MonthlyAiSpendLimitUsd"
+          AI_SPEND_SAFETY_PERCENT:
+            Ref: "AiSpendSafetyPercent"
+          SCRIPT_EXECUTOR_FUNCTION_ARN:
+            Fn::If:
+              - "AgentCoreCodeInterpreterEnabled"
+              -
+                Fn::GetAtt:
+                  - "CodeInterpreterBrokerFunction"
+                  - "Arn"
+              - ""
           CHAT_SESSIONS_TABLE:
             Ref: "ChatSessionsTable"
           CHAT_MESSAGES_TABLE:
@@ -4077,6 +4477,7 @@ Resources:
               - "Arn"
           KB_COORDINATOR_TABLE_NAME:
             Ref: "KnowledgeBaseIngestionCoordinatorTable"
+          EVENT_BUS_NAME: "default"
       Tags:
         -
           Key: "aws-apn-id"
@@ -4549,6 +4950,28 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "AiCostLedgerTable"
+                    - "Arn"
+              -
+                Fn::If:
+                  - "AgentCoreCodeInterpreterEnabled"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "lambda:InvokeFunction"
+                    Resource:
+                      Fn::GetAtt:
+                        - "CodeInterpreterBrokerFunction"
+                        - "Arn"
+                  -
+                    Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action:
                   - "sqs:SendMessage"
                 Resource:
                   Fn::GetAtt:
@@ -4662,6 +5085,20 @@ Resources:
             Ref: "RecaptchaSiteKey"
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
+          AI_COST_LEDGER_TABLE_NAME:
+            Ref: "AiCostLedgerTable"
+          MONTHLY_AI_SPEND_LIMIT_USD:
+            Ref: "MonthlyAiSpendLimitUsd"
+          AI_SPEND_SAFETY_PERCENT:
+            Ref: "AiSpendSafetyPercent"
+          SCRIPT_EXECUTOR_FUNCTION_ARN:
+            Fn::If:
+              - "AgentCoreCodeInterpreterEnabled"
+              -
+                Fn::GetAtt:
+                  - "CodeInterpreterBrokerFunction"
+                  - "Arn"
+              - ""
           CONFIG_PREFIX:
             Ref: "ConfigPrefix"
           STRICT_METADATA_FILTERING:
@@ -4783,6 +5220,15 @@ Resources:
                   - "workmailmessageflow:GetRawMessageContent"
                   - "events:PutEvents"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "AiCostLedgerTable"
+                    - "Arn"
               -
                 Effect: "Allow"
                 Action:
@@ -4942,6 +5388,12 @@ Resources:
             Ref: "RecaptchaSiteKey"
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
+          AI_COST_LEDGER_TABLE_NAME:
+            Ref: "AiCostLedgerTable"
+          MONTHLY_AI_SPEND_LIMIT_USD:
+            Ref: "MonthlyAiSpendLimitUsd"
+          AI_SPEND_SAFETY_PERCENT:
+            Ref: "AiSpendSafetyPercent"
           EVENT_BUS_NAME: "default"
           INQUIRY_FIELD_NAMES:
             Ref: "InquiryFieldNames"
@@ -5449,6 +5901,15 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "AiCostLedgerTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
                   - "sqs:SendMessage"
                 Resource:
                   Fn::GetAtt:
@@ -5560,6 +6021,12 @@ Resources:
             Ref: "RecaptchaSiteKey"
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
+          AI_COST_LEDGER_TABLE_NAME:
+            Ref: "AiCostLedgerTable"
+          MONTHLY_AI_SPEND_LIMIT_USD:
+            Ref: "MonthlyAiSpendLimitUsd"
+          AI_SPEND_SAFETY_PERCENT:
+            Ref: "AiSpendSafetyPercent"
           COORDINATOR_TABLE_NAME:
             Ref: "KnowledgeBaseIngestionCoordinatorTable"
           KNOWLEDGE_BASE_ID:

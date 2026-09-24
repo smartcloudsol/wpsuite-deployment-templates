@@ -91,6 +91,22 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter KnowledgeBaseId."
+  MonthlyAiSpendLimitUsd:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter MonthlyAiSpendLimitUsd."
+  AiSpendSafetyPercent:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter AiSpendSafetyPercent."
+  EnableAgentCoreCodeInterpreter:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableAgentCoreCodeInterpreter."
+  CodeInterpreterIdentifier:
+    Type: "String"
+    Default: "aws.codeinterpreter.v1"
+    Description: "Forwarded WP Suite nested stack parameter CodeInterpreterIdentifier."
   EnableChatbotBackend:
     Type: "String"
     Default: ""
@@ -213,11 +229,11 @@ Parameters:
     Description: "Forwarded WP Suite nested stack parameter StrictMetadataFiltering."
   StrictKBGroundingForChat:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Forwarded WP Suite nested stack parameter StrictKBGroundingForChat."
   EnableAgentModeForChatbot:
     Type: "String"
-    Default: ""
+    Default: "false"
     Description: "Forwarded WP Suite nested stack parameter EnableAgentModeForChatbot."
   GuardrailsEnabled:
     Type: "String"
@@ -476,6 +492,41 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "KnowledgeBaseId"
+        MonthlyAiSpendLimitUsd:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitMonthlyAiSpendLimitUsd}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "MonthlyAiSpendLimitUsd"
+        AiSpendSafetyPercent:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitSpendSafetyPercent}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "AiSpendSafetyPercent"
+        EnableAgentCoreCodeInterpreter:
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::Sub:
+                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitEnableAgentCoreCodeInterpreter}}"
+                -
+                  DeploymentSecretArn:
+                    Ref: "WpSuiteDeploymentSecretArn"
+            -
+              Ref: "EnableAgentCoreCodeInterpreter"
+        CodeInterpreterIdentifier:
+          Ref: "CodeInterpreterIdentifier"
         EnableChatbotBackend:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -753,27 +804,9 @@ Resources:
             -
               Ref: "StrictMetadataFiltering"
         StrictKBGroundingForChat:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitStrictKBGroundingForChat}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "StrictKBGroundingForChat"
+          Ref: "StrictKBGroundingForChat"
         EnableAgentModeForChatbot:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitEnableAgentModeForChatbot}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnableAgentModeForChatbot"
+          Ref: "EnableAgentModeForChatbot"
         GuardrailsEnabled:
           Fn::If:
             - "CondUseMarketplaceSecret"

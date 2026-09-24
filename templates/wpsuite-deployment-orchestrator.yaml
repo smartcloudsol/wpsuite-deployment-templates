@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.96/templates/templates"
+    Default: "releases/v1.0.97/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -294,7 +294,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.96"
+      TemplateVersion: "v1.0.97"
       MarketplaceTemplateSource:
         BucketName:
           Ref: "MPS3BucketName"
@@ -310,7 +310,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.0.96/"
+            - "v1.0.97/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -582,9 +582,12 @@ Resources:
         FrontendModelId: "amazon.nova-lite-v1:0"
         ModelId: "amazon.nova-lite-v1:0"
         KnowledgeBaseId: ""
+        MonthlyAiSpendLimitUsd: "0"
+        AiSpendSafetyPercent: "90"
         EnableChatbotBackend: "false"
         EnableSummarizerBackend: "false"
         EnableLanguageAIBackend: "false"
+        EnableAgentCoreCodeInterpreter: "false"
         EnableRecaptcha: "false"
         RecaptchaMode: "enterprise"
         RecaptchaProjectId: ""
@@ -648,6 +651,7 @@ Resources:
         AiHandlerTimeout: "30"
         AiAgentDispatcherTimeout: "30"
         ProductionLogLevel: "INFO"
+        CodeInterpreterIdentifier: "aws.codeinterpreter.v1"
         PublicAllowedIPs: ""
         AdminAllowedIPs: ""
         BlockedIPs: ""
@@ -870,7 +874,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.96"
+          templateVersion: "v1.0.97"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed: "false"

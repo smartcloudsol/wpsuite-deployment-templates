@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.96/templates/templates"
+    Default: "releases/v1.0.97/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.96"
+    Default: "v1.0.97"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -352,6 +352,18 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Existing Bedrock Knowledge Base ID for AI Kit, or empty to create one."
+  AiKitMonthlyAiSpendLimitUsd:
+    Type: "Number"
+    Default: 0
+    Description: "Approximate monthly AI spend limit in USD. Zero disables the runtime cost gate."
+    MaxValue: 1000000
+    MinValue: 0
+  AiKitSpendSafetyPercent:
+    Type: "Number"
+    Default: 90
+    Description: "Percentage of the monthly AI limit at which new AI work is stopped."
+    MaxValue: 100
+    MinValue: 50
   AiKitEnableChatbotBackend:
     Type: "String"
     Default: "false"
@@ -373,6 +385,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable AI Kit language assistant frontend endpoints."
+  AiKitEnableAgentCoreCodeInterpreter:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable isolated AgentCore Code Interpreter execution for AI Kit script runner tools."
   AiKitEnableRecaptcha:
     Type: "String"
     Default: "false"
@@ -792,6 +811,11 @@ Parameters:
     Type: "String"
     Default: "INFO"
     Description: "AiKit nested stack parameter ProductionLogLevel."
+    NoEcho: false
+  AiKitCodeInterpreterIdentifier:
+    Type: "String"
+    Default: "aws.codeinterpreter.v1"
+    Description: "AiKit nested stack parameter CodeInterpreterIdentifier."
     NoEcho: false
   AiKitPublicAllowedIPs:
     Type: "String"
@@ -1690,12 +1714,18 @@ Resources:
           Ref: "AiKitModelId"
         KnowledgeBaseId:
           Ref: "AiKitKnowledgeBaseId"
+        MonthlyAiSpendLimitUsd:
+          Ref: "AiKitMonthlyAiSpendLimitUsd"
+        AiSpendSafetyPercent:
+          Ref: "AiKitSpendSafetyPercent"
         EnableChatbotBackend:
           Ref: "AiKitEnableChatbotBackend"
         EnableSummarizerBackend:
           Ref: "AiKitEnableSummarizerBackend"
         EnableLanguageAIBackend:
           Ref: "AiKitEnableLanguageAIBackend"
+        EnableAgentCoreCodeInterpreter:
+          Ref: "AiKitEnableAgentCoreCodeInterpreter"
         EnableRecaptcha:
           Ref: "AiKitEnableRecaptcha"
         RecaptchaMode:
@@ -1798,6 +1828,8 @@ Resources:
           Ref: "AiKitAiAgentDispatcherTimeout"
         ProductionLogLevel:
           Ref: "AiKitProductionLogLevel"
+        CodeInterpreterIdentifier:
+          Ref: "AiKitCodeInterpreterIdentifier"
         PublicAllowedIPs:
           Ref: "AiKitPublicAllowedIPs"
         AdminAllowedIPs:
