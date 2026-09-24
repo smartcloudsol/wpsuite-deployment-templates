@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.97"
+    Default: "v1.0.98"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -31,8 +31,8 @@ Parameters:
   AgentComposerMcpOAuthConfig:
     Type: "String"
     Default: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
-    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#]$"
-    Description: "Packed optional Agent Composer MCP OAuth configuration in enabled|https-callback-url|https-resource-uri order. The generated public client uses authorization code with PKCE and scopes bound to the exact external MCP resource URI."
+    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#](?:\\|(none|cognito-default))?$"
+    Description: "Packed optional Agent Composer MCP OAuth configuration in enabled|https-callback-url|https-resource-uri|managed-login-branding order. The generated public client uses authorization code with PKCE and scopes bound to the exact external MCP resource URI."
     MaxLength: 2048
   AppName:
     Type: "String"
@@ -555,6 +555,28 @@ Conditions:
               -
                 Ref: "UserPoolCustomDomainCertArn"
               - ""
+  CondCreateAgentComposerMcpManagedLoginBranding:
+    Fn::And:
+      -
+        Condition: "CondCreateAgentComposerMcpOAuth"
+      -
+        Condition: "CondCreateDomain"
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Fn::Join:
+                      - "|"
+                      -
+                        -
+                          Ref: "AgentComposerMcpOAuthConfig"
+                        - "none"
+          - "cognito-default"
   CondRegisterAlias:
     Fn::And:
       -
@@ -878,6 +900,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CondCreateDomain"
+  AgentComposerMcpManagedLoginBrandingTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateAgentComposerMcpManagedLoginBranding"
   IdentityPoolTemplateEnabledCondition:
     Fn::And:
       -
@@ -2162,6 +2190,23 @@ Resources:
             Ref: "AWS::NoValue"
       ManagedLoginVersion: 2
     Condition: "UserPoolDomainTemplateEnabledCondition"
+  AgentComposerMcpManagedLoginBranding:
+    Type: "AWS::Cognito::ManagedLoginBranding"
+    Properties:
+      UserPoolId:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Ref: "UserPool"
+          -
+            Ref: "ExistingUserPoolId"
+      ClientId:
+        Ref: "AgentComposerMcpOAuthClient"
+      UseCognitoProvidedValues: true
+      ReturnMergedResources: false
+    DependsOn:
+      - "UserPoolDomain"
+    Condition: "AgentComposerMcpManagedLoginBrandingTemplateEnabledCondition"
   IdentityPool:
     Type: "AWS::Cognito::IdentityPool"
     Properties:

@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.97/templates/templates"
+    Default: "releases/v1.0.98/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.97"
+    Default: "v1.0.98"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -247,8 +247,8 @@ Parameters:
   CognitoAgentComposerMcpOAuthConfig:
     Type: "String"
     Default: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
-    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#]$"
-    Description: "Packed optional Agent Composer MCP OAuth configuration in enabled|https-callback-url|https-resource-uri order."
+    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#](?:\\|(none|cognito-default))?$"
+    Description: "Packed optional Agent Composer MCP OAuth configuration in enabled|https-callback-url|https-resource-uri|managed-login-branding order."
     MaxLength: 4096
   CognitoRegisteredGroupName:
     Type: "String"
