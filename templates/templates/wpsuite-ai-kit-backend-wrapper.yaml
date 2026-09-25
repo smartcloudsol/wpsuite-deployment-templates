@@ -111,6 +111,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter EnableChatbotBackend."
+  EnableChatStreaming:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter EnableChatStreaming."
   EnableSummarizerBackend:
     Type: "String"
     Default: ""
@@ -542,6 +546,8 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "EnableChatbotBackend"
+        EnableChatStreaming:
+          Ref: "EnableChatStreaming"
         EnableSummarizerBackend:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -1071,6 +1077,12 @@ Outputs:
       Fn::GetAtt:
         - "WrappedNestedStack"
         - "Outputs.ApiId"
+  WebSocketUrl:
+    Description: "Forwarded WebSocketUrl output from wpsuite-ai-kit-backend.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.WebSocketUrl"
   DocsBucketName:
     Description: "Forwarded DocsBucketName output from wpsuite-ai-kit-backend.yaml."
     Value:

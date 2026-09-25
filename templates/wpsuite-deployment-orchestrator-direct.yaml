@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.100/templates/templates"
+    Default: "releases/v1.0.102/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.100"
+    Default: "v1.0.102"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -371,6 +371,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable AI Kit chatbot frontend endpoint."
+  AiKitEnableChatStreaming:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable asynchronous WebSocket chat transport for AI Kit."
   AiKitEnableSummarizerBackend:
     Type: "String"
     Default: "false"
@@ -1725,6 +1732,8 @@ Resources:
           Ref: "AiKitSpendSafetyPercent"
         EnableChatbotBackend:
           Ref: "AiKitEnableChatbotBackend"
+        EnableChatStreaming:
+          Ref: "AiKitEnableChatStreaming"
         EnableSummarizerBackend:
           Ref: "AiKitEnableSummarizerBackend"
         EnableLanguageAIBackend:
@@ -2154,6 +2163,10 @@ Resources:
             Fn::GetAtt:
               - "AiKitBackendNestedStack"
               - "Outputs.ApiBaseUrl"
+          webSocketUrl:
+            Fn::GetAtt:
+              - "AiKitBackendNestedStack"
+              - "Outputs.WebSocketUrl"
           apiId:
             Fn::GetAtt:
               - "AiKitBackendNestedStack"

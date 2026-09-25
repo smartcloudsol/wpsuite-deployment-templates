@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.100"
+    Default: "v1.0.102"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -285,6 +285,13 @@ Parameters:
       - "true"
       - "false"
     Description: "Enable frontend writing assistant endpoints."
+  EnableChatStreaming:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create the optional asynchronous WebSocket chat transport."
   EnableRecaptcha:
     Type: "String"
     Default: "false"
@@ -456,7 +463,7 @@ Parameters:
     Description: "API Gateway rate limit for admin endpoints."
   ApiSchemaVersion:
     Type: "Number"
-    Default: 15
+    Default: 17
     Description: "API schema version number."
   LogRetentionDays:
     Type: "Number"
@@ -841,6 +848,15 @@ Conditions:
       -
         Ref: "EnableChatbotBackend"
       - "true"
+  ChatStreamingEnabled:
+    Fn::And:
+      -
+        Condition: "HasChatbotBackendEnabled"
+      -
+        Fn::Equals:
+          -
+            Ref: "EnableChatStreaming"
+          - "true"
   HasLanguageAIBackendEnabled:
     Fn::Equals:
       -
@@ -1044,6 +1060,192 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CreateLocalRecaptchaSecret"
+  ChatStreamStateTableTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamDeadLetterQueueTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamDeadLetterQueueMessagesAlarmTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamQueueTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamWebSocketApiTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamAuthorizerRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamAuthorizerFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamAuthorizerLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamRouteRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamRouteFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamRouteLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamWorkerRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamWorkerFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamWorkerLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamWorkerQueueMappingTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamDispatcherRoleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamDispatcherFunctionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamDispatcherLogGroupTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamStateDispatchMappingTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamRouteIntegrationTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamConnectAuthorizerTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamAuthorizerInvokePermissionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamRouteInvokePermissionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamConnectRouteTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamDisconnectRouteTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamDefaultRouteTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamWebSocketDeploymentTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamWebSocketStageTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamRecoveryInvokePermissionTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamRecoveryDlqPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
+  ChatStreamRecoveryRuleTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "ChatStreamingEnabled"
   S3NotificationSetupForNewBucketTemplateEnabledCondition:
     Fn::And:
       -
@@ -1647,6 +1849,16 @@ Resources:
               Ref: "AWS::NoValue"
         -
           Fn::If:
+            - "ChatStreamingEnabled"
+            -
+              Path: "/frontend/chat-stream/ticket"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
             - "HasChatbotBackendEnabled"
             -
               Path: "/frontend/generate-upload-url"
@@ -1868,7 +2080,7 @@ Resources:
       ApiSchemaVersion:
         Ref: "ApiSchemaVersion"
     Condition: "TemplateEnabled"
-  RestApiDeploymentV15:
+  RestApiDeploymentV17:
     Type: "AWS::ApiGateway::Deployment"
     Properties:
       RestApiId:
@@ -1877,6 +2089,7 @@ Resources:
         Fn::Sub: "Template ${TemplateVersion} - API Schema v${ApiSchemaVersion}"
     DependsOn:
       - "ApiAuthorizerAttachment"
+      - "ChatStreamTicketInvokePermission"
       - "KnowledgeAutomationAuthorizerInvokePermission"
       - "KnowledgeAutomationHandlerInvokePermission"
     Condition: "TemplateEnabled"
@@ -1887,7 +2100,7 @@ Resources:
         Ref: "RestApi"
       StageName: "prod"
       DeploymentId:
-        Ref: "RestApiDeploymentV15"
+        Ref: "RestApiDeploymentV17"
       TracingEnabled: false
       AccessLogSetting:
         DestinationArn:
@@ -2701,6 +2914,16 @@ Resources:
               Ref: "AWS::NoValue"
         -
           Fn::If:
+            - "ChatStreamingEnabled"
+            -
+              Path: "/frontend/chat-stream/ticket"
+              Method: "POST"
+              IntegrationUri:
+                Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+            -
+              Ref: "AWS::NoValue"
+        -
+          Fn::If:
             - "HasChatbotBackendEnabled"
             -
               Path: "/frontend/generate-upload-url"
@@ -2774,6 +2997,18 @@ Resources:
       SourceArn:
         Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*/*/*"
     Condition: "AiHandlerInvokePermissionFrontendTemplateEnabledCondition"
+  ChatStreamTicketInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        Ref: "AiHandlerFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/prod/POST/frontend/chat-stream/ticket"
+    Condition: "TemplateEnabled"
   KnowledgeAutomationHandlerInvokePermission:
     Type: "AWS::Lambda::Permission"
     Properties:
@@ -4131,6 +4366,7 @@ Resources:
                 Effect: "Allow"
                 Action:
                   - "bedrock:InvokeModel"
+                  - "bedrock:InvokeModelWithResponseStream"
                   - "bedrock:GetFoundationModel"
                   - "bedrock:GetInferenceProfile"
                 Resource:
@@ -4225,6 +4461,24 @@ Resources:
                   Fn::GetAtt:
                     - "AiCostLedgerTable"
                     - "Arn"
+              -
+                Fn::If:
+                  - "ChatStreamingEnabled"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "dynamodb:GetItem"
+                      - "dynamodb:PutItem"
+                      - "dynamodb:UpdateItem"
+                      - "dynamodb:DeleteItem"
+                      - "dynamodb:Query"
+                      - "dynamodb:ConditionCheckItem"
+                    Resource:
+                      Fn::GetAtt:
+                        - "ChatStreamStateTable"
+                        - "Arn"
+                  -
+                    Ref: "AWS::NoValue"
               -
                 Effect: "Allow"
                 Action:
@@ -4445,6 +4699,41 @@ Resources:
             Ref: "ChatSessionsTable"
           CHAT_MESSAGES_TABLE:
             Ref: "ChatMessagesTable"
+          CHAT_STREAM_ENABLED:
+            Fn::If:
+              - "ChatStreamingEnabled"
+              - "true"
+              - "false"
+          CHAT_STREAM_STATE_TABLE:
+            Fn::If:
+              - "ChatStreamingEnabled"
+              -
+                Ref: "ChatStreamStateTable"
+              - ""
+          CHAT_STREAM_QUEUE_URL:
+            Fn::If:
+              - "ChatStreamingEnabled"
+              -
+                Ref: "ChatStreamQueue"
+              - ""
+          CHAT_STREAM_WS_API_ID:
+            Fn::If:
+              - "ChatStreamingEnabled"
+              -
+                Ref: "ChatStreamWebSocketApi"
+              - ""
+          CHAT_STREAM_WS_URL:
+            Fn::If:
+              - "ChatStreamingEnabled"
+              -
+                Fn::Sub: "wss://${ChatStreamWebSocketApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+              - ""
+          CHAT_STREAM_WS_ENDPOINT:
+            Fn::If:
+              - "ChatStreamingEnabled"
+              -
+                Fn::Sub: "https://${ChatStreamWebSocketApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+              - ""
           SESSION_TTL_DAYS:
             Ref: "SessionTTLDays"
           MAX_CONTEXT_MESSAGES: "10"
@@ -6087,6 +6376,1343 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     Condition: "TemplateEnabled"
+  ChatStreamStateTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "${AppName}-ChatStreamState"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+        -
+          AttributeName: "SK"
+          AttributeType: "S"
+        -
+          AttributeName: "DispatchStatus"
+          AttributeType: "S"
+        -
+          AttributeName: "CreatedAt"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+        -
+          AttributeName: "SK"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "DispatchStatusIndex"
+          KeySchema:
+            -
+              AttributeName: "DispatchStatus"
+              KeyType: "HASH"
+            -
+              AttributeName: "CreatedAt"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+      StreamSpecification:
+        StreamViewType: "NEW_AND_OLD_IMAGES"
+      TimeToLiveSpecification:
+        AttributeName: "TTL"
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Fn::If:
+            - "DynamoDbPointInTimeRecoveryEnabled"
+            - true
+            - false
+      Tags:
+        -
+          Key: "wpsuite:dr-backup"
+          Value: "true"
+        -
+          Key: "wpsuite:backup-scope"
+          Value:
+            Ref: "BackupSelectionTagValue"
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamStateTableTemplateEnabledCondition"
+  ChatStreamDeadLetterQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName:
+        Fn::Sub: "${AppName}-chat-stream-dlq"
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamDeadLetterQueueTemplateEnabledCondition"
+  ChatStreamDeadLetterQueueMessagesAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName:
+        Fn::Sub: "${AppName}-chat-stream-dlq-messages"
+      AlarmDescription:
+        Fn::Sub: "${AppName} chat stream dead-letter queue contains messages."
+      Namespace: "AWS/SQS"
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Dimensions:
+        -
+          Name: "QueueName"
+          Value:
+            Fn::GetAtt:
+              - "ChatStreamDeadLetterQueue"
+              - "QueueName"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+      AlarmActions:
+        Fn::If:
+          - "AlertsEnabled"
+          -
+            -
+              Ref: "AlertsTopic"
+          -
+            []
+    Condition: "ChatStreamDeadLetterQueueMessagesAlarmTemplateEnabledCondition"
+  ChatStreamQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName:
+        Fn::Sub: "${AppName}-chat-stream"
+      VisibilityTimeout: 5400
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "ChatStreamDeadLetterQueue"
+            - "Arn"
+        maxReceiveCount: 3
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamQueueTemplateEnabledCondition"
+  ChatStreamWebSocketApi:
+    Type: "AWS::ApiGatewayV2::Api"
+    Properties:
+      Name:
+        Fn::Sub: "${AppName}-chat-stream"
+      ProtocolType: "WEBSOCKET"
+      RouteSelectionExpression: "$request.body.type"
+    Condition: "ChatStreamWebSocketApiTemplateEnabledCondition"
+  ChatStreamAuthorizerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "ChatStreamAuthorizerRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:ConditionCheckItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "ChatStreamStateTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamAuthorizerRoleTemplateEnabledCondition"
+  ChatStreamAuthorizerFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-chat-stream-authorizer"
+      Description: "Validates short-lived chat connection tickets"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/functions/ai-handler.zip"
+      Handler: "dist/handler.chatStreamAuthorizer"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize: 256
+      Timeout: 10
+      Role:
+        Fn::GetAtt:
+          - "ChatStreamAuthorizerRole"
+          - "Arn"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          CHAT_STREAM_ENABLED: "true"
+          CHAT_STREAM_STATE_TABLE:
+            Ref: "ChatStreamStateTable"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "ChatStreamAuthorizerLogGroup"
+    Condition: "ChatStreamAuthorizerFunctionTemplateEnabledCondition"
+  ChatStreamAuthorizerLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-chat-stream-authorizer"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamAuthorizerLogGroupTemplateEnabledCondition"
+  ChatStreamRouteRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "ChatStreamRouteRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:ConditionCheckItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "ChatStreamStateTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "ChatStreamQueue"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "execute-api:ManageConnections"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ChatStreamWebSocketApi}/prod/POST/@connections/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamRouteRoleTemplateEnabledCondition"
+  ChatStreamRouteFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-chat-stream-route"
+      Description: "Acknowledges chat WebSocket commands and records turns"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/functions/ai-handler.zip"
+      Handler: "dist/handler.chatStreamRoute"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize: 512
+      Timeout: 15
+      Role:
+        Fn::GetAtt:
+          - "ChatStreamRouteRole"
+          - "Arn"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          CHAT_STREAM_ENABLED: "true"
+          CHAT_STREAM_STATE_TABLE:
+            Ref: "ChatStreamStateTable"
+          CHAT_STREAM_QUEUE_URL:
+            Ref: "ChatStreamQueue"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "ChatStreamRouteLogGroup"
+    Condition: "ChatStreamRouteFunctionTemplateEnabledCondition"
+  ChatStreamRouteLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-chat-stream-route"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamRouteLogGroupTemplateEnabledCondition"
+  ChatStreamWorkerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "ChatStreamWorkerRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ce:GetCostAndUsage"
+                  - "ce:GetDimensionValues"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:InvokeModel"
+                  - "bedrock:InvokeModelWithResponseStream"
+                  - "bedrock:GetFoundationModel"
+                  - "bedrock:GetInferenceProfile"
+                Resource:
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:bedrock:*::foundation-model/*"
+                  -
+                    Fn::Sub: "arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:Retrieve"
+                  - "bedrock:RetrieveAndGenerate"
+                  - "bedrock:GetIngestionJob"
+                  - "bedrock:ListIngestionJobs"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedKnowledgeBase"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:knowledge-base/${KnowledgeBaseId}"
+                    -
+                      Fn::GetAtt:
+                        - "KnowledgeBase"
+                        - "KnowledgeBaseArn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:ListKnowledgeBases"
+                  - "translate:TranslateText"
+                  - "comprehend:DetectDominantLanguage"
+                  - "aws-marketplace:ViewSubscriptions"
+                  - "aws-marketplace:Subscribe"
+                  - "cloudwatch:PutMetricData"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:ApplyGuardrail"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedDocsBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}"
+                    -
+                      Fn::GetAtt:
+                        - "DocsBucket"
+                        - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedDocsBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}/*"
+                    -
+                      Fn::Sub: "${DocsBucket.Arn}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:Query"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "ChatSessionsTable"
+                      - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "ChatMessagesTable"
+                      - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "KnowledgeBaseIngestionCoordinatorTable"
+                      - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "AiCostLedgerTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameters"
+                  - "ssm:PutParameter"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "events:PutEvents"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+              -
+                Fn::If:
+                  - "UseSharedRecaptchaSecret"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "ssm:GetParameter"
+                    Resource:
+                      Ref: "SharedRecaptchaSecretParameterArn"
+                  -
+                    Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource:
+                  Fn::GetAtt:
+                    - "KnowledgeBaseSyncFunction"
+                    - "Arn"
+              -
+                Fn::If:
+                  - "AgentCoreCodeInterpreterEnabled"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "lambda:InvokeFunction"
+                    Resource:
+                      Fn::GetAtt:
+                        - "CodeInterpreterBrokerFunction"
+                        - "Arn"
+                  -
+                    Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:ConditionCheckItem"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "ChatStreamStateTable"
+                      - "Arn"
+                  -
+                    Fn::Sub: "${ChatStreamStateTable.Arn}/index/DispatchStatusIndex"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:ReceiveMessage"
+                  - "sqs:DeleteMessage"
+                  - "sqs:GetQueueAttributes"
+                Resource:
+                  Fn::GetAtt:
+                    - "ChatStreamQueue"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "execute-api:ManageConnections"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ChatStreamWebSocketApi}/prod/POST/@connections/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamWorkerRoleTemplateEnabledCondition"
+  ChatStreamWorkerFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-chat-stream-worker"
+      Description: "Runs asynchronous chat turns and publishes replayable events"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/functions/ai-handler.zip"
+      Handler: "dist/handler.chatStreamWorker"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize:
+        Ref: "LambdaMemorySize"
+      Timeout: 900
+      Role:
+        Fn::GetAtt:
+          - "ChatStreamWorkerRole"
+          - "Arn"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          ENABLE_RECAPTCHA:
+            Ref: "EnableRecaptcha"
+          RECAPTCHA_MODE:
+            Ref: "RecaptchaMode"
+          RECAPTCHA_CHAT_TTL_SECONDS:
+            Ref: "RecaptchaChatTtlSeconds"
+          RECAPTCHA_SECRET_PARAMETER_NAME:
+            Fn::If:
+              - "EnableRecaptchaProtection"
+              -
+                Fn::If:
+                  - "UseSharedRecaptchaSecret"
+                  -
+                    Ref: "SharedRecaptchaSecretParameterName"
+                  -
+                    Fn::If:
+                      - "CreateLocalRecaptchaSecret"
+                      -
+                        Ref: "RecaptchaSecretParameter"
+                      - ""
+              - ""
+          RECAPTCHA_PROJECT_ID:
+            Ref: "RecaptchaProjectId"
+          RECAPTCHA_SITE_KEY:
+            Ref: "RecaptchaSiteKey"
+          RECAPTCHA_SCORE_THRESHOLD:
+            Ref: "RecaptchaScoreThreshold"
+          AI_COST_LEDGER_TABLE_NAME:
+            Ref: "AiCostLedgerTable"
+          MONTHLY_AI_SPEND_LIMIT_USD:
+            Ref: "MonthlyAiSpendLimitUsd"
+          AI_SPEND_SAFETY_PERCENT:
+            Ref: "AiSpendSafetyPercent"
+          SCRIPT_EXECUTOR_FUNCTION_ARN:
+            Fn::If:
+              - "AgentCoreCodeInterpreterEnabled"
+              -
+                Fn::GetAtt:
+                  - "CodeInterpreterBrokerFunction"
+                  - "Arn"
+              - ""
+          AWS_ACCOUNT_ID:
+            Ref: "AWS::AccountId"
+          CHAT_SESSIONS_TABLE:
+            Ref: "ChatSessionsTable"
+          CHAT_MESSAGES_TABLE:
+            Ref: "ChatMessagesTable"
+          CHAT_STREAM_ENABLED: "true"
+          CHAT_STREAM_STATE_TABLE:
+            Ref: "ChatStreamStateTable"
+          CHAT_STREAM_QUEUE_URL:
+            Ref: "ChatStreamQueue"
+          CHAT_STREAM_WS_API_ID:
+            Ref: "ChatStreamWebSocketApi"
+          CHAT_STREAM_WS_URL:
+            Fn::Sub: "wss://${ChatStreamWebSocketApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+          CHAT_STREAM_WS_ENDPOINT:
+            Fn::Sub: "https://${ChatStreamWebSocketApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+          SESSION_TTL_DAYS:
+            Ref: "SessionTTLDays"
+          MAX_CONTEXT_MESSAGES: "10"
+          MAX_TOKENS_BEFORE_SUMMARIZE: "10000"
+          CONFIG_PREFIX:
+            Ref: "ConfigPrefix"
+          STRICT_METADATA_FILTERING:
+            Ref: "StrictMetadataFiltering"
+          STRICT_KB_GROUNDING_FOR_CHAT:
+            Ref: "StrictKBGroundingForChat"
+          ENABLE_CHATBOT_BACKEND:
+            Ref: "EnableChatbotBackend"
+          ENABLE_SUMMARIZER_BACKEND:
+            Ref: "EnableSummarizerBackend"
+          ENABLE_LANGUAGE_AI_BACKEND:
+            Ref: "EnableLanguageAIBackend"
+          BACKEND_RELEASE:
+            Ref: "TemplateVersion"
+          BACKEND_API_SCHEMA_VERSION:
+            Ref: "ApiSchemaVersion"
+          ENABLE_AGENT_MODE_FOR_CHATBOT:
+            Ref: "EnableAgentModeForChatbot"
+          AGENT_REASONING_EFFORT_LEVEL:
+            Ref: "AgentReasoningEffortLevel"
+          AGENT_TOOLS:
+            Ref: "AgentTools"
+          AGENT_TOOL_INVOCATION_POLICY:
+            Ref: "AgentToolInvocationPolicy"
+          KNOWLEDGE_BASE_ID:
+            Fn::If:
+              - "UseProvidedKnowledgeBase"
+              -
+                Ref: "KnowledgeBaseId"
+              -
+                Fn::GetAtt:
+                  - "KnowledgeBase"
+                  - "KnowledgeBaseId"
+          KB_DOCUMENTS_PREFIX: "documents/"
+          DATA_SOURCE_ID:
+            Fn::If:
+              - "CreateNewKnowledgeBase"
+              -
+                Fn::GetAtt:
+                  - "KnowledgeBaseDataSource"
+                  - "DataSourceId"
+              - ""
+          KB_SYNC_FUNCTION_ARN:
+            Fn::GetAtt:
+              - "KnowledgeBaseSyncFunction"
+              - "Arn"
+          KB_COORDINATOR_TABLE_NAME:
+            Ref: "KnowledgeBaseIngestionCoordinatorTable"
+          EVENT_BUS_NAME: "default"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "ChatStreamWorkerLogGroup"
+    Condition: "ChatStreamWorkerFunctionTemplateEnabledCondition"
+  ChatStreamWorkerLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-chat-stream-worker"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamWorkerLogGroupTemplateEnabledCondition"
+  ChatStreamWorkerQueueMapping:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt:
+          - "ChatStreamQueue"
+          - "Arn"
+      FunctionName:
+        Ref: "ChatStreamWorkerFunction"
+      BatchSize: 1
+      ScalingConfig:
+        MaximumConcurrency: 10
+      FunctionResponseTypes:
+        - "ReportBatchItemFailures"
+      Enabled: true
+    DependsOn:
+      - "ChatStreamWorkerLogGroup"
+    Condition: "ChatStreamWorkerQueueMappingTemplateEnabledCondition"
+  ChatStreamDispatcherRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "ChatStreamDispatcherRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:ConditionCheckItem"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "ChatStreamStateTable"
+                      - "Arn"
+                  -
+                    Fn::Sub: "${ChatStreamStateTable.Arn}/index/DispatchStatusIndex"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:DescribeStream"
+                  - "dynamodb:GetRecords"
+                  - "dynamodb:GetShardIterator"
+                Resource:
+                  Fn::GetAtt:
+                    - "ChatStreamStateTable"
+                    - "StreamArn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:ListStreams"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  -
+                    Fn::GetAtt:
+                      - "ChatStreamQueue"
+                      - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "ChatStreamDeadLetterQueue"
+                      - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "execute-api:ManageConnections"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ChatStreamWebSocketApi}/prod/POST/@connections/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeadLetterQueue"
+                    - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamDispatcherRoleTemplateEnabledCondition"
+  ChatStreamDispatcherFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: "${AppName}-chat-stream-dispatcher"
+      Description: "Dispatches queued chat turns and recovers unclaimed work"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-ai-kit/functions/ai-handler.zip"
+      Handler: "dist/handler.chatStreamDispatch"
+      Runtime: "nodejs24.x"
+      Architectures:
+        - "arm64"
+      MemorySize: 512
+      Timeout: 30
+      Role:
+        Fn::GetAtt:
+          - "ChatStreamDispatcherRole"
+          - "Arn"
+      DeadLetterConfig:
+        TargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+      Environment:
+        Variables:
+          FRONTEND_MODEL_ID:
+            Ref: "FrontendModelId"
+          MODEL_ID:
+            Ref: "ModelId"
+          AGENT_MODEL_ID:
+            Ref: "AgentModelId"
+          APP_NAME:
+            Ref: "AppName"
+          ENVIRONMENT:
+            Ref: "Environment"
+          WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
+          AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+          LOG_LEVEL:
+            Fn::If:
+              - "IsProduction"
+              -
+                Ref: "ProductionLogLevel"
+              - "DEBUG"
+          NODE_OPTIONS: "--enable-source-maps"
+          FRONTEND_API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          ADMIN_API_AUTH_MODE:
+            Ref: "AdminApiAuthMode"
+          API_AUTH_MODE:
+            Ref: "FrontendApiAuthMode"
+          GUARDRAILS_ENABLED:
+            Ref: "GuardrailsEnabled"
+          BEDROCK_GUARDRAIL_ID:
+            Ref: "BedrockGuardrailId"
+          BEDROCK_GUARDRAIL_VERSION:
+            Ref: "BedrockGuardrailVersion"
+          TEMP_ASSETS_PREFIX:
+            Ref: "TempAssetsPrefix"
+          DOCS_BUCKET_NAME:
+            Fn::If:
+              - "UseProvidedDocsBucket"
+              -
+                Ref: "DocsBucketName"
+              -
+                Ref: "DocsBucket"
+          CHAT_STREAM_ENABLED: "true"
+          CHAT_STREAM_STATE_TABLE:
+            Ref: "ChatStreamStateTable"
+          CHAT_STREAM_QUEUE_URL:
+            Ref: "ChatStreamQueue"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "ChatStreamDispatcherLogGroup"
+    Condition: "ChatStreamDispatcherFunctionTemplateEnabledCondition"
+  ChatStreamDispatcherLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AppName}-chat-stream-dispatcher"
+      RetentionInDays:
+        Ref: "LogRetentionDays"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ChatStreamDispatcherLogGroupTemplateEnabledCondition"
+  ChatStreamStateDispatchMapping:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt:
+          - "ChatStreamStateTable"
+          - "StreamArn"
+      FunctionName:
+        Ref: "ChatStreamDispatcherFunction"
+      StartingPosition: "TRIM_HORIZON"
+      BatchSize: 10
+      BisectBatchOnFunctionError: true
+      MaximumRetryAttempts: 3
+      MaximumRecordAgeInSeconds: 3600
+      FunctionResponseTypes:
+        - "ReportBatchItemFailures"
+      DestinationConfig:
+        OnFailure:
+          Destination:
+            Fn::GetAtt:
+              - "ChatStreamDeadLetterQueue"
+              - "Arn"
+      Enabled: true
+    DependsOn:
+      - "ChatStreamDispatcherLogGroup"
+    Condition: "ChatStreamStateDispatchMappingTemplateEnabledCondition"
+  ChatStreamRouteIntegration:
+    Type: "AWS::ApiGatewayV2::Integration"
+    Properties:
+      ApiId:
+        Ref: "ChatStreamWebSocketApi"
+      IntegrationType: "AWS_PROXY"
+      IntegrationMethod: "POST"
+      IntegrationUri:
+        Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatStreamRouteFunction.Arn}/invocations"
+    Condition: "ChatStreamRouteIntegrationTemplateEnabledCondition"
+  ChatStreamConnectAuthorizer:
+    Type: "AWS::ApiGatewayV2::Authorizer"
+    Properties:
+      ApiId:
+        Ref: "ChatStreamWebSocketApi"
+      Name: "chat-stream-ticket-authorizer"
+      AuthorizerType: "REQUEST"
+      AuthorizerUri:
+        Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatStreamAuthorizerFunction.Arn}/invocations"
+      IdentitySource:
+        - "route.request.querystring.ticket"
+    Condition: "ChatStreamConnectAuthorizerTemplateEnabledCondition"
+  ChatStreamAuthorizerInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "ChatStreamAuthorizerFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ChatStreamWebSocketApi}/authorizers/*"
+    Condition: "ChatStreamAuthorizerInvokePermissionTemplateEnabledCondition"
+  ChatStreamRouteInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "ChatStreamRouteFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ChatStreamWebSocketApi}/prod/*"
+    Condition: "ChatStreamRouteInvokePermissionTemplateEnabledCondition"
+  ChatStreamConnectRoute:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "ChatStreamWebSocketApi"
+      RouteKey: "$connect"
+      AuthorizationType: "CUSTOM"
+      AuthorizerId:
+        Ref: "ChatStreamConnectAuthorizer"
+      Target:
+        Fn::Join:
+          - ""
+          -
+            - "integrations/"
+            -
+              Ref: "ChatStreamRouteIntegration"
+    DependsOn:
+      - "ChatStreamAuthorizerInvokePermission"
+      - "ChatStreamRouteInvokePermission"
+    Condition: "ChatStreamConnectRouteTemplateEnabledCondition"
+  ChatStreamDisconnectRoute:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "ChatStreamWebSocketApi"
+      RouteKey: "$disconnect"
+      AuthorizationType: "NONE"
+      Target:
+        Fn::Join:
+          - ""
+          -
+            - "integrations/"
+            -
+              Ref: "ChatStreamRouteIntegration"
+    DependsOn:
+      - "ChatStreamRouteInvokePermission"
+    Condition: "ChatStreamDisconnectRouteTemplateEnabledCondition"
+  ChatStreamDefaultRoute:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "ChatStreamWebSocketApi"
+      RouteKey: "$default"
+      AuthorizationType: "NONE"
+      Target:
+        Fn::Join:
+          - ""
+          -
+            - "integrations/"
+            -
+              Ref: "ChatStreamRouteIntegration"
+    DependsOn:
+      - "ChatStreamRouteInvokePermission"
+    Condition: "ChatStreamDefaultRouteTemplateEnabledCondition"
+  ChatStreamWebSocketDeployment:
+    Type: "AWS::ApiGatewayV2::Deployment"
+    Properties:
+      ApiId:
+        Ref: "ChatStreamWebSocketApi"
+      Description: "Initial asynchronous chat routes"
+    DependsOn:
+      - "ChatStreamConnectRoute"
+      - "ChatStreamDefaultRoute"
+      - "ChatStreamDisconnectRoute"
+    Condition: "ChatStreamWebSocketDeploymentTemplateEnabledCondition"
+  ChatStreamWebSocketStage:
+    Type: "AWS::ApiGatewayV2::Stage"
+    Properties:
+      ApiId:
+        Ref: "ChatStreamWebSocketApi"
+      StageName: "prod"
+      DeploymentId:
+        Ref: "ChatStreamWebSocketDeployment"
+      DefaultRouteSettings:
+        DataTraceEnabled: false
+        DetailedMetricsEnabled: true
+    Condition: "ChatStreamWebSocketStageTemplateEnabledCondition"
+  ChatStreamRecoveryInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Ref: "ChatStreamDispatcherFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::Sub:
+          - "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${RuleName}"
+          -
+            RuleName:
+              Fn::Join:
+                - ""
+                -
+                  - "wps-chat-recover-"
+                  -
+                    Fn::Select:
+                      - 2
+                      -
+                        Fn::Split:
+                          - "/"
+                          -
+                            Ref: "AWS::StackId"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+    Condition: "ChatStreamRecoveryInvokePermissionTemplateEnabledCondition"
+  ChatStreamRecoveryDlqPolicy:
+    Type: "AWS::SQS::QueuePolicy"
+    Properties:
+      Queues:
+        -
+          Ref: "ChatStreamDeadLetterQueue"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "events.amazonaws.com"
+            Action: "sqs:SendMessage"
+            Resource:
+              Fn::GetAtt:
+                - "ChatStreamDeadLetterQueue"
+                - "Arn"
+            Condition:
+              ArnEquals:
+                aws:SourceArn:
+                  Fn::Sub:
+                    - "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${RuleName}"
+                    -
+                      RuleName:
+                        Fn::Join:
+                          - ""
+                          -
+                            - "wps-chat-recover-"
+                            -
+                              Fn::Select:
+                                - 2
+                                -
+                                  Fn::Split:
+                                    - "/"
+                                    -
+                                      Ref: "AWS::StackId"
+              StringEquals:
+                aws:SourceAccount:
+                  Ref: "AWS::AccountId"
+    Condition: "ChatStreamRecoveryDlqPolicyTemplateEnabledCondition"
+  ChatStreamRecoveryRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Name:
+        Fn::Join:
+          - ""
+          -
+            - "wps-chat-recover-"
+            -
+              Fn::Select:
+                - 2
+                -
+                  Fn::Split:
+                    - "/"
+                    -
+                      Ref: "AWS::StackId"
+      Description: "Requeues asynchronous chat turns that need dispatch"
+      ScheduleExpression: "rate(1 minute)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "ChatStreamDispatcherFunction"
+              - "Arn"
+          Id: "ChatStreamRecovery"
+          Input: "{\"source\":\"wpsuite.ai-chat-stream-recovery\"}"
+          DeadLetterConfig:
+            Arn:
+              Fn::GetAtt:
+                - "ChatStreamDeadLetterQueue"
+                - "Arn"
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 300
+            MaximumRetryAttempts: 2
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "ChatStreamDispatcherLogGroup"
+      - "ChatStreamRecoveryDlqPolicy"
+      - "ChatStreamRecoveryInvokePermission"
+    Condition: "ChatStreamRecoveryRuleTemplateEnabledCondition"
   S3NotificationSetupForNewBucket:
     Type: "Custom::S3Notification"
     Properties:
@@ -6933,6 +8559,18 @@ Outputs:
         - "TemplateEnabled"
         -
           Ref: "RestApi"
+        - ""
+  WebSocketUrl:
+    Description: "WebSocket URL for asynchronous chat, empty while disabled."
+    Value:
+      Fn::If:
+        - "TemplateEnabled"
+        -
+          Fn::If:
+            - "ChatStreamingEnabled"
+            -
+              Fn::Sub: "wss://${ChatStreamWebSocketApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+            - ""
         - ""
   HasAnyFrontend:
     Description: "Has Any Frontend?"

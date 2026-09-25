@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.100/templates/templates"
+    Default: "releases/v1.0.102/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -294,7 +294,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.100"
+      TemplateVersion: "v1.0.102"
       MarketplaceTemplateSource:
         BucketName:
           Ref: "MPS3BucketName"
@@ -310,7 +310,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.0.100/"
+            - "v1.0.102/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -585,6 +585,12 @@ Resources:
         MonthlyAiSpendLimitUsd: "0"
         AiSpendSafetyPercent: "90"
         EnableChatbotBackend: "false"
+        EnableChatStreaming:
+          Fn::Sub:
+            - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitEnableChatStreaming}}"
+            -
+              DeploymentSecretArn:
+                Ref: "WpSuiteDeploymentSecretArn"
         EnableSummarizerBackend: "false"
         EnableLanguageAIBackend: "false"
         EnableAgentCoreCodeInterpreter: "false"
@@ -875,7 +881,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.100"
+          templateVersion: "v1.0.102"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed: "false"
@@ -909,6 +915,10 @@ Resources:
             Fn::GetAtt:
               - "AiKitBackendNestedStack"
               - "Outputs.ApiBaseUrl"
+          webSocketUrl:
+            Fn::GetAtt:
+              - "AiKitBackendNestedStack"
+              - "Outputs.WebSocketUrl"
           apiId:
             Fn::GetAtt:
               - "AiKitBackendNestedStack"
