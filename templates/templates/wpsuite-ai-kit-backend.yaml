@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.102"
+    Default: "v1.0.103"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -1735,6 +1735,7 @@ Resources:
       Type: "COGNITO_USER_POOLS"
       RestApiId:
         Ref: "RestApi"
+      StageName: "prod"
       IdentitySource: "method.request.header.Authorization"
       ProviderARNs:
         -
@@ -1753,6 +1754,7 @@ Resources:
       Type: "COGNITO_USER_POOLS"
       RestApiId:
         Ref: "RestApi"
+      StageName: "prod"
       IdentitySource: "method.request.header.Authorization"
       ProviderARNs:
         -
