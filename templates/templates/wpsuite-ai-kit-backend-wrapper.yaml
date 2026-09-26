@@ -87,6 +87,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter ModelId."
+  PresentationModelId:
+    Type: "String"
+    Default: "qwen.qwen3-32b-v1:0"
+    Description: "Forwarded WP Suite nested stack parameter PresentationModelId."
   KnowledgeBaseId:
     Type: "String"
     Default: ""
@@ -289,19 +293,19 @@ Parameters:
     Description: "Forwarded WP Suite nested stack parameter LambdaMemorySize."
   LambdaTimeout:
     Type: "String"
-    Default: ""
+    Default: "25"
     Description: "Forwarded WP Suite nested stack parameter LambdaTimeout."
   AiHandlerTimeout:
     Type: "String"
-    Default: ""
+    Default: "120"
     Description: "Forwarded WP Suite nested stack parameter AiHandlerTimeout."
   PromptIntegrationTimeoutInMillis:
     Type: "String"
-    Default: ""
+    Default: "25000"
     Description: "Forwarded WP Suite nested stack parameter PromptIntegrationTimeoutInMillis."
   AiAgentDispatcherTimeout:
     Type: "String"
-    Default: ""
+    Default: "120"
     Description: "Forwarded WP Suite nested stack parameter AiAgentDispatcherTimeout."
   ProductionLogLevel:
     Type: "String"
@@ -489,6 +493,8 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "ModelId"
+        PresentationModelId:
+          Ref: "PresentationModelId"
         KnowledgeBaseId:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -950,16 +956,7 @@ Resources:
             -
               Ref: "LambdaMemorySize"
         LambdaTimeout:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitLambdaTimeout}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "LambdaTimeout"
+          Ref: "LambdaTimeout"
         AiHandlerTimeout:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -972,16 +969,7 @@ Resources:
             -
               Ref: "AiHandlerTimeout"
         PromptIntegrationTimeoutInMillis:
-          Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:AiKitPromptIntegrationTimeoutInMillis}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "PromptIntegrationTimeoutInMillis"
+          Ref: "PromptIntegrationTimeoutInMillis"
         AiAgentDispatcherTimeout:
           Fn::If:
             - "CondUseMarketplaceSecret"

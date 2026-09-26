@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.103/templates/templates"
+    Default: "releases/v1.0.104/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -22,6 +22,86 @@ Mappings:
   WpSuiteMarketplace:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+Conditions:
+  QwenPresentationRegionalFallback:
+    Fn::And:
+      -
+        Fn::Equals:
+          - "qwen.qwen3-32b-v1:0"
+          - "qwen.qwen3-32b-v1:0"
+      -
+        Fn::Not:
+          -
+            Fn::Or:
+              -
+                Fn::Or:
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "us-east-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "us-east-2"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "us-west-2"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "eu-central-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "eu-north-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "eu-south-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "eu-west-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "eu-west-2"
+              -
+                Fn::Or:
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "ap-northeast-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "ap-south-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "ap-southeast-2"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "ap-southeast-3"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "sa-east-1"
 Resources:
   DeploymentArtifactBucket:
     Type: "AWS::S3::Bucket"
@@ -294,7 +374,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.103"
+      TemplateVersion: "v1.0.104"
       MarketplaceTemplateSource:
         BucketName:
           Ref: "MPS3BucketName"
@@ -310,7 +390,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.0.103/"
+            - "v1.0.104/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -581,6 +661,11 @@ Resources:
         FrontendCognitoAuthScopes: ""
         FrontendModelId: "amazon.nova-lite-v1:0"
         ModelId: "amazon.nova-lite-v1:0"
+        PresentationModelId:
+          Fn::If:
+            - "QwenPresentationRegionalFallback"
+            - "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+            - "qwen.qwen3-32b-v1:0"
         KnowledgeBaseId: ""
         MonthlyAiSpendLimitUsd: "0"
         AiSpendSafetyPercent: "90"
@@ -653,10 +738,10 @@ Resources:
         OverlapPercentage: "20"
         SessionTTLDays: "1"
         LambdaMemorySize: "2048"
-        LambdaTimeout: "30"
-        AiHandlerTimeout: "30"
-        PromptIntegrationTimeoutInMillis: "29000"
-        AiAgentDispatcherTimeout: "30"
+        LambdaTimeout: "25"
+        AiHandlerTimeout: "120"
+        PromptIntegrationTimeoutInMillis: "25000"
+        AiAgentDispatcherTimeout: "120"
         ProductionLogLevel: "INFO"
         CodeInterpreterIdentifier: "aws.codeinterpreter.v1"
         PublicAllowedIPs: ""
@@ -881,7 +966,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.103"
+          templateVersion: "v1.0.104"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed: "false"

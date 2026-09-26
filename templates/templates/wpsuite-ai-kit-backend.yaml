@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.103"
+    Default: "v1.0.104"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -86,6 +86,10 @@ Parameters:
     Type: "String"
     Default: "global.amazon.nova-2-lite-v1:0"
     Description: "Bedrock model for agent workflow paths."
+  PresentationModelId:
+    Type: "String"
+    Default: "qwen.qwen3-32b-v1:0"
+    Description: "Bedrock model for final language review. Where Qwen3 32B is unavailable, its default uses the global Haiku 4.5 profile, which may route across Regions."
   AgentReasoningEffortLevel:
     Type: "String"
     Default: ""
@@ -403,13 +407,13 @@ Parameters:
     Description: "Managed or customer-owned AgentCore Code Interpreter identifier used by the isolated script executor."
   AiHandlerTimeout:
     Type: "Number"
-    Default: 30
-    Description: "Timeout in seconds for the ai-handler Lambda. Set this to at least the prompt API integration timeout rounded up to seconds."
+    Default: 120
+    Description: "Long AI timeout in seconds for WebSocket chat processing. The synchronous ai-handler uses 25 seconds when WebSocket chat is disabled."
     MaxValue: 900
-    MinValue: 30
+    MinValue: 25
   PromptIntegrationTimeoutInMillis:
     Type: "Number"
-    Default: 29000
+    Default: 25000
     Description: "API Gateway integration timeout for the synchronous frontend prompt endpoint. Values above 29000 require an approved Regional API Gateway quota increase."
     MaxValue: 900000
     MinValue: 50
@@ -439,12 +443,12 @@ Parameters:
     Description: "Lambda function memory size in MB."
   LambdaTimeout:
     Type: "Number"
-    Default: 30
-    Description: "Lambda function timeout in seconds."
+    Default: 25
+    Description: "Default Lambda function timeout in seconds."
   AiAgentDispatcherTimeout:
     Type: "Number"
-    Default: 30
-    Description: "Timeout for the ai-agent-dispatcher Lambda."
+    Default: 120
+    Description: "Long AI timeout for the ai-agent-dispatcher Lambda."
   FrontendApiBurstLimit:
     Type: "Number"
     Default: 1000
@@ -1030,6 +1034,86 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CreateLocalRecaptchaSecret"
+  QwenPresentationRegionalFallback:
+    Fn::And:
+      -
+        Fn::Equals:
+          -
+            Ref: "PresentationModelId"
+          - "qwen.qwen3-32b-v1:0"
+      -
+        Fn::Not:
+          -
+            Fn::Or:
+              -
+                Fn::Or:
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "us-east-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "us-east-2"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "us-west-2"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "eu-central-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "eu-north-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "eu-south-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "eu-west-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "eu-west-2"
+              -
+                Fn::Or:
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "ap-northeast-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "ap-south-1"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "ap-southeast-2"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "ap-southeast-3"
+                  -
+                    Fn::Equals:
+                      -
+                        Ref: "AWS::Region"
+                      - "sa-east-1"
   AiEmailIntakeSesBucketAccessPolicyTemplateEnabledCondition:
     Fn::And:
       -
@@ -4602,7 +4686,11 @@ Resources:
       MemorySize:
         Ref: "LambdaMemorySize"
       Timeout:
-        Ref: "AiHandlerTimeout"
+        Fn::If:
+          - "ChatStreamingEnabled"
+          -
+            Ref: "AiHandlerTimeout"
+          - 25
       Role:
         Fn::GetAtt:
           - "AiHandlerFunctionRole"
@@ -4764,6 +4852,13 @@ Resources:
             Ref: "AgentTools"
           AGENT_TOOL_INVOCATION_POLICY:
             Ref: "AgentToolInvocationPolicy"
+          SUMMARIZER_MODEL_ID: "amazon.nova-micro-v1:0"
+          PRESENTATION_MODEL_ID:
+            Fn::If:
+              - "QwenPresentationRegionalFallback"
+              - "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+              -
+                Ref: "PresentationModelId"
           KNOWLEDGE_BASE_ID:
             Fn::If:
               - "UseProvidedKnowledgeBase"
@@ -7064,7 +7159,8 @@ Resources:
         - "arm64"
       MemorySize:
         Ref: "LambdaMemorySize"
-      Timeout: 900
+      Timeout:
+        Ref: "AiHandlerTimeout"
       Role:
         Fn::GetAtt:
           - "ChatStreamWorkerRole"
@@ -7202,6 +7298,13 @@ Resources:
             Ref: "AgentTools"
           AGENT_TOOL_INVOCATION_POLICY:
             Ref: "AgentToolInvocationPolicy"
+          SUMMARIZER_MODEL_ID: "amazon.nova-micro-v1:0"
+          PRESENTATION_MODEL_ID:
+            Fn::If:
+              - "QwenPresentationRegionalFallback"
+              - "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+              -
+                Ref: "PresentationModelId"
           KNOWLEDGE_BASE_ID:
             Fn::If:
               - "UseProvidedKnowledgeBase"
@@ -7375,7 +7478,7 @@ Resources:
       Architectures:
         - "arm64"
       MemorySize: 512
-      Timeout: 30
+      Timeout: 25
       Role:
         Fn::GetAtt:
           - "ChatStreamDispatcherRole"
