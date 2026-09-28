@@ -15,7 +15,7 @@ Parameters:
     Description: "Create AI Kit backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.105"
+    Default: "v1.0.106"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -4463,6 +4463,11 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "bedrock:ListInferenceProfiles"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
                   - "bedrock:Retrieve"
                   - "bedrock:RetrieveAndGenerate"
                   - "bedrock:GetIngestionJob"
@@ -5311,6 +5316,11 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "bedrock:ListInferenceProfiles"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
                   - "bedrock:Retrieve"
                   - "bedrock:RetrieveAndGenerate"
                 Resource:
@@ -5335,7 +5345,7 @@ Resources:
                   - "ssm:GetParameters"
                   - "ssm:PutParameter"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/bedrock/models/*"
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/bedrock/models/*"
               -
                 Effect: "Allow"
                 Action:
@@ -5625,6 +5635,18 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "bedrock:ListInferenceProfiles"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:PutParameter"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AppName}/${Environment}/bedrock/models/*"
+              -
+                Effect: "Allow"
+                Action:
                   - "workmailmessageflow:GetRawMessageContent"
                   - "events:PutEvents"
                 Resource: "*"
@@ -5890,6 +5912,11 @@ Resources:
                     Fn::Sub: "arn:${AWS::Partition}:bedrock:*::foundation-model/*"
                   -
                     Fn::Sub: "arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:ListInferenceProfiles"
+                Resource: "*"
               -
                 Effect: "Allow"
                 Action:
@@ -6208,6 +6235,7 @@ Resources:
       ModelId:
         Ref: "ModelId"
       ModelType: "chat"
+      ResolverVersion: "2"
     Condition: "TemplateEnabled"
   FrontendModelResolver:
     Type: "Custom::ModelResolver"
@@ -6223,6 +6251,35 @@ Resources:
       ModelId:
         Ref: "FrontendModelId"
       ModelType: "frontend"
+      ResolverVersion: "2"
+    Condition: "TemplateEnabled"
+  InternalMicroModelResolver:
+    Type: "Custom::ModelResolver"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      AppName:
+        Ref: "AppName"
+      Environment:
+        Ref: "Environment"
+      ModelId: "amazon.nova-micro-v1:0"
+      ModelType: "internal-micro"
+    Condition: "TemplateEnabled"
+  InternalLiteModelResolver:
+    Type: "Custom::ModelResolver"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "CustomResourceManager"
+          - "Arn"
+      AppName:
+        Ref: "AppName"
+      Environment:
+        Ref: "Environment"
+      ModelId: "amazon.nova-lite-v1:0"
+      ModelType: "internal-lite"
     Condition: "TemplateEnabled"
   KnowledgeBaseSyncFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"
@@ -6960,6 +7017,11 @@ Resources:
                     Fn::Sub: "arn:${AWS::Partition}:bedrock:*::foundation-model/*"
                   -
                     Fn::Sub: "arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "bedrock:ListInferenceProfiles"
+                Resource: "*"
               -
                 Effect: "Allow"
                 Action:
