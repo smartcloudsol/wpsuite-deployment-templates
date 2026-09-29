@@ -13,9 +13,17 @@ Parameters:
       - "true"
       - "false"
     Description: "Create AI Kit backend resources in this nested stack."
+  KnowledgeTaxonomyPathsMode:
+    Type: "String"
+    Default: "legacy"
+    AllowedValues:
+      - "legacy"
+      - "migration"
+      - "ready"
+    Description: "Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.107"
+    Default: "v1.0.108"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -4774,6 +4782,8 @@ Resources:
             Ref: "RecaptchaSiteKey"
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
+          KNOWLEDGE_TAXONOMY_PATHS_MODE:
+            Ref: "KnowledgeTaxonomyPathsMode"
           AI_COST_LEDGER_TABLE_NAME:
             Ref: "AiCostLedgerTable"
           MONTHLY_AI_SPEND_LIMIT_USD:
@@ -5087,6 +5097,8 @@ Resources:
                 Ref: "DocsBucketName"
               -
                 Ref: "DocsBucket"
+          KNOWLEDGE_TAXONOMY_PATHS_MODE:
+            Ref: "KnowledgeTaxonomyPathsMode"
           PAIRING_CODE_TABLE_NAME:
             Ref: "KnowledgeAutomationPairingCodeTable"
           KEY_REGISTRY_TABLE_NAME:
@@ -5503,6 +5515,8 @@ Resources:
             Ref: "RecaptchaSiteKey"
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
+          KNOWLEDGE_TAXONOMY_PATHS_MODE:
+            Ref: "KnowledgeTaxonomyPathsMode"
           AI_COST_LEDGER_TABLE_NAME:
             Ref: "AiCostLedgerTable"
           MONTHLY_AI_SPEND_LIMIT_USD:
@@ -7303,6 +7317,8 @@ Resources:
             Ref: "RecaptchaSiteKey"
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
+          KNOWLEDGE_TAXONOMY_PATHS_MODE:
+            Ref: "KnowledgeTaxonomyPathsMode"
           AI_COST_LEDGER_TABLE_NAME:
             Ref: "AiCostLedgerTable"
           MONTHLY_AI_SPEND_LIMIT_USD:

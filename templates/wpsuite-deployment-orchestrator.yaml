@@ -11,13 +11,21 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.107/templates/templates"
+    Default: "releases/v1.0.108/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
     Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
     MinLength: 1
     NoEcho: true
+  AiKitKnowledgeTaxonomyPathsMode:
+    Type: "String"
+    Default: "legacy"
+    AllowedValues:
+      - "legacy"
+      - "migration"
+      - "ready"
+    Description: "AI Kit category path rollout. Select ready only after complete metadata reconciliation and ingestion."
 Mappings:
   WpSuiteMarketplace:
     DeploymentAccess:
@@ -374,7 +382,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.107"
+      TemplateVersion: "v1.0.108"
       MarketplaceTemplateSource:
         BucketName:
           Ref: "MPS3BucketName"
@@ -390,7 +398,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.0.107/"
+            - "v1.0.108/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -667,6 +675,8 @@ Resources:
             - "global.anthropic.claude-haiku-4-5-20251001-v1:0"
             - "qwen.qwen3-32b-v1:0"
         KnowledgeBaseId: ""
+        KnowledgeTaxonomyPathsMode:
+          Ref: "AiKitKnowledgeTaxonomyPathsMode"
         MonthlyAiSpendLimitUsd: "0"
         AiSpendSafetyPercent: "90"
         EnableChatbotBackend: "false"
@@ -966,7 +976,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.107"
+          templateVersion: "v1.0.108"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed: "false"

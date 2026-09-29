@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.107/templates/templates"
+    Default: "releases/v1.0.108/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.107"
+    Default: "v1.0.108"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -352,6 +352,14 @@ Parameters:
     Type: "String"
     Default: "qwen.qwen3-32b-v1:0"
     Description: "Bedrock model ID for final language review. Where Qwen3 32B is unavailable, its default uses the global Haiku 4.5 profile, which may route across Regions."
+  AiKitKnowledgeTaxonomyPathsMode:
+    Type: "String"
+    Default: "legacy"
+    AllowedValues:
+      - "legacy"
+      - "migration"
+      - "ready"
+    Description: "AI Kit category path rollout. Select ready only after complete metadata reconciliation and ingestion."
   AiKitKnowledgeBaseId:
     Type: "String"
     Default: ""
@@ -1816,6 +1824,8 @@ Resources:
               Ref: "AiKitPresentationModelId"
         KnowledgeBaseId:
           Ref: "AiKitKnowledgeBaseId"
+        KnowledgeTaxonomyPathsMode:
+          Ref: "AiKitKnowledgeTaxonomyPathsMode"
         MonthlyAiSpendLimitUsd:
           Ref: "AiKitMonthlyAiSpendLimitUsd"
         AiSpendSafetyPercent:

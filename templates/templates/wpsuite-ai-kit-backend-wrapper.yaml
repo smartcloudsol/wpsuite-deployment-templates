@@ -95,6 +95,14 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter KnowledgeBaseId."
+  KnowledgeTaxonomyPathsMode:
+    Type: "String"
+    Default: "legacy"
+    AllowedValues:
+      - "legacy"
+      - "migration"
+      - "ready"
+    Description: "Forwarded WP Suite nested stack parameter KnowledgeTaxonomyPathsMode."
   MonthlyAiSpendLimitUsd:
     Type: "String"
     Default: ""
@@ -506,6 +514,8 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "KnowledgeBaseId"
+        KnowledgeTaxonomyPathsMode:
+          Ref: "KnowledgeTaxonomyPathsMode"
         MonthlyAiSpendLimitUsd:
           Fn::If:
             - "CondUseMarketplaceSecret"
