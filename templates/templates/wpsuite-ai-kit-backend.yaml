@@ -23,7 +23,7 @@ Parameters:
     Description: "Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.108"
+    Default: "v1.0.109"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -2038,6 +2038,11 @@ Resources:
           IntegrationUri:
             Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
         -
+          Path: "/admin/kb/ingestion/resume"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
           Path: "/admin/kb/metadata-config"
           Method: "GET"
           IntegrationUri:
@@ -2302,6 +2307,30 @@ Resources:
         -
           ResourcePath: "/admin/kb/status"
           HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
+          ResourcePath: "/admin/kb/ingestion/resume"
+          HttpMethod: "POST"
           ThrottlingBurstLimit:
             Fn::If:
               - "HasAdminThrottling"
