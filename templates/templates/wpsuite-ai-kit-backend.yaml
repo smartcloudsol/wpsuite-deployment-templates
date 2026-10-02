@@ -1,5 +1,14 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite AI Kit backend nested template for Marketplace Deployment Access"
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: "aws-cloudformation@1"
+  com.aws.cloudformation.Context:
+    ref:
+      -
+        at: "docs/release-v1.0.110.md"
+        has: "quantity-based ingestion admission and snapshot safety"
+        scope: "knowledge ingestion"
 Parameters:
   PrmTagValue:
     Type: "String"
@@ -23,7 +32,7 @@ Parameters:
     Description: "Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.109"
+    Default: "v1.0.110"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -3985,8 +3994,18 @@ Resources:
             - "DynamoDbPointInTimeRecoveryEnabled"
             - true
             - false
+      TimeToLiveSpecification:
+        AttributeName: "TTL"
+        Enabled: true
     UpdateReplacePolicy: "Retain"
     DeletionPolicy: "Retain"
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: "Reusable successful ingestion baseline; per-document snapshots avoid one oversized manifest."
+        must:
+          - "Retain coordinator state on replacement/deletion."
+          - "TTL applies only to snapshot rows; coordinator rows must not carry TTL."
+          - "Promote only captured snapshots after successful ingestion, never current S3 contents."
     Condition: "TemplateEnabled"
   ChatSessionsTable:
     Type: "AWS::DynamoDB::Table"
@@ -6367,6 +6386,8 @@ Resources:
                   - "bedrock:StartIngestionJob"
                   - "bedrock:GetIngestionJob"
                   - "bedrock:ListDataSources"
+                  - "bedrock:GetKnowledgeBase"
+                  - "bedrock:GetDataSource"
                 Resource:
                   Fn::If:
                     - "UseProvidedKnowledgeBase"
@@ -6376,6 +6397,26 @@ Resources:
                       Fn::GetAtt:
                         - "KnowledgeBase"
                         - "KnowledgeBaseArn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  Fn::If:
+                    - "UseProvidedDocsBucket"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:s3:::${DocsBucketName}"
+                    -
+                      Fn::GetAtt:
+                        - "DocsBucket"
+                        - "Arn"
+                Condition:
+                  StringLike:
+                    s3:prefix:
+                      -
+                        Fn::Sub: "${InclusionPrefix}*"
+                      -
+                        Ref: "InclusionPrefix"
               -
                 Effect: "Allow"
                 Action:
@@ -6402,6 +6443,7 @@ Resources:
                   - "dynamodb:GetItem"
                   - "dynamodb:PutItem"
                   - "dynamodb:UpdateItem"
+                  - "dynamodb:Query"
                 Resource:
                   Fn::GetAtt:
                     - "KnowledgeBaseIngestionCoordinatorTable"
@@ -6449,8 +6491,7 @@ Resources:
         - "arm64"
       MemorySize:
         Ref: "LambdaMemorySize"
-      Timeout:
-        Ref: "LambdaTimeout"
+      Timeout: 60
       Role:
         Fn::GetAtt:
           - "KnowledgeBaseSyncFunctionRole"
