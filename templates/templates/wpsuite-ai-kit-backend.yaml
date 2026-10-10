@@ -32,7 +32,7 @@ Parameters:
     Description: "Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.115"
+    Default: "v1.0.116"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -2219,10 +2219,11 @@ Resources:
             Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KnowledgeAutomationHandlerFunction.Arn}/invocations"
       AutomationAuthorizerId:
         Ref: "KnowledgeAutomationRequestAuthorizer"
+      CorsPolicyRevision: "method-union-v1"
       ApiSchemaVersion:
         Ref: "ApiSchemaVersion"
     Condition: "TemplateEnabled"
-  RestApiDeploymentGuidedSetupV115:
+  RestApiDeploymentCorsMethodUnion:
     Type: "AWS::ApiGateway::Deployment"
     Properties:
       RestApiId:
@@ -2245,7 +2246,7 @@ Resources:
         Ref: "RestApi"
       StageName: "prod"
       DeploymentId:
-        Ref: "RestApiDeploymentGuidedSetupV115"
+        Ref: "RestApiDeploymentCorsMethodUnion"
       TracingEnabled: false
       AccessLogSetting:
         DestinationArn:
