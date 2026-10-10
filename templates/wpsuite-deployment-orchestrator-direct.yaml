@@ -1393,6 +1393,7 @@ Resources:
         Ref: "WpSuiteExpectedAwsAccountId"
       TemplateVersion:
         Ref: "TemplateVersion"
+      RuntimeArtifactRevision: "catalog-links-v1"
       MarketplaceTemplateSource:
         BucketName:
           Ref: "MPS3BucketName"
@@ -1772,6 +1773,7 @@ Resources:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       Parameters:
+        RuntimeArtifactRevision: "catalog-links-v1"
         MPS3BucketName:
           Ref: "MPS3BucketName"
         MPS3BucketRegion:

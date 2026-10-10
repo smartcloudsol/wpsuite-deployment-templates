@@ -34,6 +34,10 @@ Parameters:
     Type: "String"
     Default: "v1.0.116"
     Description: "Immutable WP Suite deployment template version."
+  RuntimeArtifactRevision:
+    Type: "String"
+    Default: "catalog-links-v1"
+    Description: "Internal AI Kit runtime artifact revision."
   ArtifactRootPrefix:
     Type: "String"
     Description: "Buyer-owned S3 prefix containing staged WP Suite artifacts."
@@ -4823,7 +4827,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/functions/ai-handler.zip"
+              - "wpsuite-ai-kit/functions/ai-handler-catalog-links.zip"
       Handler: "dist/handler.handler"
       Runtime: "nodejs24.x"
       Architectures:
@@ -4991,6 +4995,8 @@ Resources:
             Ref: "EnableLanguageAIBackend"
           BACKEND_RELEASE:
             Ref: "TemplateVersion"
+          BACKEND_RUNTIME_REVISION:
+            Ref: "RuntimeArtifactRevision"
           BACKEND_API_SCHEMA_VERSION:
             Ref: "ApiSchemaVersion"
           ENABLE_AGENT_MODE_FOR_CHATBOT:
@@ -6897,7 +6903,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/functions/ai-handler.zip"
+              - "wpsuite-ai-kit/functions/ai-handler-catalog-links.zip"
       Handler: "dist/handler.chatStreamAuthorizer"
       Runtime: "nodejs24.x"
       Architectures:
@@ -7059,7 +7065,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/functions/ai-handler.zip"
+              - "wpsuite-ai-kit/functions/ai-handler-catalog-links.zip"
       Handler: "dist/handler.chatStreamRoute"
       Runtime: "nodejs24.x"
       Architectures:
@@ -7384,7 +7390,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/functions/ai-handler.zip"
+              - "wpsuite-ai-kit/functions/ai-handler-catalog-links.zip"
       Handler: "dist/handler.chatStreamWorker"
       Runtime: "nodejs24.x"
       Architectures:
@@ -7524,6 +7530,8 @@ Resources:
             Ref: "EnableLanguageAIBackend"
           BACKEND_RELEASE:
             Ref: "TemplateVersion"
+          BACKEND_RUNTIME_REVISION:
+            Ref: "RuntimeArtifactRevision"
           BACKEND_API_SCHEMA_VERSION:
             Ref: "ApiSchemaVersion"
           ENABLE_AGENT_MODE_FOR_CHATBOT:
@@ -7708,7 +7716,7 @@ Resources:
             -
               -
                 Ref: "ArtifactRootPrefix"
-              - "wpsuite-ai-kit/functions/ai-handler.zip"
+              - "wpsuite-ai-kit/functions/ai-handler-catalog-links.zip"
       Handler: "dist/handler.chatStreamDispatch"
       Runtime: "nodejs24.x"
       Architectures:

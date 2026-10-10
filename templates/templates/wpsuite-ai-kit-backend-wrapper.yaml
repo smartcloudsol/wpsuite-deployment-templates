@@ -27,6 +27,10 @@ Parameters:
       - "marketplace_secret"
       - "direct"
     Description: "How this wrapper receives the WP Suite deployment context."
+  RuntimeArtifactRevision:
+    Type: "String"
+    Default: "catalog-links-v1"
+    Description: "Internal AI Kit runtime artifact revision."
   TemplateVersion:
     Type: "String"
     Default: ""
@@ -365,6 +369,8 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "PrmTagValue"
+        RuntimeArtifactRevision:
+          Ref: "RuntimeArtifactRevision"
         TemplateVersion:
           Ref: "TemplateVersion"
         ArtifactBucketName:
