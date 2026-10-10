@@ -32,7 +32,7 @@ Parameters:
     Description: "Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.114"
+    Default: "v1.0.115"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -1874,6 +1874,30 @@ Resources:
       IdentitySource: "method.request.header.X-WPSuite-Key-Id,method.request.header.X-WPSuite-Timestamp,method.request.header.X-WPSuite-Nonce,method.request.header.X-WPSuite-Content-SHA256,method.request.header.X-WPSuite-Signature,method.request.header.Idempotency-Key"
       AuthorizerResultTtlInSeconds: 0
     Condition: "TemplateEnabled"
+  GuidedSetupPreviewInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        Ref: "AiHandlerFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/prod/POST/admin/conversation-profile"
+    Condition: "TemplateEnabled"
+  GuidedSetupAgentProfileInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        Ref: "AiHandlerFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceAccount:
+        Ref: "AWS::AccountId"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/prod/GET/meta/ucp-agent-profile"
+    Condition: "TemplateEnabled"
   ApiAuthorizerAttachment:
     Type: "Custom::ApiAuthorizerAttachment"
     Properties:
@@ -2087,6 +2111,11 @@ Resources:
           IntegrationUri:
             Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
         -
+          Path: "/admin/conversation-profile"
+          Method: "POST"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
           Path: "/admin/cost-policy"
           Method: "GET"
           IntegrationUri:
@@ -2153,6 +2182,11 @@ Resources:
           IntegrationUri:
             Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
         -
+          Path: "/meta/ucp-agent-profile"
+          Method: "GET"
+          IntegrationUri:
+            Fn::Sub: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AiHandlerFunction.Arn}/invocations"
+        -
           Path: "/automation/kb/enroll"
           Method: "POST"
           IntegrationUri:
@@ -2188,7 +2222,7 @@ Resources:
       ApiSchemaVersion:
         Ref: "ApiSchemaVersion"
     Condition: "TemplateEnabled"
-  RestApiDeploymentV17:
+  RestApiDeploymentGuidedSetupV115:
     Type: "AWS::ApiGateway::Deployment"
     Properties:
       RestApiId:
@@ -2196,8 +2230,11 @@ Resources:
       Description:
         Fn::Sub: "Template ${TemplateVersion} - API Schema v${ApiSchemaVersion}"
     DependsOn:
+      - "AiHandlerFunction"
       - "ApiAuthorizerAttachment"
       - "ChatStreamTicketInvokePermission"
+      - "GuidedSetupAgentProfileInvokePermission"
+      - "GuidedSetupPreviewInvokePermission"
       - "KnowledgeAutomationAuthorizerInvokePermission"
       - "KnowledgeAutomationHandlerInvokePermission"
     Condition: "TemplateEnabled"
@@ -2208,7 +2245,7 @@ Resources:
         Ref: "RestApi"
       StageName: "prod"
       DeploymentId:
-        Ref: "RestApiDeploymentV17"
+        Ref: "RestApiDeploymentGuidedSetupV115"
       TracingEnabled: false
       AccessLogSetting:
         DestinationArn:
@@ -2530,6 +2567,30 @@ Resources:
           DataTraceEnabled: false
           MetricsEnabled: false
         -
+          ResourcePath: "/admin/conversation-profile"
+          HttpMethod: "POST"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              -
+                Ref: "AWS::NoValue"
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              -
+                Ref: "AWS::NoValue"
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: false
+        -
           ResourcePath: "/admin/cost-policy"
           HttpMethod: "GET"
           ThrottlingBurstLimit:
@@ -2819,6 +2880,28 @@ Resources:
           MetricsEnabled: false
         -
           ResourcePath: "/meta/capabilities"
+          HttpMethod: "GET"
+          ThrottlingBurstLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiBurstLimit"
+              - 100
+          ThrottlingRateLimit:
+            Fn::If:
+              - "HasAdminThrottling"
+              -
+                Ref: "AdminApiRateLimit"
+              - 50
+          LoggingLevel:
+            Fn::If:
+              - "CondEnableDetailedApiLogging"
+              - "INFO"
+              - "ERROR"
+          DataTraceEnabled: false
+          MetricsEnabled: true
+        -
+          ResourcePath: "/meta/ucp-agent-profile"
           HttpMethod: "GET"
           ThrottlingBurstLimit:
             Fn::If:
