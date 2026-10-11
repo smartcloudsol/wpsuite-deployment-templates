@@ -32,7 +32,7 @@ Parameters:
     Description: "Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.116"
+    Default: "v1.0.117"
     Description: "Immutable WP Suite deployment template version."
   RuntimeArtifactRevision:
     Type: "String"
@@ -4690,6 +4690,14 @@ Resources:
                 Effect: "Allow"
                 Action:
                   - "dynamodb:GetItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "KnowledgeAutomationSourceStateTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
                   - "dynamodb:PutItem"
                   - "dynamodb:UpdateItem"
                 Resource:
@@ -4940,6 +4948,8 @@ Resources:
             Ref: "ChatSessionsTable"
           CHAT_MESSAGES_TABLE:
             Ref: "ChatMessagesTable"
+          STRUCTURED_CONTENT_TABLE_NAME:
+            Ref: "KnowledgeAutomationSourceStateTable"
           CHAT_STREAM_ENABLED:
             Fn::If:
               - "ChatStreamingEnabled"
@@ -7277,6 +7287,14 @@ Resources:
                 Effect: "Allow"
                 Action:
                   - "dynamodb:GetItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "KnowledgeAutomationSourceStateTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
                   - "dynamodb:PutItem"
                   - "dynamodb:UpdateItem"
                 Resource:
@@ -7499,6 +7517,8 @@ Resources:
             Ref: "ChatSessionsTable"
           CHAT_MESSAGES_TABLE:
             Ref: "ChatMessagesTable"
+          STRUCTURED_CONTENT_TABLE_NAME:
+            Ref: "KnowledgeAutomationSourceStateTable"
           CHAT_STREAM_ENABLED: "true"
           CHAT_STREAM_STATE_TABLE:
             Ref: "ChatStreamStateTable"
