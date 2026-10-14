@@ -32,7 +32,7 @@ Parameters:
     Description: "Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.123"
+    Default: "v1.0.124"
     Description: "Immutable WP Suite deployment template version."
   RuntimeArtifactRevision:
     Type: "String"
@@ -3952,33 +3952,6 @@ Resources:
             -
               Ref: "ArtifactRootPrefix"
             - "wpsuite-ai-kit/templates/answer-template-kb-only.txt"
-      ContentType: "text/plain"
-    Condition: "TemplateEnabled"
-  AnswerTemplateKbPreferredUpload:
-    Type: "Custom::S3Upload"
-    Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - "CustomResourceManager"
-          - "Arn"
-      BucketName:
-        Fn::If:
-          - "UseProvidedDocsBucket"
-          -
-            Ref: "DocsBucketName"
-          -
-            Ref: "DocsBucket"
-      Key:
-        Fn::Sub: "${ConfigPrefix}answer-template-kb-preferred.txt"
-      SourceBucketName:
-        Ref: "ArtifactBucketName"
-      SourceKey:
-        Fn::Join:
-          - ""
-          -
-            -
-              Ref: "ArtifactRootPrefix"
-            - "wpsuite-ai-kit/templates/answer-template-kb-preferred.txt"
       ContentType: "text/plain"
     Condition: "TemplateEnabled"
   AnswerTemplateKbRagUpload:
