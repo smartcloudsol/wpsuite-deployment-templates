@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "WP Suite Deployment Access root orchestration template for AWS Marketplace Quick Launch"
+Description: "WP Suite Cloud Deployment - Deploy the WP Suite backend into your own AWS account with the services required by your selected WP Suite products. AWS Marketplace Quick Launch through WP Suite Deployment Access."
 Parameters:
   MPS3BucketName:
     Type: "String"
@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.130/templates/templates"
+    Default: "releases/v1.0.131/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -382,7 +382,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.130"
+      TemplateVersion: "v1.0.131"
       RuntimeArtifactRevision: "catalog-links-v1"
       MarketplaceTemplateSource:
         BucketName:
@@ -399,7 +399,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.0.130/"
+            - "v1.0.131/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -978,7 +978,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.130"
+          templateVersion: "v1.0.131"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed: "false"

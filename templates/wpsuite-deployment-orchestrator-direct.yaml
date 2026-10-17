@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "WP Suite Deployment Access direct root orchestration template for WP Suite console launches"
+Description: "WP Suite Cloud Deployment - Deploy the WP Suite backend into your own AWS account with the services required by your selected WP Suite products. Launched from the WP Suite console."
 Parameters:
   MPS3BucketName:
     Type: "String"
@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.130/templates/templates"
+    Default: "releases/v1.0.131/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.130"
+    Default: "v1.0.131"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-16T14:01:13.548Z",
-  "templateVersion": "v1.0.130",
+  "generatedAt": "2026-10-17T10:32:33.445Z",
+  "templateVersion": "v1.0.131",
   "sourceProject": "@wpsuite/deployment-orchestration",
   "sourceGeneratedDirectory": "generated/templates",
   "templates": [
@@ -8,13 +8,13 @@
       "name": "wpsuite-deployment-orchestrator.yaml",
       "kind": "root",
       "path": "templates/wpsuite-deployment-orchestrator.yaml",
-      "description": "WP Suite Deployment Access root orchestration template for AWS Marketplace Quick Launch"
+      "description": "WP Suite Cloud Deployment - Deploy the WP Suite backend into your own AWS account with the services required by your selected WP Suite products. AWS Marketplace Quick Launch through WP Suite Deployment Access."
     },
     {
       "name": "wpsuite-deployment-orchestrator-direct.yaml",
       "kind": "root-direct",
       "path": "templates/wpsuite-deployment-orchestrator-direct.yaml",
-      "description": "WP Suite Deployment Access direct root orchestration template for WP Suite console launches"
+      "description": "WP Suite Cloud Deployment - Deploy the WP Suite backend into your own AWS account with the services required by your selected WP Suite products. Launched from the WP Suite console."
     },
     {
       "name": "wpsuite-cognito.yaml",
