@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.131"
+    Default: "v1.1.0"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -23,6 +23,38 @@ Parameters:
   ArtifactBucketName:
     Type: "String"
     Description: "S3 bucket that stores staged artifacts for this application."
+  IdentityEventsMode:
+    Type: "String"
+    Default: "disabled"
+    AllowedValues:
+      - "disabled"
+      - "provisioned"
+      - "active"
+    Description: "Optional identity events: disabled creates no bus; provisioned creates a bus without publishing; active publishes confirmation events."
+  IdentityClaimsProviderArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^arn:(aws|aws-us-gov|aws-cn):lambda:[a-z0-9-]+:[0-9]{12}:function:[A-Za-z0-9-_]{1,64}:([A-Za-z0-9-_]{1,128}|[0-9]+)$"
+    Description: "Optional same-account, same-region qualified Lambda ARN for the versioned synchronous claims provider. Empty preserves generic group claims."
+    MaxLength: 256
+  IdentityClaimsClientIds:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^(?:|[A-Za-z0-9]{1,128}(?:,[A-Za-z0-9]{1,128}){0,99})$"
+    Description: "Optional comma-separated native client IDs selected for claims projection. Empty preserves prior all-client behavior."
+    MaxLength: 4096
+  IdentityDeploymentId:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^arn:(aws|aws-us-gov|aws-cn):cloudformation:[a-z0-9-]+:[0-9]{12}:stack/[A-Za-z][A-Za-z0-9-]{0,127}/[A-Za-z0-9-]+$"
+    Description: "Root CloudFormation stack ARN used to bind identity integrations. Empty uses this stack ARN."
+    MaxLength: 2048
+  IdentityEnvironment:
+    Type: "String"
+    Default: "deployment"
+    AllowedPattern: "^[a-z][a-z0-9-]{0,31}$"
+    Description: "Environment identity included in the versioned integration contract."
+    MaxLength: 32
   TokenValidityConfig:
     Type: "String"
     Default: "1,hours,1,hours,30,days"
@@ -457,6 +489,51 @@ Mappings:
   WpSuiteMarketplace:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+Rules:
+  IdentityEventsRequireConfirmationTrigger:
+    RuleCondition:
+      Fn::And:
+        -
+          Fn::Equals:
+            -
+              Ref: "Enabled"
+            - "true"
+        -
+          Fn::Equals:
+            -
+              Ref: "IdentityEventsMode"
+            - "active"
+    Assertions:
+      -
+        Assert:
+          Fn::Equals:
+            -
+              Ref: "EnablePostConfirmation"
+            - "true"
+        AssertDescription: "Active identity events require the post-confirmation trigger."
+  IdentityClaimsRequirePreTokenTrigger:
+    RuleCondition:
+      Fn::And:
+        -
+          Fn::Equals:
+            -
+              Ref: "Enabled"
+            - "true"
+        -
+          Fn::Not:
+            -
+              Fn::Equals:
+                -
+                  Ref: "IdentityClaimsProviderArn"
+                - ""
+    Assertions:
+      -
+        Assert:
+          Fn::Equals:
+            -
+              Ref: "EnablePreTokenGeneration"
+            - "true"
+        AssertDescription: "A claims provider requires the pre-token generation trigger."
 Conditions:
   TemplateEnabled:
     Fn::Equals:
@@ -828,6 +905,51 @@ Conditions:
                   -
                     Ref: "ApiBlockedIPs"
               - ""
+  HasIdentityEventBus:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "IdentityEventsMode"
+              - "disabled"
+  PublishIdentityEvents:
+    Fn::And:
+      -
+        Condition: "HasIdentityEventBus"
+      -
+        Fn::Equals:
+          -
+            Ref: "IdentityEventsMode"
+          - "active"
+  HasIdentityClaimsProvider:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "IdentityClaimsProviderArn"
+              - ""
+  HasIdentityDeploymentId:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "IdentityDeploymentId"
+          - ""
+  HasIdentityClaimsClientIds:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "IdentityClaimsClientIds"
+          - ""
   CustomSenderKmsKeyTemplateEnabledCondition:
     Fn::And:
       -
@@ -1123,6 +1245,31 @@ Conditions:
       -
         Condition: "CondEnableEmailSender"
 Resources:
+  IdentityLifecycleEventBus:
+    Type: "AWS::Events::EventBus"
+    Properties:
+      Name:
+        Fn::Join:
+          - ""
+          -
+            - "identity-"
+            -
+              Fn::Select:
+                - 2
+                -
+                  Fn::Split:
+                    - "/"
+                    -
+                      Ref: "AWS::StackId"
+      Description: "Optional versioned identity lifecycle events for independent subscribers."
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "RetainExceptOnCreate"
+    Condition: "HasIdentityEventBus"
   SharedApiPublicAllowedIPSet:
     Type: "AWS::WAFv2::IPSet"
     Properties:
@@ -2880,6 +3027,17 @@ Resources:
                     -
                       LogGroupNamePattern:
                         Fn::Sub: "/aws/lambda/${AppName}-pre-token-generation*"
+              -
+                Fn::If:
+                  - "HasIdentityClaimsProvider"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "lambda:InvokeFunction"
+                    Resource:
+                      Ref: "IdentityClaimsProviderArn"
+                  -
+                    Ref: "AWS::NoValue"
       Tags:
         -
           Key: "aws-apn-id"
@@ -2932,6 +3090,24 @@ Resources:
             Ref: "AWS::AccountId"
           WPSUITE_MARKETPLACE_DEPLOYMENT_PRODUCT_CODE: "5d8wq5hg1d54kb933ntenntiu"
           AWS_SDK_UA_APP_ID: "APN_1.1/pc_5d8wq5hg1d54kb933ntenntiu$"
+          IDENTITY_DEPLOYMENT_ID:
+            Fn::If:
+              - "HasIdentityDeploymentId"
+              -
+                Ref: "IdentityDeploymentId"
+              -
+                Ref: "AWS::StackId"
+          IDENTITY_ENVIRONMENT:
+            Ref: "IdentityEnvironment"
+          IDENTITY_CLAIMS_PROVIDER_ARN:
+            Ref: "IdentityClaimsProviderArn"
+          IDENTITY_CLAIMS_CLIENT_IDS:
+            Fn::If:
+              - "HasIdentityClaimsClientIds"
+              -
+                Ref: "IdentityClaimsClientIds"
+              -
+                Ref: "AWS::NoValue"
       Tags:
         -
           Key: "aws-apn-id"
@@ -2979,6 +3155,19 @@ Resources:
                       Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
                     -
                       Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}"
+              -
+                Fn::If:
+                  - "PublishIdentityEvents"
+                  -
+                    Effect: "Allow"
+                    Action:
+                      - "events:PutEvents"
+                    Resource:
+                      Fn::GetAtt:
+                        - "IdentityLifecycleEventBus"
+                        - "Arn"
+                  -
+                    Ref: "AWS::NoValue"
       Tags:
         -
           Key: "aws-apn-id"
@@ -3052,6 +3241,28 @@ Resources:
                               Ref: "AdminGroupName"
                             - ""
           VERIFY_EMAIL_ON_CONFIRM: "true"
+          IDENTITY_EVENTS_ENABLED:
+            Fn::If:
+              - "PublishIdentityEvents"
+              - "true"
+              - "false"
+          IDENTITY_EVENT_BUS_ARN:
+            Fn::If:
+              - "HasIdentityEventBus"
+              -
+                Fn::GetAtt:
+                  - "IdentityLifecycleEventBus"
+                  - "Arn"
+              - ""
+          IDENTITY_DEPLOYMENT_ID:
+            Fn::If:
+              - "HasIdentityDeploymentId"
+              -
+                Ref: "IdentityDeploymentId"
+              -
+                Ref: "AWS::StackId"
+          IDENTITY_ENVIRONMENT:
+            Ref: "IdentityEnvironment"
       Tags:
         -
           Key: "aws-apn-id"
@@ -3118,6 +3329,20 @@ Resources:
                         Fn::Sub: "${EmailTemplateBucket.Arn}/*"
                       -
                         Fn::Sub: "arn:${AWS::Partition}:s3:::${EmailTemplateBucketName}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  -
+                    Fn::If:
+                      - "CondCreateEmailTemplateBucket"
+                      -
+                        Fn::GetAtt:
+                          - "EmailTemplateBucket"
+                          - "Arn"
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:s3:::${EmailTemplateBucketName}"
               -
                 Fn::If:
                   - "CondUseSES"
@@ -3491,6 +3716,28 @@ Outputs:
     Description: "Template version used for this nested stack."
     Value:
       Ref: "TemplateVersion"
+  IdentityEventBusArn:
+    Description: "Optional identity lifecycle event bus ARN."
+    Value:
+      Fn::If:
+        - "HasIdentityEventBus"
+        -
+          Fn::GetAtt:
+            - "IdentityLifecycleEventBus"
+            - "Arn"
+        - ""
+  IdentityExtensionContractVersion:
+    Description: "Identity extension contract version."
+    Value: "1"
+  IdentityDeploymentId:
+    Description: "Root deployment identity used to bind identity extensions."
+    Value:
+      Fn::If:
+        - "HasIdentityDeploymentId"
+        -
+          Ref: "IdentityDeploymentId"
+        -
+          Ref: "AWS::StackId"
   UserPoolId:
     Description: "Cognito User Pool ID."
     Value:

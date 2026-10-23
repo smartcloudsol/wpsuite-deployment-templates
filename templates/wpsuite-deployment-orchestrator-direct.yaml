@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.131/templates/templates"
+    Default: "releases/v1.1.0/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.131"
+    Default: "v1.1.0"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -249,6 +249,20 @@ Parameters:
     Default: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
     AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#](?:\\|(none|cognito-default))?$"
     Description: "Packed optional Agent Composer MCP OAuth configuration in enabled|https-callback-url|https-resource-uri|managed-login-branding order."
+    MaxLength: 4096
+  CognitoIdentityEventsMode:
+    Type: "String"
+    Default: "disabled"
+    AllowedValues:
+      - "disabled"
+      - "provisioned"
+      - "active"
+    Description: "Optional identity lifecycle events: disabled, provisioned without publishing, or active."
+  CognitoIdentityClaimsProviderArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^(?:|arn:(aws|aws-us-gov|aws-cn):lambda:[a-z0-9-]+:[0-9]{12}:function:[A-Za-z0-9-_]{1,64}:([A-Za-z0-9-_]{1,128}|[0-9]+)(?:\\|[A-Za-z0-9]{1,128}(?:,[A-Za-z0-9]{1,128}){0,99})?)$"
+    Description: "Optional qualified same-account/region claims Lambda ARN, optionally followed by | and comma-separated native client IDs. ARN-only preserves previous client behavior."
     MaxLength: 4096
   CognitoRegisteredGroupName:
     Type: "String"
@@ -966,6 +980,11 @@ Parameters:
     Default: ""
     Description: "StaticGuardian nested stack parameter WpsuiteAccountId."
     NoEcho: false
+  StaticGuardianWpsuiteWorkspaceId:
+    Type: "String"
+    Default: ""
+    Description: "StaticGuardian nested stack parameter WpsuiteWorkspaceId."
+    NoEcho: false
   StaticGuardianWpsuiteSiteId:
     Type: "String"
     Default: ""
@@ -1477,6 +1496,38 @@ Resources:
           Ref: "CognitoPostLoginRedirectUrl"
         TokenValidityConfig:
           Ref: "CognitoTokenValidityConfig"
+        IdentityEventsMode:
+          Ref: "CognitoIdentityEventsMode"
+        IdentityClaimsProviderArn:
+          Fn::Select:
+            - 0
+            -
+              Fn::Split:
+                - "|"
+                -
+                  Fn::Join:
+                    - "|"
+                    -
+                      -
+                        Ref: "CognitoIdentityClaimsProviderArn"
+                      - ""
+        IdentityClaimsClientIds:
+          Fn::Select:
+            - 1
+            -
+              Fn::Split:
+                - "|"
+                -
+                  Fn::Join:
+                    - "|"
+                    -
+                      -
+                        Ref: "CognitoIdentityClaimsProviderArn"
+                      - ""
+        IdentityDeploymentId:
+          Ref: "AWS::StackId"
+        IdentityEnvironment:
+          Ref: "Environment"
         AgentComposerMcpOAuthConfig:
           Ref: "CognitoAgentComposerMcpOAuthConfig"
         RegisteredGroupName:
@@ -2073,6 +2124,8 @@ Resources:
           Ref: "StaticGuardianForbiddenPagePath"
         WpsuiteAccountId:
           Ref: "StaticGuardianWpsuiteAccountId"
+        WpsuiteWorkspaceId:
+          Ref: "StaticGuardianWpsuiteWorkspaceId"
         WpsuiteSiteId:
           Ref: "StaticGuardianWpsuiteSiteId"
         WpsuiteSiteKey:
@@ -2256,6 +2309,32 @@ Resources:
             Fn::GetAtt:
               - "CognitoNestedStack"
               - "Outputs.IdentityPoolId"
+          identityEventBusArn:
+            Fn::GetAtt:
+              - "CognitoNestedStack"
+              - "Outputs.IdentityEventBusArn"
+          identityExtensionContractVersion: "1"
+          identityDeploymentId:
+            Fn::GetAtt:
+              - "CognitoNestedStack"
+              - "Outputs.IdentityDeploymentId"
+          identityEventsMode:
+            Ref: "CognitoIdentityEventsMode"
+          identityClaimsProviderArn:
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Fn::Join:
+                      - "|"
+                      -
+                        -
+                          Ref: "CognitoIdentityClaimsProviderArn"
+                        - ""
+          identityEnvironment:
+            Ref: "Environment"
         aiKitBackend:
           deployed:
             Ref: "DeployAiKitBackend"
@@ -2405,6 +2484,21 @@ Outputs:
       Fn::GetAtt:
         - "CognitoNestedStack"
         - "Outputs.AgentComposerMcpResourceUri"
+  IdentityEventBusArn:
+    Description: "Optional identity lifecycle EventBridge bus ARN; empty when disabled."
+    Value:
+      Fn::GetAtt:
+        - "CognitoNestedStack"
+        - "Outputs.IdentityEventBusArn"
+  IdentityExtensionContractVersion:
+    Description: "Version of the optional identity integration contract."
+    Value: "1"
+  IdentityDeploymentId:
+    Description: "Root stack ARN binding the optional identity integration."
+    Value:
+      Fn::GetAtt:
+        - "CognitoNestedStack"
+        - "Outputs.IdentityDeploymentId"
   DeploymentOutputCaptureId:
     Description: "Hash of the captured WP Suite deployment outputs."
     Value:

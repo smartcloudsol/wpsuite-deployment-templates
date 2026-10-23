@@ -75,6 +75,30 @@ Parameters:
     Type: "String"
     Default: "1,hours,1,hours,30,days"
     Description: "Forwarded WP Suite nested stack parameter TokenValidityConfig."
+  IdentityEventsMode:
+    Type: "String"
+    Default: "disabled"
+    AllowedValues:
+      - "disabled"
+      - "provisioned"
+      - "active"
+    Description: "Forwarded WP Suite nested stack parameter IdentityEventsMode."
+  IdentityClaimsProviderArn:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter IdentityClaimsProviderArn."
+  IdentityClaimsClientIds:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter IdentityClaimsClientIds."
+  IdentityDeploymentId:
+    Type: "String"
+    Default: ""
+    Description: "Forwarded WP Suite nested stack parameter IdentityDeploymentId."
+  IdentityEnvironment:
+    Type: "String"
+    Default: "deployment"
+    Description: "Forwarded WP Suite nested stack parameter IdentityEnvironment."
   AgentComposerMcpOAuthConfig:
     Type: "String"
     Default: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
@@ -429,6 +453,16 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "TokenValidityConfig"
+        IdentityEventsMode:
+          Ref: "IdentityEventsMode"
+        IdentityClaimsProviderArn:
+          Ref: "IdentityClaimsProviderArn"
+        IdentityClaimsClientIds:
+          Ref: "IdentityClaimsClientIds"
+        IdentityDeploymentId:
+          Ref: "IdentityDeploymentId"
+        IdentityEnvironment:
+          Ref: "IdentityEnvironment"
         AgentComposerMcpOAuthConfig:
           Fn::If:
             - "CondUseMarketplaceSecret"
@@ -1054,6 +1088,24 @@ Outputs:
       Fn::GetAtt:
         - "WrappedNestedStack"
         - "Outputs.IdentityPoolId"
+  IdentityEventBusArn:
+    Description: "Forwarded IdentityEventBusArn output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.IdentityEventBusArn"
+  IdentityExtensionContractVersion:
+    Description: "Forwarded IdentityExtensionContractVersion output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.IdentityExtensionContractVersion"
+  IdentityDeploymentId:
+    Description: "Forwarded IdentityDeploymentId output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.IdentityDeploymentId"
   SharedRecaptchaSecretParameterName:
     Description: "Forwarded SharedRecaptchaSecretParameterName output from wpsuite-cognito.yaml."
     Value:

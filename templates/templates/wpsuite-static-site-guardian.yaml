@@ -1,5 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "WP Suite Site Guardian nested template for Marketplace Deployment Access"
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: "aws-cloudformation@1"
 Parameters:
   PrmTagValue:
     Type: "String"
@@ -15,7 +18,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.0.131"
+    Default: "v1.1.0"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -192,7 +195,13 @@ Parameters:
   WpsuiteAccountId:
     Type: "String"
     Default: ""
-    Description: "Optional WP Suite account ID used by the weekly config refresh Lambda."
+    Description: "Legacy workspace ID alias for weekly refresh using account routes."
+  WpsuiteWorkspaceId:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^[A-Za-z0-9_-]{1,128}$"
+    Description: "Canonical workspace ID. Setting it selects workspace routes with the existing v1 licence verifier contract."
+    MaxLength: 128
   WpsuiteSiteId:
     Type: "String"
     Default: ""
@@ -214,6 +223,29 @@ Mappings:
   WpSuiteMarketplace:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+Rules:
+  WorkspaceIdentityAliasesAgree:
+    Assertions:
+      -
+        Assert:
+          Fn::Or:
+            -
+              Fn::Equals:
+                -
+                  Ref: "WpsuiteWorkspaceId"
+                - ""
+            -
+              Fn::Equals:
+                -
+                  Ref: "WpsuiteAccountId"
+                - ""
+            -
+              Fn::Equals:
+                -
+                  Ref: "WpsuiteWorkspaceId"
+                -
+                  Ref: "WpsuiteAccountId"
+        AssertDescription: "When both workspace identity aliases are supplied they must be identical."
 Conditions:
   TemplateEnabled:
     Fn::Equals:
@@ -268,6 +300,19 @@ Conditions:
           -
             Ref: "WpsuiteAccountId"
           - ""
+  HasWpsuiteWorkspaceId:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "WpsuiteWorkspaceId"
+          - ""
+  HasWpsuiteTenantId:
+    Fn::Or:
+      -
+        Condition: "HasWpsuiteWorkspaceId"
+      -
+        Condition: "HasWpsuiteAccountId"
   HasWpsuiteSiteId:
     Fn::Not:
       -
@@ -285,7 +330,7 @@ Conditions:
   EnableWeeklyLicenseRefresh:
     Fn::And:
       -
-        Condition: "HasWpsuiteAccountId"
+        Condition: "HasWpsuiteTenantId"
       -
         Condition: "HasWpsuiteSiteId"
       -
@@ -5257,6 +5302,13 @@ Resources:
             Ref: "S3WWWRoot"
           WPSUITE_ACCOUNT_ID:
             Ref: "WpsuiteAccountId"
+          WPSUITE_WORKSPACE_ID:
+            Ref: "WpsuiteWorkspaceId"
+          WPSUITE_API_MODE:
+            Fn::If:
+              - "HasWpsuiteWorkspaceId"
+              - "workspace"
+              - "account"
           WPSUITE_SITE_ID:
             Ref: "WpsuiteSiteId"
           WPSUITE_API_BASE_URL:
@@ -5268,6 +5320,13 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: "Refresh existing site assets while allowing explicit canonical workspace routing without replacing the function."
+        must:
+          - "Keep workspace IDs unchanged and reject contradictory aliases."
+          - "Keep at least one tenant ID, site ID and site key during migration to preserve the conditional refresher resources."
+          - "Canonical workspace routing negotiates v1 licence signatures until client trust migration is separately released."
     Condition: "LicenseRefreshFunctionTemplateEnabledCondition"
   LicenseRefreshFunctionLogGroup:
     Type: "AWS::Logs::LogGroup"

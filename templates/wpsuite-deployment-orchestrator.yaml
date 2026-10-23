@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.0.131/templates/templates"
+    Default: "releases/v1.1.0/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -382,7 +382,7 @@ Resources:
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.0.131"
+      TemplateVersion: "v1.1.0"
       RuntimeArtifactRevision: "catalog-links-v1"
       MarketplaceTemplateSource:
         BucketName:
@@ -399,7 +399,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.0.131/"
+            - "v1.1.0/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -449,6 +449,24 @@ Resources:
         ExistingIdentityPoolId: ""
         PostLoginRedirectUrl: "https://example.com/signin"
         TokenValidityConfig: "1,hours,1,hours,30,days"
+        IdentityEventsMode: "disabled"
+        IdentityClaimsProviderArn:
+          Fn::Select:
+            - 0
+            -
+              Fn::Split:
+                - "|"
+                - "|"
+        IdentityClaimsClientIds:
+          Fn::Select:
+            - 1
+            -
+              Fn::Split:
+                - "|"
+                - "|"
+        IdentityDeploymentId:
+          Ref: "AWS::StackId"
+        IdentityEnvironment: "prod"
         AgentComposerMcpOAuthConfig: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
         RegisteredGroupName: "registered"
         AdminGroupName: "admin"
@@ -848,6 +866,7 @@ Resources:
         NotFoundPagePath: ""
         ForbiddenPagePath: ""
         WpsuiteAccountId: ""
+        WpsuiteWorkspaceId: ""
         WpsuiteSiteId: ""
         WpsuiteSiteKey: ""
         WpsuiteApiBaseUrl: "https://api.wpsuite.io"
@@ -978,7 +997,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.0.131"
+          templateVersion: "v1.1.0"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed: "false"
@@ -1004,6 +1023,24 @@ Resources:
             Fn::GetAtt:
               - "CognitoNestedStack"
               - "Outputs.IdentityPoolId"
+          identityEventBusArn:
+            Fn::GetAtt:
+              - "CognitoNestedStack"
+              - "Outputs.IdentityEventBusArn"
+          identityExtensionContractVersion: "1"
+          identityDeploymentId:
+            Fn::GetAtt:
+              - "CognitoNestedStack"
+              - "Outputs.IdentityDeploymentId"
+          identityEventsMode: "disabled"
+          identityClaimsProviderArn:
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "|"
+                  - "|"
+          identityEnvironment: "prod"
         aiKitBackend:
           deployed: "false"
           stackId:
@@ -1149,6 +1186,21 @@ Outputs:
       Fn::GetAtt:
         - "CognitoNestedStack"
         - "Outputs.AgentComposerMcpResourceUri"
+  IdentityEventBusArn:
+    Description: "Optional identity lifecycle EventBridge bus ARN; empty when disabled."
+    Value:
+      Fn::GetAtt:
+        - "CognitoNestedStack"
+        - "Outputs.IdentityEventBusArn"
+  IdentityExtensionContractVersion:
+    Description: "Version of the optional identity integration contract."
+    Value: "1"
+  IdentityDeploymentId:
+    Description: "Root stack ARN binding the optional identity integration."
+    Value:
+      Fn::GetAtt:
+        - "CognitoNestedStack"
+        - "Outputs.IdentityDeploymentId"
   DeploymentOutputCaptureId:
     Description: "Hash of the captured WP Suite deployment outputs."
     Value:

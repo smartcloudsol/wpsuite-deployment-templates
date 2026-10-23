@@ -184,6 +184,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter WpsuiteAccountId."
+  WpsuiteWorkspaceId:
+    Type: "String"
+    Default: ""
+    Description: "Optional canonical workspace identity; empty preserves legacy account routing."
   WpsuiteSiteId:
     Type: "String"
     Default: ""
@@ -586,6 +590,8 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "WpsuiteAccountId"
+        WpsuiteWorkspaceId:
+          Ref: "WpsuiteWorkspaceId"
         WpsuiteSiteId:
           Fn::If:
             - "CondUseMarketplaceSecret"
