@@ -1,26 +1,14 @@
 {
-  "generatedAt": "2026-10-23T14:15:57.834Z",
-  "templateVersion": "v1.1.0",
+  "generatedAt": "2026-10-26T16:43:26.009014+00:00",
+  "templateVersion": "v1.1.1-dev-prerelease.1",
   "sourceProject": "@wpsuite/deployment-orchestration",
   "sourceGeneratedDirectory": "generated/templates",
   "templates": [
     {
-      "name": "wpsuite-deployment-orchestrator.yaml",
-      "kind": "root",
-      "path": "templates/wpsuite-deployment-orchestrator.yaml",
-      "description": "WP Suite Cloud Deployment - Deploy the WP Suite backend into your own AWS account with the services required by your selected WP Suite products. AWS Marketplace Quick Launch through WP Suite Deployment Access."
-    },
-    {
-      "name": "wpsuite-deployment-orchestrator-direct.yaml",
-      "kind": "root-direct",
-      "path": "templates/wpsuite-deployment-orchestrator-direct.yaml",
-      "description": "WP Suite Cloud Deployment - Deploy the WP Suite backend into your own AWS account with the services required by your selected WP Suite products. Launched from the WP Suite console."
-    },
-    {
-      "name": "wpsuite-cognito.yaml",
-      "kind": "nested",
-      "path": "templates/templates/wpsuite-cognito.yaml",
-      "description": "WP Suite Cognito nested template for Marketplace Deployment Access"
+      "name": "wpsuite-ai-kit-backend-wrapper.yaml",
+      "kind": "wrapper",
+      "path": "templates/templates/wpsuite-ai-kit-backend-wrapper.yaml",
+      "description": "WP Suite AI Kit backend Marketplace deployment wrapper template"
     },
     {
       "name": "wpsuite-ai-kit-backend.yaml",
@@ -29,16 +17,22 @@
       "description": "WP Suite AI Kit backend nested template for Marketplace Deployment Access"
     },
     {
-      "name": "wpsuite-flow-backend.yaml",
-      "kind": "nested",
-      "path": "templates/templates/wpsuite-flow-backend.yaml",
-      "description": "WP Suite Flow backend nested template for Marketplace Deployment Access"
+      "name": "wpsuite-cognito-wrapper.yaml",
+      "kind": "wrapper",
+      "path": "templates/templates/wpsuite-cognito-wrapper.yaml",
+      "description": "WP Suite Cognito Marketplace deployment wrapper template"
     },
     {
-      "name": "wpsuite-static-site-guardian.yaml",
+      "name": "wpsuite-cognito.yaml",
       "kind": "nested",
-      "path": "templates/templates/wpsuite-static-site-guardian.yaml",
-      "description": "WP Suite Site Guardian nested template for Marketplace Deployment Access"
+      "path": "templates/templates/wpsuite-cognito.yaml",
+      "description": "WP Suite Cognito nested template for Marketplace Deployment Access"
+    },
+    {
+      "name": "wpsuite-dr-backup-wrapper.yaml",
+      "kind": "wrapper",
+      "path": "templates/templates/wpsuite-dr-backup-wrapper.yaml",
+      "description": "WP Suite DR Backup Marketplace deployment wrapper template"
     },
     {
       "name": "wpsuite-dr-backup.yaml",
@@ -47,22 +41,16 @@
       "description": "WP Suite DR backup nested template for Marketplace Deployment Access"
     },
     {
-      "name": "wpsuite-cognito-wrapper.yaml",
-      "kind": "wrapper",
-      "path": "templates/templates/wpsuite-cognito-wrapper.yaml",
-      "description": "WP Suite Cognito Marketplace deployment wrapper template"
-    },
-    {
-      "name": "wpsuite-ai-kit-backend-wrapper.yaml",
-      "kind": "wrapper",
-      "path": "templates/templates/wpsuite-ai-kit-backend-wrapper.yaml",
-      "description": "WP Suite AI Kit backend Marketplace deployment wrapper template"
-    },
-    {
       "name": "wpsuite-flow-backend-wrapper.yaml",
       "kind": "wrapper",
       "path": "templates/templates/wpsuite-flow-backend-wrapper.yaml",
       "description": "WP Suite Flow backend Marketplace deployment wrapper template"
+    },
+    {
+      "name": "wpsuite-flow-backend.yaml",
+      "kind": "nested",
+      "path": "templates/templates/wpsuite-flow-backend.yaml",
+      "description": "WP Suite Flow backend nested template for Marketplace Deployment Access"
     },
     {
       "name": "wpsuite-static-site-guardian-wrapper.yaml",
@@ -71,10 +59,22 @@
       "description": "WP Suite Static Site Guardian Marketplace deployment wrapper template"
     },
     {
-      "name": "wpsuite-dr-backup-wrapper.yaml",
-      "kind": "wrapper",
-      "path": "templates/templates/wpsuite-dr-backup-wrapper.yaml",
-      "description": "WP Suite DR Backup Marketplace deployment wrapper template"
+      "name": "wpsuite-static-site-guardian.yaml",
+      "kind": "nested",
+      "path": "templates/templates/wpsuite-static-site-guardian.yaml",
+      "description": "WP Suite Site Guardian nested template for Marketplace Deployment Access"
+    },
+    {
+      "name": "wpsuite-deployment-orchestrator-direct.yaml",
+      "kind": "root-direct",
+      "path": "templates/wpsuite-deployment-orchestrator-direct.yaml",
+      "description": "WP Suite Cloud Deployment - Deploy the WP Suite backend into your own AWS account with the services required by your selected WP Suite products. Launched from the WP Suite console."
+    },
+    {
+      "name": "wpsuite-deployment-orchestrator.yaml",
+      "kind": "root",
+      "path": "templates/wpsuite-deployment-orchestrator.yaml",
+      "description": "WP Suite Cloud Deployment - Deploy the WP Suite backend into your own AWS account with the services required by your selected WP Suite products. AWS Marketplace Quick Launch through WP Suite Deployment Access."
     }
   ]
 }
