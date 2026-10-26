@@ -319,6 +319,19 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter KmsKeyId."
+  ResolvedAppName:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^[A-Za-z0-9-]{1,43}$"
+    Description: "Application name resolved by the WP Suite staging backend."
+    MaxLength: 43
+  UseResolvedAppName:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Use the application name resolved by the WP Suite staging backend."
 Mappings:
   WpSuiteMarketplace:
     DeploymentAccess:
@@ -329,6 +342,11 @@ Conditions:
       -
         Ref: "DeploymentContextMode"
       - "marketplace_secret"
+  CondUseResolvedAppName:
+    Fn::Equals:
+      -
+        Ref: "UseResolvedAppName"
+      - "true"
   CondHasSharedApiResourcePrefix:
     Fn::Not:
       -
@@ -381,23 +399,28 @@ Resources:
             -
               Ref: "Enabled"
         AppName:
-          Fn::Sub:
-            - "${AppName}-${Environment}-${AppNameSuffix}"
+          Fn::If:
+            - "CondUseResolvedAppName"
             -
-              AppName:
-                Ref: "AppName"
-              Environment:
-                Fn::If:
-                  - "CondUseMarketplaceSecret"
-                  -
-                    Fn::Sub:
-                      - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}"
+              Ref: "ResolvedAppName"
+            -
+              Fn::Sub:
+                - "${AppName}-${Environment}-${AppNameSuffix}"
+                -
+                  AppName:
+                    Ref: "AppName"
+                  Environment:
+                    Fn::If:
+                      - "CondUseMarketplaceSecret"
                       -
-                        DeploymentSecretArn:
-                          Ref: "WpSuiteDeploymentSecretArn"
-                  -
-                    Ref: "Environment"
-              AppNameSuffix: "cognito"
+                        Fn::Sub:
+                          - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}"
+                          -
+                            DeploymentSecretArn:
+                              Ref: "WpSuiteDeploymentSecretArn"
+                      -
+                        Ref: "Environment"
+                  AppNameSuffix: "cognito"
         ExistingUserPoolId:
           Fn::If:
             - "CondUseMarketplaceSecret"
