@@ -231,6 +231,19 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Forwarded WP Suite nested stack parameter BlockedIPs."
+  ResolvedAppName:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^[A-Za-z0-9-]{1,35}$"
+    Description: "Application name resolved by the WP Suite staging backend."
+    MaxLength: 35
+  UseResolvedAppName:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Use the application name resolved by the WP Suite staging backend."
 Mappings:
   WpSuiteMarketplace:
     DeploymentAccess:
@@ -241,6 +254,11 @@ Conditions:
       -
         Ref: "DeploymentContextMode"
       - "marketplace_secret"
+  CondUseResolvedAppName:
+    Fn::Equals:
+      -
+        Ref: "UseResolvedAppName"
+      - "true"
 Resources:
   WrappedNestedStack:
     Type: "AWS::CloudFormation::Stack"
@@ -299,23 +317,28 @@ Resources:
             -
               Ref: "Enabled"
         AppName:
-          Fn::Sub:
-            - "${AppName}-${Environment}-${AppNameSuffix}"
+          Fn::If:
+            - "CondUseResolvedAppName"
             -
-              AppName:
-                Ref: "AppName"
-              Environment:
-                Fn::If:
-                  - "CondUseMarketplaceSecret"
-                  -
-                    Fn::Sub:
-                      - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnvironment}}"
+              Ref: "ResolvedAppName"
+            -
+              Fn::Sub:
+                - "${AppName}-${Environment}-${AppNameSuffix}"
+                -
+                  AppName:
+                    Ref: "AppName"
+                  Environment:
+                    Fn::If:
+                      - "CondUseMarketplaceSecret"
                       -
-                        DeploymentSecretArn:
-                          Ref: "WpSuiteDeploymentSecretArn"
-                  -
-                    Ref: "Environment"
-              AppNameSuffix: "flow"
+                        Fn::Sub:
+                          - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:FlowEnvironment}}"
+                          -
+                            DeploymentSecretArn:
+                              Ref: "WpSuiteDeploymentSecretArn"
+                      -
+                        Ref: "Environment"
+                  AppNameSuffix: "flow"
         Environment:
           Fn::If:
             - "CondUseMarketplaceSecret"
