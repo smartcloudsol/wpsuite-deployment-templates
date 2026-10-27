@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.1.1/templates/templates"
+    Default: "releases/v1.1.1-dev/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -176,7 +176,7 @@ Resources:
           -
             Effect: "Allow"
             Principal:
-              AWS: "arn:aws:iam::637423296378:role/wpsuite-prod-marketplace-artifact-deployer"
+              AWS: "arn:aws:iam::637423296378:role/wpsuite-dev-marketplace-artifact-deployer"
             Action: "sts:AssumeRole"
             Condition:
               StringEquals:
@@ -375,14 +375,14 @@ Resources:
         Fn::GetAtt:
           - "ArtifactStagerFunction"
           - "Arn"
-      BackendStageArtifactUrl: "https://api.wpsuite.io/marketplace/deployment/stage-artifact"
+      BackendStageArtifactUrl: "https://api.wpsuite.io/dev/marketplace/deployment/stage-artifact"
       DeploymentContextMode: "marketplace_secret"
       DeploymentSecretArn:
         Ref: "WpSuiteDeploymentSecretArn"
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.1.1"
+      TemplateVersion: "v1.1.1-dev"
       RuntimeArtifactRevision: "catalog-links-v1"
       RequireResolvedAppNames: "true"
       MarketplaceTemplateSource:
@@ -400,7 +400,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.1.1/"
+            - "v1.1.1-dev/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -1009,7 +1009,7 @@ Resources:
         Fn::GetAtt:
           - "DeploymentOutputReporterFunction"
           - "Arn"
-      BackendApiBaseUrl: "https://api.wpsuite.io/marketplace"
+      BackendApiBaseUrl: "https://api.wpsuite.io/dev/marketplace"
       DeploymentContextMode: "marketplace_secret"
       DeploymentSecretArn:
         Ref: "WpSuiteDeploymentSecretArn"
@@ -1032,7 +1032,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.1.1"
+          templateVersion: "v1.1.1-dev"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed: "false"
