@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.1.4/templates/templates"
+    Default: "releases/v1.1.5-dev/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -176,7 +176,7 @@ Resources:
           -
             Effect: "Allow"
             Principal:
-              AWS: "arn:aws:iam::637423296378:role/wpsuite-prod-marketplace-artifact-deployer"
+              AWS: "arn:aws:iam::637423296378:role/wpsuite-dev-marketplace-artifact-deployer"
             Action: "sts:AssumeRole"
             Condition:
               StringEquals:
@@ -256,23 +256,6 @@ Resources:
         -
           Key: "WPSuitePurpose"
           Value: "deployment-artifact-ingress"
-  ArtifactIngressPreviewReadPolicy:
-    Type: "AWS::IAM::Policy"
-    Properties:
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          -
-            Effect: "Allow"
-            Action: "iam:GetRole"
-            Resource:
-              Fn::GetAtt:
-                - "ArtifactIngressRole"
-                - "Arn"
-      PolicyName: "ReadOwnRoleForChangeSetPreview"
-      Roles:
-        -
-          Ref: "ArtifactIngressRole"
   ArtifactStagerFunctionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -394,14 +377,14 @@ Resources:
         Fn::GetAtt:
           - "ArtifactStagerFunction"
           - "Arn"
-      BackendStageArtifactUrl: "https://api.wpsuite.io/marketplace/deployment/stage-artifact"
+      BackendStageArtifactUrl: "https://api.wpsuite.io/dev/marketplace/deployment/stage-artifact"
       DeploymentContextMode: "marketplace_secret"
       DeploymentSecretArn:
         Ref: "WpSuiteDeploymentSecretArn"
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.1.4"
+      TemplateVersion: "v1.1.5-dev"
       RuntimeArtifactRevision: "catalog-links-v1"
       RequireResolvedAppNames: "true"
       MarketplaceTemplateSource:
@@ -419,7 +402,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.1.4/"
+            - "v1.1.5-dev/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -1186,7 +1169,7 @@ Resources:
         Fn::GetAtt:
           - "DeploymentOutputReporterFunction"
           - "Arn"
-      BackendApiBaseUrl: "https://api.wpsuite.io/marketplace"
+      BackendApiBaseUrl: "https://api.wpsuite.io/dev/marketplace"
       DeploymentContextMode: "marketplace_secret"
       DeploymentSecretArn:
         Ref: "WpSuiteDeploymentSecretArn"
@@ -1209,7 +1192,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.1.4"
+          templateVersion: "v1.1.5-dev"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed: "false"
@@ -1353,6 +1336,135 @@ Resources:
             Fn::GetAtt:
               - "DrBackupNestedStack"
               - "Outputs.BackupSelectionTagValue"
+  ArtifactIngressPreviewReadPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "iam:GetRole"
+              - "iam:ListRolePolicies"
+              - "iam:GetRolePolicy"
+              - "iam:ListAttachedRolePolicies"
+            Resource:
+              -
+                Fn::GetAtt:
+                  - "ArtifactIngressRole"
+                  - "Arn"
+              -
+                Fn::GetAtt:
+                  - "ArtifactStagerFunctionRole"
+                  - "Arn"
+              -
+                Fn::GetAtt:
+                  - "ArtifactRetentionFunctionRole"
+                  - "Arn"
+          -
+            Effect: "Allow"
+            Action:
+              - "lambda:GetFunction"
+              - "lambda:GetFunctionCodeSigningConfig"
+              - "lambda:GetFunctionRecursionConfig"
+              - "lambda:GetRuntimeManagementConfig"
+              - "lambda:GetFunctionScalingConfig"
+              - "lambda:GetPolicy"
+            Resource:
+              -
+                Fn::GetAtt:
+                  - "ArtifactStagerFunction"
+                  - "Arn"
+              -
+                Fn::GetAtt:
+                  - "ArtifactRetentionFunction"
+                  - "Arn"
+              -
+                Fn::GetAtt:
+                  - "DeploymentOutputReporterFunction"
+                  - "Arn"
+          -
+            Effect: "Allow"
+            Action:
+              - "cloudformation:DescribeStacks"
+              - "cloudformation:GetStackPolicy"
+              - "cloudformation:GetTemplate"
+            Resource:
+              -
+                Ref: "AWS::StackId"
+              -
+                Ref: "CognitoNestedStack"
+              -
+                Ref: "FlowBackendNestedStack"
+              -
+                Ref: "AiKitBackendNestedStack"
+              -
+                Ref: "StaticGuardianNestedStack"
+              -
+                Ref: "DrBackupNestedStack"
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:GetAccelerateConfiguration"
+              - "s3:GetLifecycleConfiguration"
+              - "s3:GetBucketPublicAccessBlock"
+              - "s3:GetAnalyticsConfiguration"
+              - "s3:GetBucketCORS"
+              - "s3:GetEncryptionConfiguration"
+              - "s3:GetInventoryConfiguration"
+              - "s3:GetBucketLogging"
+              - "s3:GetMetricsConfiguration"
+              - "s3:GetBucketNotification"
+              - "s3:GetBucketVersioning"
+              - "s3:GetReplicationConfiguration"
+              - "s3:GetBucketWebsite"
+              - "s3:GetBucketObjectLockConfiguration"
+              - "s3:GetBucketTagging"
+              - "s3:ListTagsForResource"
+              - "s3:GetBucketAbac"
+              - "s3:GetBucketOwnershipControls"
+              - "s3:GetIntelligentTieringConfiguration"
+              - "s3:GetBucketMetadataTableConfiguration"
+              - "s3:ListBucket"
+              - "s3:GetBucketPolicy"
+            Resource:
+              Fn::GetAtt:
+                - "DeploymentArtifactBucket"
+                - "Arn"
+          -
+            Effect: "Allow"
+            Action:
+              - "events:DescribeRule"
+              - "events:ListTargetsByRule"
+              - "events:ListTagsForResource"
+            Resource:
+              Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-artifact-gc"
+          -
+            Effect: "Allow"
+            Action:
+              - "logs:GetDataProtectionPolicy"
+              - "logs:ListTagsForResource"
+            Resource:
+              -
+                Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-artifact-gc"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-artifact-gc:*"
+          -
+            Effect: "Allow"
+            Action:
+              - "logs:DescribeLogGroups"
+              - "logs:DescribeResourcePolicies"
+              - "logs:DescribeIndexPolicies"
+            Resource: "*"
+            Condition:
+              StringEquals:
+                aws:RequestedRegion:
+                  Ref: "AWS::Region"
+      PolicyName: "ReadOwnRoleForChangeSetPreview"
+      Roles:
+        -
+          Ref: "ArtifactIngressRole"
 Outputs:
   PrmProductCode:
     Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
