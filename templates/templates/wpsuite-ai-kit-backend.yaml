@@ -15,6 +15,19 @@ Parameters:
     Default: "pc:5d8wq5hg1d54kb933ntenntiu"
     AllowedPattern: "^pc:[a-z0-9]+$"
     Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  IntegrationEventConsumersEnabled:
+    Type: "String"
+    Default: "auto"
+    AllowedValues:
+      - "auto"
+      - "true"
+      - "false"
+    Description: "Enable integration consumers after isolation handoff; auto preserves legacy default and disables named buses."
+  IntegrationEventBusName:
+    Type: "String"
+    Default: "default"
+    AllowedPattern: "^[A-Za-z0-9._-]{1,256}$"
+    Description: "Existing same-account EventBridge integration bus name; default preserves legacy routing."
   Enabled:
     Type: "String"
     Default: "true"
@@ -32,7 +45,7 @@ Parameters:
     Description: "Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.6"
+    Default: "v1.1.7"
     Description: "Immutable WP Suite deployment template version."
   RuntimeArtifactRevision:
     Type: "String"
@@ -499,6 +512,30 @@ Mappings:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Conditions:
+  IntegrationConsumersActive:
+    Fn::Or:
+      -
+        Fn::Equals:
+          -
+            Ref: "IntegrationEventConsumersEnabled"
+          - "true"
+      -
+        Fn::And:
+          -
+            Fn::Equals:
+              -
+                Ref: "IntegrationEventConsumersEnabled"
+              - "auto"
+          -
+            Fn::Equals:
+              -
+                Ref: "IntegrationEventBusName"
+              - "default"
+  UseLegacyIntegrationBus:
+    Fn::Equals:
+      -
+        Ref: "IntegrationEventBusName"
+      - "default"
   TemplateEnabled:
     Fn::Equals:
       -
@@ -4708,7 +4745,7 @@ Resources:
                 Action:
                   - "events:PutEvents"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+                  Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/${IntegrationEventBusName}"
               -
                 Fn::If:
                   - "UseSharedRecaptchaSecret"
@@ -5021,7 +5058,8 @@ Resources:
               - "Arn"
           KB_COORDINATOR_TABLE_NAME:
             Ref: "KnowledgeBaseIngestionCoordinatorTable"
-          EVENT_BUS_NAME: "default"
+          EVENT_BUS_NAME:
+            Ref: "IntegrationEventBusName"
       Tags:
         -
           Key: "aws-apn-id"
@@ -5468,9 +5506,18 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
-                  - "events:PutEvents"
                   - "cloudwatch:PutMetricData"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "events:PutEvents"
+                Resource:
+                  Fn::If:
+                    - "UseLegacyIntegrationBus"
+                    - "*"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/${IntegrationEventBusName}"
               -
                 Effect: "Allow"
                 Action:
@@ -5636,6 +5683,8 @@ Resources:
             Ref: "RecaptchaSiteKey"
           RECAPTCHA_SCORE_THRESHOLD:
             Ref: "RecaptchaScoreThreshold"
+          EVENT_BUS_NAME:
+            Ref: "IntegrationEventBusName"
           KNOWLEDGE_TAXONOMY_PATHS_MODE:
             Ref: "KnowledgeTaxonomyPathsMode"
           AI_COST_LEDGER_TABLE_NAME:
@@ -5693,7 +5742,13 @@ Resources:
           - "wpsuite.forms"
         detail-type:
           - "ai.agent.requested"
-      State: "ENABLED"
+      EventBusName:
+        Ref: "IntegrationEventBusName"
+      State:
+        Fn::If:
+          - "IntegrationConsumersActive"
+          - "ENABLED"
+          - "DISABLED"
       Targets:
         -
           Arn:
@@ -5783,8 +5838,17 @@ Resources:
                 Effect: "Allow"
                 Action:
                   - "workmailmessageflow:GetRawMessageContent"
-                  - "events:PutEvents"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "events:PutEvents"
+                Resource:
+                  Fn::If:
+                    - "UseLegacyIntegrationBus"
+                    - "*"
+                    -
+                      Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/${IntegrationEventBusName}"
               -
                 Effect: "Allow"
                 Action:
@@ -5959,7 +6023,8 @@ Resources:
             Ref: "MonthlyAiSpendLimitUsd"
           AI_SPEND_SAFETY_PERCENT:
             Ref: "AiSpendSafetyPercent"
-          EVENT_BUS_NAME: "default"
+          EVENT_BUS_NAME:
+            Ref: "IntegrationEventBusName"
           INQUIRY_FIELD_NAMES:
             Ref: "InquiryFieldNames"
           EMAIL_INTAKE_ACCOUNT_ID:
@@ -7287,7 +7352,7 @@ Resources:
                 Action:
                   - "events:PutEvents"
                 Resource:
-                  Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+                  Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/${IntegrationEventBusName}"
               -
                 Fn::If:
                   - "UseSharedRecaptchaSecret"
@@ -7566,7 +7631,8 @@ Resources:
               - "Arn"
           KB_COORDINATOR_TABLE_NAME:
             Ref: "KnowledgeBaseIngestionCoordinatorTable"
-          EVENT_BUS_NAME: "default"
+          EVENT_BUS_NAME:
+            Ref: "IntegrationEventBusName"
       Tags:
         -
           Key: "aws-apn-id"
