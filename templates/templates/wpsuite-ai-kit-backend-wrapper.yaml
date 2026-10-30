@@ -27,6 +27,18 @@ Parameters:
       - "marketplace_secret"
       - "direct"
     Description: "How this wrapper receives the WP Suite deployment context."
+  IntegrationEventBusName:
+    Type: "String"
+    Default: "default"
+    Description: "Forwarded WP Suite nested stack parameter IntegrationEventBusName."
+  IntegrationEventConsumersEnabled:
+    Type: "String"
+    Default: "auto"
+    AllowedValues:
+      - "auto"
+      - "true"
+      - "false"
+    Description: "Forwarded WP Suite nested stack parameter IntegrationEventConsumersEnabled."
   RuntimeArtifactRevision:
     Type: "String"
     Default: "catalog-links-v1"
@@ -387,6 +399,10 @@ Resources:
                     Ref: "WpSuiteDeploymentSecretArn"
             -
               Ref: "PrmTagValue"
+        IntegrationEventBusName:
+          Ref: "IntegrationEventBusName"
+        IntegrationEventConsumersEnabled:
+          Ref: "IntegrationEventConsumersEnabled"
         RuntimeArtifactRevision:
           Ref: "RuntimeArtifactRevision"
         TemplateVersion:
