@@ -18,7 +18,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.7"
+    Default: "v1.1.8"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -64,7 +64,7 @@ Parameters:
   HomepageLocaleRoutes:
     Type: "String"
     Default: "{}"
-    Description: "JSON object mapping BCP 47 locale tags to canonical root-relative homepage paths ending in slash."
+    Description: "JSON locale routes with optional $spaPaths array of exact protected paths or additional behavior patterns."
     MaxLength: 2048
   HomepageLocaleCookieName:
     Type: "String"
@@ -2708,6 +2708,8 @@ Resources:
           - "CloudFrontResourceManager"
           - "Arn"
       ResourceType: "Function"
+      AdditionalCacheBehaviors:
+        Ref: "AdditionalCacheBehaviors"
       Name:
         Fn::Sub: "${AppName}-viewer-request"
       ProtectedPaths:
@@ -2753,6 +2755,8 @@ Resources:
           - "CloudFrontResourceManager"
           - "Arn"
       ResourceType: "PathRewriteFunction"
+      AdditionalCacheBehaviors:
+        Ref: "AdditionalCacheBehaviors"
       Name:
         Fn::Sub: "${AppName}-path-rewrite"
       ProtectedPaths:
@@ -2762,6 +2766,8 @@ Resources:
             Ref: "ProtectedPaths"
       S3WWWRoot:
         Ref: "S3WWWRoot"
+      HomepageLocaleRoutes:
+        Ref: "HomepageLocaleRoutes"
     Condition: "TemplateEnabled"
   LambdaEdgeExecutionRole:
     Type: "AWS::IAM::Role"
@@ -5098,6 +5104,8 @@ Resources:
           - "CloudFrontResourceManager"
           - "Arn"
       ResourceType: "DistributionUpdate"
+      HomepageLocaleRoutes:
+        Ref: "HomepageLocaleRoutes"
       DistributionId:
         Ref: "CloudFrontDistribution"
       DeploymentAccountId:

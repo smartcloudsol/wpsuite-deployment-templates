@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.1.7/templates/templates"
+    Default: "releases/v1.1.8/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.7"
+    Default: "v1.1.8"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -176,7 +176,7 @@ Parameters:
   StaticGuardianHomepageLocaleRoutes:
     Type: "String"
     Default: "{}"
-    Description: "JSON object mapping BCP 47 locale tags to canonical root-relative homepage paths ending in slash."
+    Description: "JSON locale routes with optional $spaPaths array of exact protected paths or additional behavior patterns."
     MaxLength: 2048
   StaticGuardianHomepageLocaleCookieName:
     Type: "String"
