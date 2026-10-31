@@ -45,7 +45,7 @@ Parameters:
     Description: "Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.8"
+    Default: "v1.1.8-dev"
     Description: "Immutable WP Suite deployment template version."
   RuntimeArtifactRevision:
     Type: "String"
