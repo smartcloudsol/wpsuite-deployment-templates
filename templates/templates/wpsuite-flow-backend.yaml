@@ -28,7 +28,7 @@ Parameters:
     Description: "Create Flow backend resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.8"
+    Default: "v1.1.9"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -1844,6 +1844,13 @@ Resources:
                   - "guardduty:TagResource"
                   - "guardduty:UntagResource"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "wafv2:GetWebACLForResource"
+                  - "wafv2:GetWebACL"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:wafv2:${AWS::Region}:${AWS::AccountId}:regional/webacl/*/*"
               -
                 Effect: "Allow"
                 Action:
