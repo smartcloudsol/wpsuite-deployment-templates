@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.1.9/templates/templates"
+    Default: "releases/v1.1.10/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -49,7 +49,7 @@ Parameters:
     Description: "WP Suite Marketplace backend API base URL."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.9"
+    Default: "v1.1.10"
     Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
@@ -494,7 +494,22 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-    Description: "Create Route 53 records for Static Site Guardian."
+      - "dns-0001"
+      - "dns-0010"
+      - "dns-0011"
+      - "dns-0100"
+      - "dns-0101"
+      - "dns-0110"
+      - "dns-0111"
+      - "dns-1000"
+      - "dns-1001"
+      - "dns-1010"
+      - "dns-1011"
+      - "dns-1100"
+      - "dns-1101"
+      - "dns-1110"
+      - "dns-1111"
+    Description: "Select Static Site Guardian DNS records; dns bits are apex A, apex AAAA, www A, www AAAA."
   StaticGuardianManageSigningKeys:
     Type: "String"
     Default: "true"

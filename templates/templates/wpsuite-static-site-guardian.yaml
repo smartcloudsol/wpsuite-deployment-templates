@@ -18,7 +18,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.9"
+    Default: "v1.1.10"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -191,7 +191,22 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-    Description: "Create Route53 DNS records for the domains."
+      - "dns-0001"
+      - "dns-0010"
+      - "dns-0011"
+      - "dns-0100"
+      - "dns-0101"
+      - "dns-0110"
+      - "dns-0111"
+      - "dns-1000"
+      - "dns-1001"
+      - "dns-1010"
+      - "dns-1011"
+      - "dns-1100"
+      - "dns-1101"
+      - "dns-1110"
+      - "dns-1111"
+    Description: "DNS record mode: legacy true/false, or dns- followed by apex A, apex AAAA, www A, www AAAA bits. The certificate must cover every enabled CloudFront alias."
   WpsuiteAccountId:
     Type: "String"
     Default: ""
@@ -270,10 +285,211 @@ Conditions:
             Ref: "S3BucketName"
           - ""
   CreateDNS:
-    Fn::Equals:
+    Fn::Not:
       -
-        Ref: "CreateDNSRecords"
-      - "true"
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "false"
+  CreateApexA:
+    Fn::Or:
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "true"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1000"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1001"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1010"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1011"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1100"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1101"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1110"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1111"
+  CreateApexAAAA:
+    Fn::Or:
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0100"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0101"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0110"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0111"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1100"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1101"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1110"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1111"
+  CreateWwwA:
+    Fn::Or:
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "true"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0010"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0011"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0110"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0111"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1010"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1011"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1110"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1111"
+  CreateWwwAAAA:
+    Fn::Or:
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0001"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0011"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0101"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-0111"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1001"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1011"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1101"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateDNSRecords"
+          - "dns-1111"
+  CustomWwwAlias:
+    Fn::Or:
+      -
+        Condition: "CreateWwwAAAA"
+      -
+        Fn::And:
+          -
+            Condition: "CreateWwwA"
+          -
+            Fn::Not:
+              -
+                Fn::Equals:
+                  -
+                    Ref: "CreateDNSRecords"
+                  - "true"
+  EnableDnsIpv6:
+    Fn::Or:
+      -
+        Condition: "CreateApexAAAA"
+      -
+        Condition: "CreateWwwAAAA"
   ManageSigningKeyMaterial:
     Fn::Equals:
       -
@@ -2095,13 +2311,25 @@ Conditions:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "CreateDNS"
+        Condition: "CreateWwwA"
   ApexDNSRecordTemplateEnabledCondition:
     Fn::And:
       -
         Condition: "TemplateEnabled"
       -
-        Condition: "CreateDNS"
+        Condition: "CreateApexA"
+  WWWAAAADNSRecordTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateWwwAAAA"
+  ApexAAAADNSRecordTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CreateApexAAAA"
   MonitoringDashboardTemplateEnabledCondition:
     Fn::And:
       -
@@ -2884,6 +3112,19 @@ Resources:
         Aliases:
           -
             Ref: "DomainName"
+          -
+            Fn::If:
+              - "CustomWwwAlias"
+              -
+                Fn::Sub: "www.${DomainName}"
+              -
+                Ref: "AWS::NoValue"
+        IPV6Enabled:
+          Fn::If:
+            - "EnableDnsIpv6"
+            - true
+            -
+              Ref: "AWS::NoValue"
         Origins:
           -
             Id: "S3Origin"
@@ -5469,6 +5710,40 @@ Resources:
             - "DomainName"
         HostedZoneId: "Z2FDTNDATAQYW2"
     Condition: "ApexDNSRecordTemplateEnabledCondition"
+  WWWAAAADNSRecord:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId:
+        Fn::GetAtt:
+          - "HostedZoneLookup"
+          - "HostedZoneId"
+      Name:
+        Fn::Sub: "www.${DomainName}"
+      Type: "AAAA"
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt:
+            - "CloudFrontDistribution"
+            - "DomainName"
+        HostedZoneId: "Z2FDTNDATAQYW2"
+    Condition: "WWWAAAADNSRecordTemplateEnabledCondition"
+  ApexAAAADNSRecord:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId:
+        Fn::GetAtt:
+          - "HostedZoneLookup"
+          - "HostedZoneId"
+      Name:
+        Ref: "DomainName"
+      Type: "AAAA"
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt:
+            - "CloudFrontDistribution"
+            - "DomainName"
+        HostedZoneId: "Z2FDTNDATAQYW2"
+    Condition: "ApexAAAADNSRecordTemplateEnabledCondition"
   MonitoringDashboard:
     Type: "AWS::CloudWatch::Dashboard"
     Properties:
