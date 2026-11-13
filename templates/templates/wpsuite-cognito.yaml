@@ -15,7 +15,7 @@ Parameters:
     Description: Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed.
   TemplateVersion:
     Type: String
-    Default: v1.1.11
+    Default: v1.1.12
     Description: Immutable WP Suite deployment template version.
   ArtifactRootPrefix:
     Type: String
@@ -1281,6 +1281,9 @@ Resources:
                       ActionToUse:
                         Count: {}
                     - Name: CrossSiteScripting_BODY
+                      ActionToUse:
+                        Count: {}
+                    - Name: NoUserAgent_HEADER
                       ActionToUse:
                         Count: {}
               VisibilityConfig:

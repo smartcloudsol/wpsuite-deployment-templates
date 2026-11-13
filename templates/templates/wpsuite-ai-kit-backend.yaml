@@ -44,7 +44,7 @@ Parameters:
     Description: Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes.
   TemplateVersion:
     Type: String
-    Default: v1.1.11
+    Default: v1.1.12
     Description: Immutable WP Suite deployment template version.
   RuntimeArtifactRevision:
     Type: String
@@ -2846,6 +2846,9 @@ Resources:
                   ActionToUse:
                     Count: {}
                 - Name: CrossSiteScripting_BODY
+                  ActionToUse:
+                    Count: {}
+                - Name: NoUserAgent_HEADER
                   ActionToUse:
                     Count: {}
           VisibilityConfig:
