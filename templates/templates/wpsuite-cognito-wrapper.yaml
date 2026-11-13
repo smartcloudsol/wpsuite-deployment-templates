@@ -1,1155 +1,970 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Description: "WP Suite Cognito Marketplace deployment wrapper template"
+AWSTemplateFormatVersion: '2010-09-09'
+Description: WP Suite Cognito Marketplace deployment wrapper template
 Parameters:
   PrmTagValue:
-    Type: "String"
-    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
-    AllowedPattern: "^pc:[a-z0-9]+$"
-    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+    Type: String
+    Default: pc:5d8wq5hg1d54kb933ntenntiu
+    AllowedPattern: ^pc:[a-z0-9]+$
+    Description: AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources.
   MPS3BucketName:
-    Type: "String"
-    Description: "Public S3 bucket that contains the reviewed WP Suite CloudFormation templates."
+    Type: String
+    Description: Public S3 bucket that contains the reviewed WP Suite CloudFormation templates.
   MPS3BucketRegion:
-    Type: "String"
-    Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
+    Type: String
+    Description: Marketplace-provided bucket region that contains the reviewed WP Suite templates.
   MPS3KeyPrefix:
-    Type: "String"
-    Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
+    Type: String
+    Description: S3 key prefix for the reviewed WP Suite nested CloudFormation templates.
   WpSuiteDeploymentSecretArn:
-    Type: "String"
-    Description: "AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context."
+    Type: String
+    Description: AWS Marketplace Deployment Service secret ARN containing the WP Suite deployment context.
     MinLength: 1
     NoEcho: true
   DeploymentContextMode:
-    Type: "String"
-    Default: "direct"
+    Type: String
+    Default: direct
     AllowedValues:
-      - "marketplace_secret"
-      - "direct"
-    Description: "How this wrapper receives the WP Suite deployment context."
+      - marketplace_secret
+      - direct
+    Description: How this wrapper receives the WP Suite deployment context.
   TemplateVersion:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter TemplateVersion."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter TemplateVersion.
   ArtifactBucketName:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter ArtifactBucketName."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter ArtifactBucketName.
   ArtifactRootPrefix:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter ArtifactRootPrefix."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter ArtifactRootPrefix.
   LogRetentionDays:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter LogRetentionDays."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter LogRetentionDays.
   Enabled:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter Enabled."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter Enabled.
   AppName:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter AppName."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter AppName.
   Environment:
-    Type: "String"
-    Default: "prod"
-    Description: "Forwarded WP Suite nested stack parameter Environment."
+    Type: String
+    Default: prod
+    Description: Forwarded WP Suite nested stack parameter Environment.
   ExistingUserPoolId:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter ExistingUserPoolId."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter ExistingUserPoolId.
   ExistingUserPoolClientId:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter ExistingUserPoolClientId."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter ExistingUserPoolClientId.
   ExistingIdentityPoolId:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter ExistingIdentityPoolId."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter ExistingIdentityPoolId.
   PostLoginRedirectUrl:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter PostLoginRedirectUrl."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter PostLoginRedirectUrl.
   TokenValidityConfig:
-    Type: "String"
-    Default: "1,hours,1,hours,30,days"
-    Description: "Forwarded WP Suite nested stack parameter TokenValidityConfig."
+    Type: String
+    Default: 1,hours,1,hours,30,days
+    Description: Forwarded WP Suite nested stack parameter TokenValidityConfig.
   IdentityEventsMode:
-    Type: "String"
-    Default: "disabled"
+    Type: String
+    Default: disabled
     AllowedValues:
-      - "disabled"
-      - "provisioned"
-      - "active"
-    Description: "Forwarded WP Suite nested stack parameter IdentityEventsMode."
+      - disabled
+      - provisioned
+      - active
+    Description: Forwarded WP Suite nested stack parameter IdentityEventsMode.
   IdentityClaimsProviderArn:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter IdentityClaimsProviderArn."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter IdentityClaimsProviderArn.
   IdentityClaimsClientIds:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter IdentityClaimsClientIds."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter IdentityClaimsClientIds.
   IdentityDeploymentId:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter IdentityDeploymentId."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter IdentityDeploymentId.
   IdentityEnvironment:
-    Type: "String"
-    Default: "deployment"
-    Description: "Forwarded WP Suite nested stack parameter IdentityEnvironment."
+    Type: String
+    Default: deployment
+    Description: Forwarded WP Suite nested stack parameter IdentityEnvironment.
   AgentComposerMcpOAuthConfig:
-    Type: "String"
-    Default: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
-    Description: "Forwarded WP Suite nested stack parameter AgentComposerMcpOAuthConfig."
+    Type: String
+    Default: false|https://example.com/connector/oauth/callback|https://example.com/mcp
+    Description: Forwarded WP Suite nested stack parameter AgentComposerMcpOAuthConfig.
   RegisteredGroupName:
-    Type: "String"
-    Default: "registered"
-    Description: "Forwarded WP Suite nested stack parameter RegisteredGroupName."
+    Type: String
+    Default: registered
+    Description: Forwarded WP Suite nested stack parameter RegisteredGroupName.
   AdminGroupName:
-    Type: "String"
-    Default: "admin"
-    Description: "Forwarded WP Suite nested stack parameter AdminGroupName."
+    Type: String
+    Default: admin
+    Description: Forwarded WP Suite nested stack parameter AdminGroupName.
   GroupConfiguration:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter GroupConfiguration."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter GroupConfiguration.
   CreateIdentityPool:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter CreateIdentityPool."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter CreateIdentityPool.
   EnableCustomEmailSender:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnableCustomEmailSender."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnableCustomEmailSender.
   OverwriteEmailTemplates:
-    Type: "String"
-    Default: "false"
-    Description: "Forwarded WP Suite nested stack parameter OverwriteEmailTemplates."
+    Type: String
+    Default: 'false'
+    Description: Forwarded WP Suite nested stack parameter OverwriteEmailTemplates.
   EnableRecaptcha:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnableRecaptcha."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnableRecaptcha.
   RecaptchaMode:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter RecaptchaMode."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter RecaptchaMode.
   RecaptchaProjectId:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter RecaptchaProjectId."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter RecaptchaProjectId.
   RecaptchaSiteKey:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter RecaptchaSiteKey."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter RecaptchaSiteKey.
   RecaptchaScoreThreshold:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter RecaptchaScoreThreshold."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter RecaptchaScoreThreshold.
   RecaptchaSecretKey:
-    Type: "String"
-    Description: "Forwarded WP Suite nested stack parameter RecaptchaSecretKey."
+    Type: String
+    Description: Forwarded WP Suite nested stack parameter RecaptchaSecretKey.
     NoEcho: true
   SharedRecaptchaResourcePrefix:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter SharedRecaptchaResourcePrefix."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter SharedRecaptchaResourcePrefix.
   SharedApiResourcePrefix:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter SharedApiResourcePrefix."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter SharedApiResourcePrefix.
   DeployAiKitBackend:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter DeployAiKitBackend."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter DeployAiKitBackend.
   DeployFlowBackend:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter DeployFlowBackend."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter DeployFlowBackend.
   EnableApiWAF:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnableApiWAF."
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'false'
+      - 'true'
+      - ip_allowlist
+    Description: Forwarded WP Suite nested stack parameter EnableApiWAF.
   ApiPublicAllowedIPs:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter ApiPublicAllowedIPs."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter ApiPublicAllowedIPs.
   ApiAdminAllowedIPs:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter ApiAdminAllowedIPs."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter ApiAdminAllowedIPs.
   ApiBlockedIPs:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter ApiBlockedIPs."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter ApiBlockedIPs.
   UserPoolName:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter UserPoolName."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter UserPoolName.
   LoginMechanisms:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter LoginMechanisms."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter LoginMechanisms.
   OAuthScopes:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter OAuthScopes."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter OAuthScopes.
   RequireEmailAttribute:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter RequireEmailAttribute."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter RequireEmailAttribute.
   RequireGivenNameAttribute:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter RequireGivenNameAttribute."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter RequireGivenNameAttribute.
   RequireFamilyNameAttribute:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter RequireFamilyNameAttribute."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter RequireFamilyNameAttribute.
   RequirePhoneNumberAttribute:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter RequirePhoneNumberAttribute."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter RequirePhoneNumberAttribute.
   EnablePreSignUp:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnablePreSignUp."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnablePreSignUp.
   EnablePreTokenGeneration:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnablePreTokenGeneration."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnablePreTokenGeneration.
   EnablePostConfirmation:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnablePostConfirmation."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnablePostConfirmation.
   EnablePasskeySignIn:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnablePasskeySignIn."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnablePasskeySignIn.
   EnableEmailOtpSignIn:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnableEmailOtpSignIn."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnableEmailOtpSignIn.
   PasskeyRelyingPartyId:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter PasskeyRelyingPartyId."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter PasskeyRelyingPartyId.
   PasskeyThirdPartyDomain:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter PasskeyThirdPartyDomain."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter PasskeyThirdPartyDomain.
   MfaMode:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter MfaMode."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter MfaMode.
   DeviceTrackingMode:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter DeviceTrackingMode."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter DeviceTrackingMode.
   VerifyAttributeChanges:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter VerifyAttributeChanges."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter VerifyAttributeChanges.
   VerifyAttributeChangesMode:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter VerifyAttributeChangesMode."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter VerifyAttributeChangesMode.
   EnableSoftwareTokenMfa:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnableSoftwareTokenMfa."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnableSoftwareTokenMfa.
   EnablePasskeyMfa:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnablePasskeyMfa."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnablePasskeyMfa.
   EnableEmailOtpMfa:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnableEmailOtpMfa."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnableEmailOtpMfa.
   EnableSmsMfa:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EnableSmsMfa."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EnableSmsMfa.
   CreateCustomDomain:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter CreateCustomDomain."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter CreateCustomDomain.
   RegisterRoute53Alias:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter RegisterRoute53Alias."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter RegisterRoute53Alias.
   UserPoolCustomDomainSubdomain:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter UserPoolCustomDomainSubdomain."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter UserPoolCustomDomainSubdomain.
   UserPoolCustomDomainCertArn:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter UserPoolCustomDomainCertArn."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter UserPoolCustomDomainCertArn.
   AutoCreateSesIdentity:
-    Type: "String"
-    Default: "false"
-    Description: "Forwarded WP Suite nested stack parameter AutoCreateSesIdentity."
+    Type: String
+    Default: 'false'
+    Description: Forwarded WP Suite nested stack parameter AutoCreateSesIdentity.
   DeleteSesIdentityOnStackDelete:
-    Type: "String"
-    Default: "false"
-    Description: "Forwarded WP Suite nested stack parameter DeleteSesIdentityOnStackDelete."
+    Type: String
+    Default: 'false'
+    Description: Forwarded WP Suite nested stack parameter DeleteSesIdentityOnStackDelete.
   EmailTemplateBucketName:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EmailTemplateBucketName."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EmailTemplateBucketName.
   SesIdentity:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter SesIdentity."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter SesIdentity.
   SesRegion:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter SesRegion."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter SesRegion.
   EmailFromAddress:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter EmailFromAddress."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter EmailFromAddress.
   CallbackBaseUrl:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter CallbackBaseUrl."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter CallbackBaseUrl.
   KmsKeyId:
-    Type: "String"
-    Default: ""
-    Description: "Forwarded WP Suite nested stack parameter KmsKeyId."
+    Type: String
+    Default: ''
+    Description: Forwarded WP Suite nested stack parameter KmsKeyId.
   ResolvedAppName:
-    Type: "String"
-    Default: ""
-    AllowedPattern: "^$|^[A-Za-z0-9-]{1,43}$"
-    Description: "Application name resolved by the WP Suite staging backend."
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|^[A-Za-z0-9-]{1,43}$
+    Description: Application name resolved by the WP Suite staging backend.
     MaxLength: 43
   UseResolvedAppName:
-    Type: "String"
-    Default: "false"
+    Type: String
+    Default: 'false'
     AllowedValues:
-      - "true"
-      - "false"
-    Description: "Use the application name resolved by the WP Suite staging backend."
+      - 'true'
+      - 'false'
+    Description: Use the application name resolved by the WP Suite staging backend.
 Mappings:
   WpSuiteMarketplace:
     DeploymentAccess:
-      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+      ProductCode: 5d8wq5hg1d54kb933ntenntiu
 Conditions:
   CondUseMarketplaceSecret:
     Fn::Equals:
-      -
-        Ref: "DeploymentContextMode"
-      - "marketplace_secret"
+      - Ref: DeploymentContextMode
+      - marketplace_secret
   CondUseResolvedAppName:
     Fn::Equals:
-      -
-        Ref: "UseResolvedAppName"
-      - "true"
+      - Ref: UseResolvedAppName
+      - 'true'
   CondHasSharedApiResourcePrefix:
     Fn::Not:
-      -
-        Fn::Equals:
-          -
-            Ref: "SharedApiResourcePrefix"
-          - ""
+      - Fn::Equals:
+          - Ref: SharedApiResourcePrefix
+          - ''
 Resources:
   WrappedNestedStack:
-    Type: "AWS::CloudFormation::Stack"
+    Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
         PrmTagValue:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:PrmTagValue}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "PrmTagValue"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:PrmTagValue}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: PrmTagValue
         TemplateVersion:
-          Ref: "TemplateVersion"
+          Ref: TemplateVersion
         ArtifactBucketName:
-          Ref: "ArtifactBucketName"
+          Ref: ArtifactBucketName
         ArtifactRootPrefix:
-          Ref: "ArtifactRootPrefix"
+          Ref: ArtifactRootPrefix
         LogRetentionDays:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:LogRetentionDays}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "LogRetentionDays"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:LogRetentionDays}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: LogRetentionDays
         Enabled:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployCognito}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "Enabled"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployCognito}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: Enabled
         AppName:
           Fn::If:
-            - "CondUseResolvedAppName"
-            -
-              Ref: "ResolvedAppName"
-            -
-              Fn::Sub:
-                - "${AppName}-${Environment}-${AppNameSuffix}"
-                -
-                  AppName:
-                    Ref: "AppName"
+            - CondUseResolvedAppName
+            - Ref: ResolvedAppName
+            - Fn::Sub:
+                - ${AppName}-${Environment}-${AppNameSuffix}
+                - AppName:
+                    Ref: AppName
                   Environment:
                     Fn::If:
-                      - "CondUseMarketplaceSecret"
-                      -
-                        Fn::Sub:
-                          - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}"
-                          -
-                            DeploymentSecretArn:
-                              Ref: "WpSuiteDeploymentSecretArn"
-                      -
-                        Ref: "Environment"
-                  AppNameSuffix: "cognito"
+                      - CondUseMarketplaceSecret
+                      - Fn::Sub:
+                          - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}'
+                          - DeploymentSecretArn:
+                              Ref: WpSuiteDeploymentSecretArn
+                      - Ref: Environment
+                  AppNameSuffix: cognito
         ExistingUserPoolId:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ExistingUserPoolId}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "ExistingUserPoolId"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ExistingUserPoolId}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: ExistingUserPoolId
         ExistingUserPoolClientId:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ExistingUserPoolClientId}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "ExistingUserPoolClientId"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ExistingUserPoolClientId}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: ExistingUserPoolClientId
         ExistingIdentityPoolId:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ExistingIdentityPoolId}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "ExistingIdentityPoolId"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ExistingIdentityPoolId}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: ExistingIdentityPoolId
         PostLoginRedirectUrl:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoPostLoginRedirectUrl}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "PostLoginRedirectUrl"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoPostLoginRedirectUrl}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: PostLoginRedirectUrl
         TokenValidityConfig:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoTokenValidityConfig}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "TokenValidityConfig"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoTokenValidityConfig}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: TokenValidityConfig
         IdentityEventsMode:
-          Ref: "IdentityEventsMode"
+          Ref: IdentityEventsMode
         IdentityClaimsProviderArn:
-          Ref: "IdentityClaimsProviderArn"
+          Ref: IdentityClaimsProviderArn
         IdentityClaimsClientIds:
-          Ref: "IdentityClaimsClientIds"
+          Ref: IdentityClaimsClientIds
         IdentityDeploymentId:
-          Ref: "IdentityDeploymentId"
+          Ref: IdentityDeploymentId
         IdentityEnvironment:
-          Ref: "IdentityEnvironment"
+          Ref: IdentityEnvironment
         AgentComposerMcpOAuthConfig:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoAgentComposerMcpOAuthConfig}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "AgentComposerMcpOAuthConfig"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoAgentComposerMcpOAuthConfig}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: AgentComposerMcpOAuthConfig
         RegisteredGroupName:
-          Ref: "RegisteredGroupName"
+          Ref: RegisteredGroupName
         AdminGroupName:
-          Ref: "AdminGroupName"
+          Ref: AdminGroupName
         GroupConfiguration:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoGroupConfiguration}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "GroupConfiguration"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoGroupConfiguration}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: GroupConfiguration
         CreateIdentityPool:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoCreateIdentityPool}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "CreateIdentityPool"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoCreateIdentityPool}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: CreateIdentityPool
         EnableCustomEmailSender:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableCustomEmailSender}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnableCustomEmailSender"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableCustomEmailSender}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnableCustomEmailSender
         OverwriteEmailTemplates:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoOverwriteEmailTemplates}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "OverwriteEmailTemplates"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoOverwriteEmailTemplates}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: OverwriteEmailTemplates
         EnableRecaptcha:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableRecaptcha}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnableRecaptcha"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableRecaptcha}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnableRecaptcha
         RecaptchaMode:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaMode}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RecaptchaMode"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaMode}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: RecaptchaMode
         RecaptchaProjectId:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaProjectId}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RecaptchaProjectId"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaProjectId}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: RecaptchaProjectId
         RecaptchaSiteKey:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaSiteKey}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RecaptchaSiteKey"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaSiteKey}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: RecaptchaSiteKey
         RecaptchaScoreThreshold:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaScoreThreshold}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RecaptchaScoreThreshold"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaScoreThreshold}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: RecaptchaScoreThreshold
         RecaptchaSecretKey:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaSecretKey}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RecaptchaSecretKey"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:RecaptchaSecretKey}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: RecaptchaSecretKey
         SharedRecaptchaResourcePrefix:
-          Ref: "SharedRecaptchaResourcePrefix"
+          Ref: SharedRecaptchaResourcePrefix
         SharedApiResourcePrefix:
           Fn::If:
-            - "CondHasSharedApiResourcePrefix"
-            -
-              Ref: "SharedApiResourcePrefix"
-            -
-              Fn::Sub:
-                - "${AppName}-${Environment}"
-                -
-                  AppName:
-                    Ref: "AppName"
+            - CondHasSharedApiResourcePrefix
+            - Ref: SharedApiResourcePrefix
+            - Fn::Sub:
+                - ${AppName}-${Environment}
+                - AppName:
+                    Ref: AppName
                   Environment:
                     Fn::If:
-                      - "CondUseMarketplaceSecret"
-                      -
-                        Fn::Sub:
-                          - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}"
-                          -
-                            DeploymentSecretArn:
-                              Ref: "WpSuiteDeploymentSecretArn"
-                      -
-                        Ref: "Environment"
+                      - CondUseMarketplaceSecret
+                      - Fn::Sub:
+                          - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:Environment}}'
+                          - DeploymentSecretArn:
+                              Ref: WpSuiteDeploymentSecretArn
+                      - Ref: Environment
         DeployAiKitBackend:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployAiKitBackend}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "DeployAiKitBackend"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployAiKitBackend}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: DeployAiKitBackend
         DeployFlowBackend:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployFlowBackend}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "DeployFlowBackend"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:DeployFlowBackend}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: DeployFlowBackend
         EnableApiWAF:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:EnableApiWAF}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnableApiWAF"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:EnableApiWAF}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnableApiWAF
         ApiPublicAllowedIPs:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiPublicAllowedIPs}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "ApiPublicAllowedIPs"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiPublicAllowedIPs}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: ApiPublicAllowedIPs
         ApiAdminAllowedIPs:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiAdminAllowedIPs}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "ApiAdminAllowedIPs"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiAdminAllowedIPs}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: ApiAdminAllowedIPs
         ApiBlockedIPs:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiBlockedIPs}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "ApiBlockedIPs"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:ApiBlockedIPs}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: ApiBlockedIPs
         UserPoolName:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoUserPoolName}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "UserPoolName"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoUserPoolName}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: UserPoolName
         LoginMechanisms:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoLoginMechanisms}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "LoginMechanisms"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoLoginMechanisms}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: LoginMechanisms
         OAuthScopes:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoOAuthScopes}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "OAuthScopes"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoOAuthScopes}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: OAuthScopes
         RequireEmailAttribute:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRequireEmailAttribute}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RequireEmailAttribute"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRequireEmailAttribute}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: RequireEmailAttribute
         RequireGivenNameAttribute:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRequireGivenNameAttribute}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RequireGivenNameAttribute"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRequireGivenNameAttribute}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: RequireGivenNameAttribute
         RequireFamilyNameAttribute:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRequireFamilyNameAttribute}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RequireFamilyNameAttribute"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRequireFamilyNameAttribute}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: RequireFamilyNameAttribute
         RequirePhoneNumberAttribute:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRequirePhoneNumberAttribute}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RequirePhoneNumberAttribute"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRequirePhoneNumberAttribute}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: RequirePhoneNumberAttribute
         EnablePreSignUp:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePreSignUp}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnablePreSignUp"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePreSignUp}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnablePreSignUp
         EnablePreTokenGeneration:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePreTokenGeneration}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnablePreTokenGeneration"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePreTokenGeneration}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnablePreTokenGeneration
         EnablePostConfirmation:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePostConfirmation}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnablePostConfirmation"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePostConfirmation}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnablePostConfirmation
         EnablePasskeySignIn:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePasskeySignIn}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnablePasskeySignIn"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePasskeySignIn}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnablePasskeySignIn
         EnableEmailOtpSignIn:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableEmailOtpSignIn}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnableEmailOtpSignIn"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableEmailOtpSignIn}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnableEmailOtpSignIn
         PasskeyRelyingPartyId:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoPasskeyRelyingPartyId}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "PasskeyRelyingPartyId"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoPasskeyRelyingPartyId}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: PasskeyRelyingPartyId
         PasskeyThirdPartyDomain:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoPasskeyThirdPartyDomain}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "PasskeyThirdPartyDomain"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoPasskeyThirdPartyDomain}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: PasskeyThirdPartyDomain
         MfaMode:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoMfaMode}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "MfaMode"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoMfaMode}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: MfaMode
         DeviceTrackingMode:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoDeviceTrackingMode}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "DeviceTrackingMode"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoDeviceTrackingMode}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: DeviceTrackingMode
         VerifyAttributeChanges:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoVerifyAttributeChanges}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "VerifyAttributeChanges"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoVerifyAttributeChanges}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: VerifyAttributeChanges
         VerifyAttributeChangesMode:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoVerifyAttributeChangesMode}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "VerifyAttributeChangesMode"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoVerifyAttributeChangesMode}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: VerifyAttributeChangesMode
         EnableSoftwareTokenMfa:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableSoftwareTokenMfa}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnableSoftwareTokenMfa"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableSoftwareTokenMfa}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnableSoftwareTokenMfa
         EnablePasskeyMfa:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePasskeyMfa}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnablePasskeyMfa"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnablePasskeyMfa}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnablePasskeyMfa
         EnableEmailOtpMfa:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableEmailOtpMfa}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnableEmailOtpMfa"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableEmailOtpMfa}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnableEmailOtpMfa
         EnableSmsMfa:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableSmsMfa}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EnableSmsMfa"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEnableSmsMfa}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EnableSmsMfa
         CreateCustomDomain:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoCreateCustomDomain}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "CreateCustomDomain"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoCreateCustomDomain}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: CreateCustomDomain
         RegisterRoute53Alias:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRegisterRoute53Alias}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "RegisterRoute53Alias"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoRegisterRoute53Alias}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: RegisterRoute53Alias
         UserPoolCustomDomainSubdomain:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoUserPoolCustomDomainSubdomain}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "UserPoolCustomDomainSubdomain"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoUserPoolCustomDomainSubdomain}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: UserPoolCustomDomainSubdomain
         UserPoolCustomDomainCertArn:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoUserPoolCustomDomainCertArn}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "UserPoolCustomDomainCertArn"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoUserPoolCustomDomainCertArn}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: UserPoolCustomDomainCertArn
         AutoCreateSesIdentity:
-          Ref: "AutoCreateSesIdentity"
+          Ref: AutoCreateSesIdentity
         DeleteSesIdentityOnStackDelete:
-          Ref: "DeleteSesIdentityOnStackDelete"
+          Ref: DeleteSesIdentityOnStackDelete
         EmailTemplateBucketName:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEmailTemplateBucketName}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EmailTemplateBucketName"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEmailTemplateBucketName}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EmailTemplateBucketName
         SesIdentity:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoSesIdentity}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "SesIdentity"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoSesIdentity}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: SesIdentity
         SesRegion:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoSesRegion}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "SesRegion"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoSesRegion}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: SesRegion
         EmailFromAddress:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEmailFromAddress}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "EmailFromAddress"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoEmailFromAddress}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: EmailFromAddress
         CallbackBaseUrl:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoCallbackBaseUrl}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "CallbackBaseUrl"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoCallbackBaseUrl}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: CallbackBaseUrl
         KmsKeyId:
           Fn::If:
-            - "CondUseMarketplaceSecret"
-            -
-              Fn::Sub:
-                - "{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoKmsKeyId}}"
-                -
-                  DeploymentSecretArn:
-                    Ref: "WpSuiteDeploymentSecretArn"
-            -
-              Ref: "KmsKeyId"
+            - CondUseMarketplaceSecret
+            - Fn::Sub:
+                - '{{resolve:secretsmanager:${DeploymentSecretArn}:SecretString:CognitoKmsKeyId}}'
+                - DeploymentSecretArn:
+                    Ref: WpSuiteDeploymentSecretArn
+            - Ref: KmsKeyId
       Tags:
-        -
-          Key: "aws-apn-id"
+        - Key: aws-apn-id
           Value:
-            Ref: "PrmTagValue"
+            Ref: PrmTagValue
       TemplateURL:
         Fn::Sub:
-          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
-          -
-            Bucket:
-              Ref: "MPS3BucketName"
+          - https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}
+          - Bucket:
+              Ref: MPS3BucketName
             Region:
-              Ref: "MPS3BucketRegion"
+              Ref: MPS3BucketRegion
             Prefix:
-              Ref: "MPS3KeyPrefix"
-            TemplatePath: "wpsuite-cognito.yaml"
+              Ref: MPS3KeyPrefix
+            TemplatePath: wpsuite-cognito.yaml
 Outputs:
   PrmProductCode:
-    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Description: AWS Marketplace product code used for WP Suite Deployment Access PRM attribution.
     Value:
       Fn::FindInMap:
-        - "WpSuiteMarketplace"
-        - "DeploymentAccess"
-        - "ProductCode"
+        - WpSuiteMarketplace
+        - DeploymentAccess
+        - ProductCode
   UserPoolId:
-    Description: "Forwarded UserPoolId output from wpsuite-cognito.yaml."
+    Description: Forwarded UserPoolId output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.UserPoolId"
+        - WrappedNestedStack
+        - Outputs.UserPoolId
   UserPoolClientId:
-    Description: "Forwarded UserPoolClientId output from wpsuite-cognito.yaml."
+    Description: Forwarded UserPoolClientId output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.UserPoolClientId"
+        - WrappedNestedStack
+        - Outputs.UserPoolClientId
   AgentComposerMcpOAuthClientId:
-    Description: "Forwarded AgentComposerMcpOAuthClientId output from wpsuite-cognito.yaml."
+    Description: Forwarded AgentComposerMcpOAuthClientId output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.AgentComposerMcpOAuthClientId"
+        - WrappedNestedStack
+        - Outputs.AgentComposerMcpOAuthClientId
   AgentComposerMcpResourceUri:
-    Description: "Forwarded AgentComposerMcpResourceUri output from wpsuite-cognito.yaml."
+    Description: Forwarded AgentComposerMcpResourceUri output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.AgentComposerMcpResourceUri"
+        - WrappedNestedStack
+        - Outputs.AgentComposerMcpResourceUri
   IdentityPoolId:
-    Description: "Forwarded IdentityPoolId output from wpsuite-cognito.yaml."
+    Description: Forwarded IdentityPoolId output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.IdentityPoolId"
+        - WrappedNestedStack
+        - Outputs.IdentityPoolId
   IdentityEventBusArn:
-    Description: "Forwarded IdentityEventBusArn output from wpsuite-cognito.yaml."
+    Description: Forwarded IdentityEventBusArn output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.IdentityEventBusArn"
+        - WrappedNestedStack
+        - Outputs.IdentityEventBusArn
   IdentityExtensionContractVersion:
-    Description: "Forwarded IdentityExtensionContractVersion output from wpsuite-cognito.yaml."
+    Description: Forwarded IdentityExtensionContractVersion output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.IdentityExtensionContractVersion"
+        - WrappedNestedStack
+        - Outputs.IdentityExtensionContractVersion
   IdentityDeploymentId:
-    Description: "Forwarded IdentityDeploymentId output from wpsuite-cognito.yaml."
+    Description: Forwarded IdentityDeploymentId output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.IdentityDeploymentId"
+        - WrappedNestedStack
+        - Outputs.IdentityDeploymentId
   SharedRecaptchaSecretParameterName:
-    Description: "Forwarded SharedRecaptchaSecretParameterName output from wpsuite-cognito.yaml."
+    Description: Forwarded SharedRecaptchaSecretParameterName output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.SharedRecaptchaSecretParameterName"
+        - WrappedNestedStack
+        - Outputs.SharedRecaptchaSecretParameterName
   SharedRecaptchaSecretParameterArn:
-    Description: "Forwarded SharedRecaptchaSecretParameterArn output from wpsuite-cognito.yaml."
+    Description: Forwarded SharedRecaptchaSecretParameterArn output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.SharedRecaptchaSecretParameterArn"
+        - WrappedNestedStack
+        - Outputs.SharedRecaptchaSecretParameterArn
   SharedRecaptchaKmsKeyArn:
-    Description: "Forwarded SharedRecaptchaKmsKeyArn output from wpsuite-cognito.yaml."
+    Description: Forwarded SharedRecaptchaKmsKeyArn output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.SharedRecaptchaKmsKeyArn"
+        - WrappedNestedStack
+        - Outputs.SharedRecaptchaKmsKeyArn
   SharedApiWebACLArn:
-    Description: "Forwarded SharedApiWebACLArn output from wpsuite-cognito.yaml."
+    Description: Forwarded SharedApiWebACLArn output from wpsuite-cognito.yaml.
     Value:
       Fn::GetAtt:
-        - "WrappedNestedStack"
-        - "Outputs.SharedApiWebACLArn"
+        - WrappedNestedStack
+        - Outputs.SharedApiWebACLArn
