@@ -1,0 +1,1524 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  ArtifactBucketName:
+    Type: "String"
+    Description: "Commerce ArtifactBucketName."
+  ArtifactRootPrefix:
+    Type: "String"
+    Description: "Commerce ArtifactRootPrefix."
+  TemplateVersion:
+    Type: "String"
+    Description: "Commerce TemplateVersion."
+  ConfigParameterArn:
+    Type: "String"
+    AllowedPattern: "^arn:[a-z0-9-]+:ssm:[a-z0-9-]+:[0-9]{12}:parameter/[A-Za-z0-9_.\\-/]+$"
+    Description: "Commerce ConfigParameterArn."
+  StripeSecretArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^arn:[a-z0-9-]+:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$"
+    Description: "Commerce StripeSecretArn."
+  UserPoolId:
+    Type: "String"
+    AllowedPattern: "^[a-z0-9-]+_[A-Za-z0-9]+$"
+    Description: "Commerce UserPoolId."
+  AppClientIds:
+    Type: "String"
+    AllowedPattern: "^[A-Za-z0-9]+(,[A-Za-z0-9]+)*$"
+    Description: "Commerce AppClientIds."
+  DeploymentId:
+    Type: "String"
+    Description: "Commerce DeploymentId."
+  SiteId:
+    Type: "String"
+    Description: "Commerce SiteId."
+  StripeAccountId:
+    Type: "String"
+    Description: "Commerce StripeAccountId."
+  StripeMode:
+    Type: "String"
+    AllowedValues:
+      - "test"
+      - "live"
+    Description: "Commerce StripeMode."
+  StripePartnerEventBusName:
+    Type: "String"
+    Description: "Own event bus receiving Stripe events for this Commerce installation."
+  StripeEventSource:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^aws\\.partner/stripe\\.com/[A-Za-z0-9_./-]+$"
+    Description: "Exact Stripe partner event source; leave empty only when the event bus itself is the partner bus."
+  AllowedOrigin:
+    Type: "String"
+    AllowedPattern: "^https://[A-Za-z0-9.-]+(:[0-9]+)?$"
+    Description: "Commerce AllowedOrigin."
+  SubjectAdapterArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^arn:[a-z0-9-]+:lambda:[a-z0-9-]+:[0-9]{12}:function:[A-Za-z0-9-_]+:[A-Za-z0-9-_]+$"
+    Description: "Commerce SubjectAdapterArn."
+  NotificationAdapterArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^arn:[a-z0-9-]+:lambda:[a-z0-9-]+:[0-9]{12}:function:[A-Za-z0-9-_]+:[A-Za-z0-9-_]+$"
+    Description: "Commerce NotificationAdapterArn."
+  OAuthBaseUrl:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]+)*$"
+    Description: "Commerce OAuthBaseUrl."
+  OAuthRegion:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^[a-z]{2}(-gov)?-[a-z]+-[0-9]+$"
+    Description: "Commerce OAuthRegion."
+  OAuthWorkspaceId:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+    Description: "Commerce OAuthWorkspaceId."
+  OAuthInvokeArn:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^arn:(aws|aws-us-gov|aws-cn):execute-api:[a-z0-9-]+:[0-9]{12}:[A-Za-z0-9]+/[A-Za-z0-9_$.-]+/POST/runtime/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+/\\*$"
+    Description: "Commerce OAuthInvokeArn."
+  AdministratorGroups:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^$|^(?![Cc][Oo][Mm][Mm][Ee][Rr][Cc][Ee]-)[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}(,(?![Cc][Oo][Mm][Mm][Ee][Rr][Cc][Ee]-)[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}){0,19}$"
+    Description: "Commerce AdministratorGroups."
+  Enabled:
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Create Commerce resources."
+  StaticSiteOrigin:
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^(?:https://[A-Za-z0-9.-]+(:[0-9]+)?)?$"
+    Description: "Additional HTTPS origin for the published static site."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+Rules:
+  CommerceCredentials:
+    RuleCondition:
+      Fn::Equals:
+        -
+          Ref: "Enabled"
+        - "true"
+    Assertions:
+      -
+        Assert:
+          Fn::Or:
+            -
+              Fn::And:
+                -
+                  Fn::Not:
+                    -
+                      Fn::Equals:
+                        -
+                          Ref: "StripeSecretArn"
+                        - ""
+                -
+                  Fn::Equals:
+                    -
+                      Ref: "OAuthBaseUrl"
+                    - ""
+                -
+                  Fn::Equals:
+                    -
+                      Ref: "OAuthRegion"
+                    - ""
+                -
+                  Fn::Equals:
+                    -
+                      Ref: "OAuthWorkspaceId"
+                    - ""
+                -
+                  Fn::Equals:
+                    -
+                      Ref: "OAuthInvokeArn"
+                    - ""
+            -
+              Fn::And:
+                -
+                  Fn::Not:
+                    -
+                      Fn::Equals:
+                        -
+                          Ref: "OAuthBaseUrl"
+                        - ""
+                -
+                  Fn::Not:
+                    -
+                      Fn::Equals:
+                        -
+                          Ref: "OAuthRegion"
+                        - ""
+                -
+                  Fn::Not:
+                    -
+                      Fn::Equals:
+                        -
+                          Ref: "OAuthWorkspaceId"
+                        - ""
+                -
+                  Fn::Not:
+                    -
+                      Fn::Equals:
+                        -
+                          Ref: "OAuthInvokeArn"
+                        - ""
+                -
+                  Fn::Not:
+                    -
+                      Fn::Equals:
+                        -
+                          Ref: "AdministratorGroups"
+                        - ""
+        AssertDescription: "Provide either manual Stripe credentials or the complete OAuth configuration."
+Conditions:
+  HasStaticSiteOrigin:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "StaticSiteOrigin"
+          - ""
+  HasOAuth:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "OAuthBaseUrl"
+          - ""
+  HasManualCredentials:
+    Fn::And:
+      -
+        Fn::Not:
+          -
+            Condition: "HasOAuth"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "StripeSecretArn"
+              - ""
+  CommerceEnabled:
+    Fn::Equals:
+      -
+        Ref: "Enabled"
+      - "true"
+  IsLiveMode:
+    Fn::Equals:
+      -
+        Ref: "StripeMode"
+      - "live"
+  HasStripeEventSource:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "StripeEventSource"
+          - ""
+  HasSubjectAdapter:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SubjectAdapterArn"
+          - ""
+  ValidSubjectAdapter:
+    Fn::And:
+      -
+        Condition: "HasSubjectAdapter"
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - ":"
+                  -
+                    Fn::Join:
+                      - ""
+                      -
+                        -
+                          Ref: "SubjectAdapterArn"
+                        - ":::::"
+          -
+            Ref: "AWS::AccountId"
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - ":"
+                  -
+                    Fn::Join:
+                      - ""
+                      -
+                        -
+                          Ref: "SubjectAdapterArn"
+                        - ":::::"
+          -
+            Ref: "AWS::Region"
+  ValidNotificationAdapter:
+    Fn::And:
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "NotificationAdapterArn"
+              - ""
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 1
+              -
+                Fn::Split:
+                  - ":"
+                  -
+                    Fn::Join:
+                      - ""
+                      -
+                        -
+                          Ref: "NotificationAdapterArn"
+                        - ":::::"
+          -
+            Ref: "AWS::Partition"
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - ":"
+                  -
+                    Fn::Join:
+                      - ""
+                      -
+                        -
+                          Ref: "NotificationAdapterArn"
+                        - ":::::"
+          -
+            Ref: "AWS::Region"
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - ":"
+                  -
+                    Fn::Join:
+                      - ""
+                      -
+                        -
+                          Ref: "NotificationAdapterArn"
+                        - ":::::"
+          -
+            Ref: "AWS::AccountId"
+Resources:
+  CommerceState:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+        -
+          AttributeName: "SK"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+        -
+          AttributeName: "SK"
+          KeyType: "RANGE"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: "expiresAt"
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "Retain"
+    Condition: "CommerceEnabled"
+  DeadLetterQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      MessageRetentionPeriod: 1209600
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CommerceEnabled"
+  EventQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "DeadLetterQueue"
+            - "Arn"
+        maxReceiveCount: 5
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CommerceEnabled"
+  NotificationDeadLetterQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CommerceEnabled"
+  NotificationQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      SqsManagedSseEnabled: true
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "NotificationDeadLetterQueue"
+            - "Arn"
+        maxReceiveCount: 5
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CommerceEnabled"
+  CommerceEventBus:
+    Type: "AWS::Events::EventBus"
+    Properties:
+      Name:
+        Fn::Sub: "${AWS::StackName}-commerce"
+    Condition: "CommerceEnabled"
+  RuntimeLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AWS::StackName}-commerce"
+      RetentionInDays: 14
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CommerceEnabled"
+  RuntimeRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "CommerceRuntime"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:ConditionCheckItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "CommerceState"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:ReceiveMessage"
+                  - "sqs:DeleteMessage"
+                  - "sqs:GetQueueAttributes"
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "EventQueue"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sqs:ReceiveMessage"
+                  - "sqs:DeleteMessage"
+                  - "sqs:GetQueueAttributes"
+                  - "sqs:SendMessage"
+                Resource:
+                  Fn::GetAtt:
+                    - "NotificationQueue"
+                    - "Arn"
+              -
+                Fn::If:
+                  - "ValidNotificationAdapter"
+                  -
+                    Effect: "Allow"
+                    Action: "lambda:InvokeFunction"
+                    Resource:
+                      Ref: "NotificationAdapterArn"
+                  -
+                    Ref: "AWS::NoValue"
+              -
+                Fn::If:
+                  - "HasManualCredentials"
+                  -
+                    Effect: "Allow"
+                    Action: "secretsmanager:GetSecretValue"
+                    Resource:
+                      Ref: "StripeSecretArn"
+                  -
+                    Ref: "AWS::NoValue"
+              -
+                Fn::If:
+                  - "HasOAuth"
+                  -
+                    Effect: "Allow"
+                    Action: "execute-api:Invoke"
+                    Resource:
+                      Ref: "OAuthInvokeArn"
+                  -
+                    Ref: "AWS::NoValue"
+              -
+                Effect: "Allow"
+                Action: "ssm:GetParameter"
+                Resource:
+                  Ref: "ConfigParameterArn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "cognito-idp:GetGroup"
+                  - "cognito-idp:CreateGroup"
+                  - "cognito-idp:AdminGetUser"
+                  - "cognito-idp:AdminListGroupsForUser"
+                  - "cognito-idp:AdminAddUserToGroup"
+                  - "cognito-idp:AdminRemoveUserFromGroup"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}"
+              -
+                Effect: "Allow"
+                Action: "events:PutEvents"
+                Resource:
+                  Fn::GetAtt:
+                    - "CommerceEventBus"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-commerce:*"
+              -
+                Fn::If:
+                  - "ValidSubjectAdapter"
+                  -
+                    Effect: "Allow"
+                    Action: "lambda:InvokeFunction"
+                    Resource:
+                      Ref: "SubjectAdapterArn"
+                  -
+                    Ref: "AWS::NoValue"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CommerceEnabled"
+  Runtime:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Runtime: "nodejs22.x"
+      MemorySize: 256
+      ReservedConcurrentExecutions: 10
+      LoggingConfig:
+        LogGroup:
+          Fn::Sub: "/aws/lambda/${AWS::StackName}-commerce"
+      Handler: "index.handler"
+      Role:
+        Fn::GetAtt:
+          - "RuntimeRole"
+          - "Arn"
+      Timeout: 30
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactRootPrefix}wpsuite-commerce/functions/runtime.zip"
+      Environment:
+        Variables:
+          COMMERCE_TABLE:
+            Ref: "CommerceState"
+          COMMERCE_QUEUE_ARN:
+            Fn::GetAtt:
+              - "EventQueue"
+              - "Arn"
+          COMMERCE_QUEUE_URL:
+            Ref: "EventQueue"
+          COMMERCE_TEMPLATE_VERSION:
+            Ref: "TemplateVersion"
+          COMMERCE_EVENT_BUS_NAME:
+            Ref: "CommerceEventBus"
+          COMMERCE_NOTIFICATION_QUEUE_URL:
+            Ref: "NotificationQueue"
+          COMMERCE_NOTIFICATION_QUEUE_ARN:
+            Fn::GetAtt:
+              - "NotificationQueue"
+              - "Arn"
+          NOTIFICATION_ADAPTER_ARN:
+            Fn::If:
+              - "ValidNotificationAdapter"
+              -
+                Ref: "NotificationAdapterArn"
+              - ""
+          COMMERCE_CONFIG_PARAMETER_ARN:
+            Ref: "ConfigParameterArn"
+          STRIPE_SECRET_ARN:
+            Ref: "StripeSecretArn"
+          USER_POOL_ID:
+            Ref: "UserPoolId"
+          APP_CLIENT_IDS:
+            Ref: "AppClientIds"
+          DEPLOYMENT_ID:
+            Ref: "DeploymentId"
+          SITE_ID:
+            Ref: "SiteId"
+          STRIPE_ACCOUNT_ID:
+            Ref: "StripeAccountId"
+          STRIPE_MODE:
+            Ref: "StripeMode"
+          STRIPE_PARTNER_EVENT_BUS_NAME:
+            Ref: "StripePartnerEventBusName"
+          ALLOWED_ORIGIN:
+            Ref: "AllowedOrigin"
+          SUBJECT_ADAPTER_ARN:
+            Ref: "SubjectAdapterArn"
+          OAUTH_BASE_URL:
+            Ref: "OAuthBaseUrl"
+          OAUTH_REGION:
+            Ref: "OAuthRegion"
+          OAUTH_WORKSPACE_ID:
+            Ref: "OAuthWorkspaceId"
+          ADMINISTRATOR_GROUPS:
+            Ref: "AdministratorGroups"
+          STRIPE_EVENT_SOURCE:
+            Fn::If:
+              - "HasStripeEventSource"
+              -
+                Ref: "StripeEventSource"
+              -
+                Ref: "StripePartnerEventBusName"
+          STATIC_SITE_ORIGIN:
+            Ref: "StaticSiteOrigin"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "RuntimeLogGroup"
+    Condition: "CommerceEnabled"
+  QueueMapping:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt:
+          - "EventQueue"
+          - "Arn"
+      FunctionName:
+        Fn::GetAtt:
+          - "Runtime"
+          - "Arn"
+      BatchSize: 1
+      ScalingConfig:
+        MaximumConcurrency: 5
+      FunctionResponseTypes:
+        - "ReportBatchItemFailures"
+    Condition: "CommerceEnabled"
+  NotificationWorker:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Runtime: "nodejs22.x"
+      MemorySize: 256
+      LoggingConfig:
+        LogGroup:
+          Fn::Sub: "/aws/lambda/${AWS::StackName}-commerce"
+      Handler: "index.notificationHandler"
+      Role:
+        Fn::GetAtt:
+          - "RuntimeRole"
+          - "Arn"
+      Timeout: 30
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Sub: "${ArtifactRootPrefix}wpsuite-commerce/functions/runtime.zip"
+      Environment:
+        Variables:
+          COMMERCE_TABLE:
+            Ref: "CommerceState"
+          COMMERCE_QUEUE_ARN:
+            Fn::GetAtt:
+              - "EventQueue"
+              - "Arn"
+          COMMERCE_QUEUE_URL:
+            Ref: "EventQueue"
+          COMMERCE_TEMPLATE_VERSION:
+            Ref: "TemplateVersion"
+          COMMERCE_EVENT_BUS_NAME:
+            Ref: "CommerceEventBus"
+          COMMERCE_NOTIFICATION_QUEUE_URL:
+            Ref: "NotificationQueue"
+          COMMERCE_NOTIFICATION_QUEUE_ARN:
+            Fn::GetAtt:
+              - "NotificationQueue"
+              - "Arn"
+          NOTIFICATION_ADAPTER_ARN:
+            Fn::If:
+              - "ValidNotificationAdapter"
+              -
+                Ref: "NotificationAdapterArn"
+              - ""
+          COMMERCE_CONFIG_PARAMETER_ARN:
+            Ref: "ConfigParameterArn"
+          STRIPE_SECRET_ARN:
+            Ref: "StripeSecretArn"
+          USER_POOL_ID:
+            Ref: "UserPoolId"
+          APP_CLIENT_IDS:
+            Ref: "AppClientIds"
+          DEPLOYMENT_ID:
+            Ref: "DeploymentId"
+          SITE_ID:
+            Ref: "SiteId"
+          STRIPE_ACCOUNT_ID:
+            Ref: "StripeAccountId"
+          STRIPE_MODE:
+            Ref: "StripeMode"
+          STRIPE_PARTNER_EVENT_BUS_NAME:
+            Ref: "StripePartnerEventBusName"
+          ALLOWED_ORIGIN:
+            Ref: "AllowedOrigin"
+          SUBJECT_ADAPTER_ARN:
+            Ref: "SubjectAdapterArn"
+          OAUTH_BASE_URL:
+            Ref: "OAuthBaseUrl"
+          OAUTH_REGION:
+            Ref: "OAuthRegion"
+          OAUTH_WORKSPACE_ID:
+            Ref: "OAuthWorkspaceId"
+          ADMINISTRATOR_GROUPS:
+            Ref: "AdministratorGroups"
+          STRIPE_EVENT_SOURCE:
+            Fn::If:
+              - "HasStripeEventSource"
+              -
+                Ref: "StripeEventSource"
+              -
+                Ref: "StripePartnerEventBusName"
+          STATIC_SITE_ORIGIN:
+            Ref: "StaticSiteOrigin"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "RuntimeLogGroup"
+    Condition: "CommerceEnabled"
+  NotificationQueueMapping:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt:
+          - "NotificationQueue"
+          - "Arn"
+      FunctionName:
+        Fn::GetAtt:
+          - "NotificationWorker"
+          - "Arn"
+      BatchSize: 1
+      ScalingConfig:
+        MaximumConcurrency: 5
+      FunctionResponseTypes:
+        - "ReportBatchItemFailures"
+    Condition: "CommerceEnabled"
+  NotificationRecoveryRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      ScheduleExpression: "rate(1 minute)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "NotificationWorker"
+              - "Arn"
+          Id: "NotificationRecovery"
+          Input: "{\"source\":\"wpsuite.commerce.notification-reconcile\",\"detail\":{\"schemaVersion\":1}}"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CommerceEnabled"
+  NotificationRecoveryPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Fn::GetAtt:
+          - "NotificationWorker"
+          - "Arn"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "NotificationRecoveryRule"
+          - "Arn"
+    Condition: "CommerceEnabled"
+  StripeRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      EventBusName:
+        Ref: "StripePartnerEventBusName"
+      State: "ENABLED"
+      EventPattern:
+        source:
+          -
+            Fn::If:
+              - "HasStripeEventSource"
+              -
+                Ref: "StripeEventSource"
+              -
+                Ref: "StripePartnerEventBusName"
+        account:
+          -
+            Ref: "AWS::AccountId"
+        detail:
+          livemode:
+            -
+              Fn::If:
+                - "IsLiveMode"
+                - true
+                - false
+          type:
+            - "entitlements.active_entitlement_summary.updated"
+            - "customer.created"
+            - "customer.updated"
+            - "customer.deleted"
+            - "customer.subscription.created"
+            - "customer.subscription.updated"
+            - "customer.subscription.deleted"
+            - "customer.subscription.paused"
+            - "customer.subscription.resumed"
+            - "customer.subscription.trial_will_end"
+            - "subscription_schedule.created"
+            - "subscription_schedule.updated"
+            - "subscription_schedule.released"
+            - "subscription_schedule.canceled"
+            - "subscription_schedule.completed"
+            - "invoice.created"
+            - "invoice.finalized"
+            - "invoice.paid"
+            - "invoice.payment_failed"
+            - "invoice.payment_action_required"
+            - "invoice.voided"
+            - "invoice.marked_uncollectible"
+            - "checkout.session.completed"
+            - "checkout.session.async_payment_succeeded"
+            - "checkout.session.async_payment_failed"
+            - "checkout.session.expired"
+            - "payment_intent.succeeded"
+            - "payment_intent.payment_failed"
+            - "payment_intent.canceled"
+            - "charge.succeeded"
+            - "charge.failed"
+            - "charge.refunded"
+            - "charge.refund.updated"
+            - "charge.dispute.created"
+            - "charge.dispute.updated"
+            - "charge.dispute.closed"
+            - "radar.early_fraud_warning.created"
+            - "radar.early_fraud_warning.updated"
+            - "refund.created"
+            - "refund.updated"
+            - "refund.failed"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "EventQueue"
+              - "Arn"
+          Id: "CommerceQueue"
+          SqsParameters:
+            MessageGroupId: "commerce"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CommerceEnabled"
+  ReconcileRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      ScheduleExpression: "rate(1 minute)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "EventQueue"
+              - "Arn"
+          Id: "ReconcileQueue"
+          SqsParameters:
+            MessageGroupId: "commerce"
+          InputTransformer:
+            InputPathsMap:
+              eventId: "$.id"
+            InputTemplate: "{\"source\":\"wpsuite.commerce.reconcile\",\"id\":<eventId>,\"detail\":{\"schemaVersion\":1}}"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "CommerceEnabled"
+  QueuePolicy:
+    Type: "AWS::SQS::QueuePolicy"
+    Properties:
+      Queues:
+        -
+          Ref: "EventQueue"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "events.amazonaws.com"
+            Action: "sqs:SendMessage"
+            Resource:
+              Fn::GetAtt:
+                - "EventQueue"
+                - "Arn"
+            Condition:
+              ArnEquals:
+                aws:SourceArn:
+                  -
+                    Fn::GetAtt:
+                      - "StripeRule"
+                      - "Arn"
+                  -
+                    Fn::GetAtt:
+                      - "ReconcileRule"
+                      - "Arn"
+    Condition: "CommerceEnabled"
+  Api:
+    Type: "AWS::ApiGatewayV2::Api"
+    Properties:
+      Name:
+        Fn::Join:
+          - ""
+          -
+            - "commerce-"
+            -
+              Fn::Select:
+                - 2
+                -
+                  Fn::Split:
+                    - "/"
+                    -
+                      Ref: "AWS::StackId"
+      ProtocolType: "HTTP"
+      CorsConfiguration:
+        AllowOrigins:
+          Fn::If:
+            - "HasStaticSiteOrigin"
+            -
+              -
+                Ref: "AllowedOrigin"
+              -
+                Ref: "StaticSiteOrigin"
+            -
+              -
+                Ref: "AllowedOrigin"
+        AllowHeaders:
+          - "authorization"
+          - "content-type"
+        AllowMethods:
+          - "GET"
+          - "POST"
+          - "OPTIONS"
+    Condition: "CommerceEnabled"
+  Authorizer:
+    Type: "AWS::ApiGatewayV2::Authorizer"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      AuthorizerType: "JWT"
+      IdentitySource:
+        - "$request.header.Authorization"
+      Name: "Cognito"
+      JwtConfiguration:
+        Audience:
+          Fn::Split:
+            - ","
+            -
+              Ref: "AppClientIds"
+        Issuer:
+          Fn::Sub: "https://cognito-idp.${AWS::Region}.${AWS::URLSuffix}/${UserPoolId}"
+    Condition: "CommerceEnabled"
+  Integration:
+    Type: "AWS::ApiGatewayV2::Integration"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      IntegrationType: "AWS_PROXY"
+      IntegrationUri:
+        Fn::GetAtt:
+          - "Runtime"
+          - "Arn"
+      PayloadFormatVersion: "2.0"
+    Condition: "CommerceEnabled"
+  Route0:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "GET /health"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "NONE"
+    Condition: "CommerceEnabled"
+  Route1:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "GET /entitlements/current"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route2:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /stripe/purchase-bindings"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route3:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /stripe/checkout-session"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route4:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /stripe/customer-session"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route5:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /stripe/customer-portal-session"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route6:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "GET /admin/stripe/connection"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route7:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /admin/stripe/connect"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route8:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /admin/stripe/disconnect"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route9:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /admin/stripe/enroll"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route10:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "GET /admin/stripe/catalog"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route11:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "GET /admin/experience/state"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route12:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /admin/experience/apply"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route13:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /subscriptions/list"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route14:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /subscriptions/preview"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route15:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /subscriptions/confirm"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route16:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /subscriptions/status"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route17:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "GET /admin/email-templates"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route18:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "GET /admin/email-templates/content"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route19:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /admin/email-templates/save"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route20:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "POST /admin/email-templates/preview"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Route21:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "GET /admin/access-policy"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
+  Stage:
+    Type: "AWS::ApiGatewayV2::Stage"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      StageName: "$default"
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 25
+    DependsOn:
+      - "ApiPermission"
+    Condition: "CommerceEnabled"
+  ApiPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName:
+        Fn::GetAtt:
+          - "Runtime"
+          - "Arn"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn:
+        Fn::Sub: "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*"
+    Condition: "CommerceEnabled"
+  QueueAgeAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      Namespace: "AWS/SQS"
+      MetricName: "ApproximateAgeOfOldestMessage"
+      Dimensions:
+        -
+          Name: "QueueName"
+          Value:
+            Fn::GetAtt:
+              - "EventQueue"
+              - "QueueName"
+      Statistic: "Maximum"
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 180
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: "notBreaching"
+    Condition: "CommerceEnabled"
+  DeadLetterAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      Namespace: "AWS/SQS"
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Dimensions:
+        -
+          Name: "QueueName"
+          Value:
+            Fn::GetAtt:
+              - "DeadLetterQueue"
+              - "QueueName"
+      Statistic: "Maximum"
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: "notBreaching"
+    Condition: "CommerceEnabled"
+  RuntimeErrorsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      Namespace: "AWS/Lambda"
+      MetricName: "Errors"
+      Dimensions:
+        -
+          Name: "FunctionName"
+          Value:
+            Ref: "Runtime"
+      Statistic: "Maximum"
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: "notBreaching"
+    Condition: "CommerceEnabled"
+Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
+  ApiUrl:
+    Description: "Commerce ApiUrl."
+    Value:
+      Fn::GetAtt:
+        - "Api"
+        - "ApiEndpoint"
+    Condition: "CommerceEnabled"
+  EventBusName:
+    Description: "Commerce EventBusName."
+    Value:
+      Ref: "CommerceEventBus"
+    Condition: "CommerceEnabled"
+  TableName:
+    Description: "Commerce TableName."
+    Value:
+      Ref: "CommerceState"
+    Condition: "CommerceEnabled"
+  ContractVersion:
+    Description: "Commerce ContractVersion."
+    Value: "1"
+    Condition: "CommerceEnabled"
+  GroupClaimsMode:
+    Description: "Commerce GroupClaimsMode."
+    Value: "existing-sc.group"
+    Condition: "CommerceEnabled"
+  RuntimeRoleArn:
+    Description: "Commerce RuntimeRoleArn."
+    Value:
+      Fn::GetAtt:
+        - "RuntimeRole"
+        - "Arn"
+    Condition: "CommerceEnabled"

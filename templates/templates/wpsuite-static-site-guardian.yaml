@@ -18,7 +18,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.13"
+    Default: "v1.1.16"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -38,10 +38,11 @@ Parameters:
   DomainName:
     Type: "String"
     Default: "example.com"
-    Description: "Custom domain for CloudFront distribution."
+    Description: "Custom domain for CloudFront distribution. Leave empty to use its cloudfront.net hostname."
   CertificateArn:
     Type: "String"
-    Description: "ARN of the SSL certificate in ACM us-east-1."
+    Default: ""
+    Description: "ARN of the SSL certificate in ACM us-east-1 for a custom domain."
   CognitoUserPoolId:
     Type: "String"
     Default: ""
@@ -261,6 +262,52 @@ Rules:
                 -
                   Ref: "WpsuiteAccountId"
         AssertDescription: "When both workspace identity aliases are supplied they must be identical."
+  CustomDomainRequiresCertificate:
+    RuleCondition:
+      Fn::And:
+        -
+          Fn::Equals:
+            -
+              Ref: "Enabled"
+            - "true"
+        -
+          Fn::Not:
+            -
+              Fn::Equals:
+                -
+                  Ref: "DomainName"
+                - ""
+    Assertions:
+      -
+        Assert:
+          Fn::Not:
+            -
+              Fn::Equals:
+                -
+                  Ref: "CertificateArn"
+                - ""
+        AssertDescription: "A custom Guardian domain requires an ACM certificate."
+  DefaultDomainDisablesDns:
+    RuleCondition:
+      Fn::And:
+        -
+          Fn::Equals:
+            -
+              Ref: "Enabled"
+            - "true"
+        -
+          Fn::Equals:
+            -
+              Ref: "DomainName"
+            - ""
+    Assertions:
+      -
+        Assert:
+          Fn::Equals:
+            -
+              Ref: "CreateDNSRecords"
+            - "false"
+        AssertDescription: "Use CreateDNSRecords=false with the CloudFront hostname."
 Conditions:
   TemplateEnabled:
     Fn::Equals:
@@ -283,6 +330,13 @@ Conditions:
         Fn::Equals:
           -
             Ref: "S3BucketName"
+          - ""
+  HasCustomDomain:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "DomainName"
           - ""
   CreateDNS:
     Fn::Not:
@@ -570,6 +624,20 @@ Conditions:
       -
         Ref: "PublicCacheMode"
       - "fixed-30d"
+  HasProtectedPathGroups:
+    Fn::Not:
+      -
+        Fn::Or:
+          -
+            Fn::Equals:
+              -
+                Ref: "ProtectedPathGroupMap"
+              - "{}"
+          -
+            Fn::Equals:
+              -
+                Ref: "ProtectedPathGroupMap"
+              - ""
   AdditionalOrigin1Enabled:
     Fn::Not:
       -
@@ -2936,6 +3004,8 @@ Resources:
           - "CloudFrontResourceManager"
           - "Arn"
       ResourceType: "Function"
+      CodeRevision:
+        Ref: "ArtifactRootPrefix"
       AdditionalCacheBehaviors:
         Ref: "AdditionalCacheBehaviors"
       Name:
@@ -2945,10 +3015,16 @@ Resources:
           - ","
           -
             Ref: "ProtectedPaths"
+      ProtectedPathGroupMap:
+        Ref: "ProtectedPathGroupMap"
       SigninPagePath:
         Ref: "SigninPagePath"
       S3WWWRoot:
         Ref: "S3WWWRoot"
+      ForbiddenPagePath:
+        Ref: "ForbiddenPagePath"
+      NotFoundPagePath:
+        Ref: "NotFoundPagePath"
       EnableHomepageLocaleRouting:
         Ref: "EnableHomepageLocaleRouting"
       HomepageLocaleRoutes:
@@ -2992,6 +3068,10 @@ Resources:
           - ","
           -
             Ref: "ProtectedPaths"
+      ProtectedPathGroupMap:
+        Ref: "ProtectedPathGroupMap"
+      SigninPagePath:
+        Ref: "SigninPagePath"
       S3WWWRoot:
         Ref: "S3WWWRoot"
       HomepageLocaleRoutes:
@@ -3071,7 +3151,14 @@ Resources:
       MemorySize: 128
       Description: "Lambda@Edge function for issuing CloudFront signed cookies with JWT authentication"
       DomainName:
-        Ref: "DomainName"
+        Fn::If:
+          - "HasCustomDomain"
+          -
+            Ref: "DomainName"
+          -
+            Fn::GetAtt:
+              - "CloudFrontDistribution"
+              - "DomainName"
       KeyPairId:
         Fn::GetAtt:
           - "CloudFrontSigningPublicKey"
@@ -3085,6 +3172,10 @@ Resources:
             Ref: "ProtectedPaths"
       ProtectedPathGroupMap:
         Ref: "ProtectedPathGroupMap"
+      SigninPagePath:
+        Ref: "SigninPagePath"
+      S3WWWRoot:
+        Ref: "S3WWWRoot"
       KmsKeyId:
         Fn::If:
           - "ManageSigningKeyMaterial"
@@ -3110,15 +3201,20 @@ Resources:
     Properties:
       DistributionConfig:
         Aliases:
-          -
-            Ref: "DomainName"
-          -
-            Fn::If:
-              - "CustomWwwAlias"
+          Fn::If:
+            - "HasCustomDomain"
+            -
               -
-                Fn::Sub: "www.${DomainName}"
+                Ref: "DomainName"
               -
-                Ref: "AWS::NoValue"
+                Fn::If:
+                  - "CustomWwwAlias"
+                  -
+                    Fn::Sub: "www.${DomainName}"
+                  -
+                    Ref: "AWS::NoValue"
+            -
+              Ref: "AWS::NoValue"
         IPV6Enabled:
           Fn::If:
             - "EnableDnsIpv6"
@@ -5263,15 +5359,46 @@ Resources:
                     - false
               -
                 Ref: "AWS::NoValue"
+          -
+            Fn::If:
+              - "HasProtectedPathGroups"
+              -
+                PathPattern: "/__wpsuite_members/*"
+                TargetOriginId: "S3Origin"
+                ViewerProtocolPolicy: "redirect-to-https"
+                CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+                ResponseHeadersPolicyId:
+                  Fn::GetAtt:
+                    - "NoCachePolicy"
+                    - "ResponseHeadersPolicyId"
+                TrustedKeyGroups:
+                  -
+                    Fn::GetAtt:
+                      - "CloudFrontSigningKeyGroup"
+                      - "KeyGroupId"
+                FunctionAssociations:
+                  -
+                    EventType: "viewer-request"
+                    FunctionARN:
+                      Fn::GetAtt:
+                        - "PathRewriteFunction"
+                        - "FunctionARN"
+              -
+                Ref: "AWS::NoValue"
         Enabled: true
         DefaultRootObject: "index.html"
         HttpVersion: "http2"
         PriceClass: "PriceClass_100"
         ViewerCertificate:
-          AcmCertificateArn:
-            Ref: "CertificateArn"
-          SslSupportMethod: "sni-only"
-          MinimumProtocolVersion: "TLSv1.2_2021"
+          Fn::If:
+            - "HasCustomDomain"
+            -
+              AcmCertificateArn:
+                Ref: "CertificateArn"
+              SslSupportMethod: "sni-only"
+              MinimumProtocolVersion: "TLSv1.2_2021"
+            -
+              CloudFrontDefaultCertificate: true
         WebACLId:
           Fn::If:
             - "CondEnableCloudFrontWAF"
@@ -5290,7 +5417,11 @@ Resources:
                   - "StaticSiteBucket"
                   - "DomainName"
               Prefix: "cloudfront-logs/"
-              IncludeCookies: true
+              IncludeCookies:
+                Fn::If:
+                  - "HasProtectedPathGroups"
+                  - false
+                  - true
             -
               Ref: "AWS::NoValue"
         CustomErrorResponses:
@@ -5360,6 +5491,10 @@ Resources:
           - ","
           -
             Ref: "ProtectedPaths"
+      ProtectedPathGroupMap:
+        Ref: "ProtectedPathGroupMap"
+      S3WWWRoot:
+        Ref: "S3WWWRoot"
       SigninPagePath:
         Ref: "SigninPagePath"
       ViewerRequestFunctionArn:
@@ -5873,7 +6008,18 @@ Outputs:
       Fn::If:
         - "TemplateEnabled"
         -
-          Fn::Sub: "1. Upload your static WordPress files to S3 bucket: ${StaticSiteBucket}/${S3WWWRoot}\n2. Include custom error pages (if configured): ${NotFoundPagePath} and ${ForbiddenPagePath}\n3. DNS Configuration: Check CreateDNSRecords parameter (${CreateDNSRecords})\n4. Configure Cognito User Pool and App Clients for JWT authentication\n5. Test cookie issuance via main domain: https://${DomainName}/issue-cookie?action=signin\n6. Verify protected paths redirect unauthenticated users to ${SigninPagePath}\n7. Test error pages by accessing non-existent URLs\n8. If weekly refresh is enabled, confirm config.enc and lic.jws appear under ${S3WWWRoot}/smartcloud-wpsuiteio/\n9. If homepage locale routing is enabled, upload every allowlisted locale homepage before activating redirects\n\nS3 Bucket: ${StaticSiteBucket}\nS3 WWWRoot Prefix: ${S3WWWRoot}\nCloudFront Domain: ${CloudFrontDistribution.DomainName}\nCookie Endpoint: https://${DomainName}/issue-cookie\nAuthentication: JWT Bearer token required for cookie issuance"
+          Fn::Sub:
+            - "1. Upload your static WordPress files to S3 bucket: ${StaticSiteBucket}/${S3WWWRoot}\n2. Include custom error pages (if configured): ${NotFoundPagePath} and ${ForbiddenPagePath}\n3. DNS Configuration: Check CreateDNSRecords parameter (${CreateDNSRecords})\n4. Configure Cognito User Pool and App Clients for JWT authentication\n5. Test cookie issuance: https://${SiteHostname}/issue-cookie?action=signin\n6. Verify protected paths redirect unauthenticated users to ${SigninPagePath}\n7. Test error pages by accessing non-existent URLs\n8. If weekly refresh is enabled, confirm config.enc and lic.jws appear under ${S3WWWRoot}/smartcloud-wpsuiteio/\n9. If homepage locale routing is enabled, upload every allowlisted locale homepage before activating redirects\n\nS3 Bucket: ${StaticSiteBucket}\nS3 WWWRoot Prefix: ${S3WWWRoot}\nCloudFront Domain: ${CloudFrontDistribution.DomainName}\nCookie Endpoint: https://${SiteHostname}/issue-cookie\nAuthentication: JWT Bearer token required for cookie issuance"
+            -
+              SiteHostname:
+                Fn::If:
+                  - "HasCustomDomain"
+                  -
+                    Ref: "DomainName"
+                  -
+                    Fn::GetAtt:
+                      - "CloudFrontDistribution"
+                      - "DomainName"
         - ""
   SiteKeyParameterName:
     Description: "SSM SecureString parameter that stores the WP Suite site key."

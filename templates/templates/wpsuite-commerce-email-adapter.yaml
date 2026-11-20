@@ -1,0 +1,479 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  ArtifactBucketName:
+    Type: "String"
+    Description: "Reviewed artifact bucket."
+  ArtifactRootPrefix:
+    Type: "String"
+    Description: "Reviewed artifact prefix."
+  SiteOrigin:
+    Type: "String"
+    AllowedPattern: "^https://[A-Za-z0-9.-]+(:[0-9]+)?$"
+  SenderAddress:
+    Type: "String"
+    AllowedPattern: "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+  SESIdentityArn:
+    Type: "String"
+    AllowedPattern: "^arn:[a-z0-9-]+:ses:[a-z0-9-]+:[0-9]{12}:identity/[A-Za-z0-9@._+-]+$"
+    Description: "Verified SES identity ARN in this account. The adapter uses the region in the ARN."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+Conditions:
+  ValidSESIdentity:
+    Fn::And:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 1
+              -
+                Fn::Split:
+                  - ":"
+                  -
+                    Ref: "SESIdentityArn"
+          -
+            Ref: "AWS::Partition"
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - ":"
+                  -
+                    Ref: "SESIdentityArn"
+          -
+            Ref: "AWS::AccountId"
+Resources:
+  TemplateBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      VersioningConfiguration:
+        Status: "Enabled"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          -
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "Retain"
+    Condition: "ValidSESIdentity"
+  TemplateBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket:
+        Ref: "TemplateBucket"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "DenyInsecureTransport"
+            Effect: "Deny"
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              -
+                Fn::GetAtt:
+                  - "TemplateBucket"
+                  - "Arn"
+              -
+                Fn::Join:
+                  - ""
+                  -
+                    -
+                      Fn::GetAtt:
+                        - "TemplateBucket"
+                        - "Arn"
+                    - "/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "Retain"
+    Condition: "ValidSESIdentity"
+  DeliveryTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: "expiresAt"
+        Enabled: true
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "Retain"
+    Condition: "ValidSESIdentity"
+  LogEncryptionKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AccountAdministration"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                Fn::Sub: "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: "*"
+          -
+            Sid: "CloudWatchLogs"
+            Effect: "Allow"
+            Principal:
+              Service:
+                Fn::Sub: "logs.${AWS::Region}.${AWS::URLSuffix}"
+            Action:
+              - "kms:Encrypt*"
+              - "kms:Decrypt*"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:Describe*"
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                kms:EncryptionContext:aws:logs:arn:
+                  Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-commerce-email-adapter"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "Retain"
+    Condition: "ValidSESIdentity"
+  LogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName:
+        Fn::Sub: "/aws/lambda/${AWS::StackName}-commerce-email-adapter"
+      RetentionInDays: 30
+      KmsKeyId:
+        Fn::GetAtt:
+          - "LogEncryptionKey"
+          - "Arn"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ValidSESIdentity"
+  AdapterRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "CommerceEmailAdapter"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                Resource:
+                  Fn::GetAtt:
+                    - "DeliveryTable"
+                    - "Arn"
+              -
+                Effect: "Allow"
+                Action: "s3:ListBucket"
+                Resource:
+                  Fn::GetAtt:
+                    - "TemplateBucket"
+                    - "Arn"
+                Condition:
+                  StringLike:
+                    s3:prefix: "overrides/*"
+              -
+                Effect: "Allow"
+                Action: "s3:GetObject"
+                Resource:
+                  Fn::Join:
+                    - ""
+                    -
+                      -
+                        Fn::GetAtt:
+                          - "TemplateBucket"
+                          - "Arn"
+                      - "/*"
+              -
+                Effect: "Allow"
+                Action: "s3:PutObject"
+                Resource:
+                  Fn::Join:
+                    - ""
+                    -
+                      -
+                        Fn::GetAtt:
+                          - "TemplateBucket"
+                          - "Arn"
+                      - "/overrides/*"
+              -
+                Effect: "Allow"
+                Action: "ses:SendEmail"
+                Resource:
+                  Ref: "SESIdentityArn"
+                Condition:
+                  StringEquals:
+                    ses:FromAddress:
+                      Ref: "SenderAddress"
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  Fn::Join:
+                    - ""
+                    -
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-commerce-email-adapter"
+                      - ":*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ValidSESIdentity"
+  Adapter:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Runtime: "nodejs22.x"
+      Handler: "index.handler"
+      MemorySize: 256
+      Timeout: 30
+      Role:
+        Fn::GetAtt:
+          - "AdapterRole"
+          - "Arn"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-commerce/functions/email-adapter.zip"
+      LoggingConfig:
+        LogGroup:
+          Fn::Sub: "/aws/lambda/${AWS::StackName}-commerce-email-adapter"
+      Environment:
+        Variables:
+          DELIVERY_TABLE:
+            Ref: "DeliveryTable"
+          MAIL_FROM_ADDRESS:
+            Ref: "SenderAddress"
+          SES_IDENTITY_ARN:
+            Ref: "SESIdentityArn"
+          SITE_ORIGIN:
+            Ref: "SiteOrigin"
+          TEMPLATE_BUCKET:
+            Ref: "TemplateBucket"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "LogGroup"
+    Condition: "ValidSESIdentity"
+  AdapterVersion:
+    Type: "AWS::Lambda::Version"
+    Properties:
+      FunctionName:
+        Ref: "Adapter"
+      Description:
+        Fn::Join:
+          - ""
+          -
+            - "Artifact prefix: "
+            -
+              Ref: "ArtifactRootPrefix"
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "Retain"
+    Condition: "ValidSESIdentity"
+  AdapterAlias:
+    Type: "AWS::Lambda::Alias"
+    Properties:
+      Name: "live"
+      FunctionName:
+        Ref: "Adapter"
+      FunctionVersion:
+        Fn::GetAtt:
+          - "AdapterVersion"
+          - "Version"
+    DependsOn:
+      - "SeedDefaultTemplates"
+    Condition: "ValidSESIdentity"
+  SeedRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "SeedDefaults"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "s3:PutObject"
+                Resource:
+                  Fn::Join:
+                    - ""
+                    -
+                      -
+                        Fn::GetAtt:
+                          - "TemplateBucket"
+                          - "Arn"
+                      - "/defaults/v1/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  Fn::Join:
+                    - ""
+                    -
+                      -
+                        Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-commerce-email-adapter"
+                      - ":*"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    Condition: "ValidSESIdentity"
+  SeedFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Runtime: "nodejs22.x"
+      Handler: "index.seedHandler"
+      MemorySize: 256
+      Timeout: 60
+      Role:
+        Fn::GetAtt:
+          - "SeedRole"
+          - "Arn"
+      LoggingConfig:
+        LogGroup:
+          Fn::Sub: "/aws/lambda/${AWS::StackName}-commerce-email-adapter"
+      Code:
+        S3Bucket:
+          Ref: "ArtifactBucketName"
+        S3Key:
+          Fn::Join:
+            - ""
+            -
+              -
+                Ref: "ArtifactRootPrefix"
+              - "wpsuite-commerce/functions/email-adapter.zip"
+      Environment:
+        Variables:
+          TEMPLATE_BUCKET:
+            Ref: "TemplateBucket"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+    DependsOn:
+      - "LogGroup"
+    Condition: "ValidSESIdentity"
+  SeedDefaultTemplates:
+    Type: "Custom::CommerceEmailDefaults"
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - "SeedFunction"
+          - "Arn"
+      Version: "1"
+    Condition: "ValidSESIdentity"
+Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
+  TemplateBucketName:
+    Description: "Private versioned email template bucket."
+    Value:
+      Ref: "TemplateBucket"
+    Condition: "ValidSESIdentity"
+  EmailAdapterArn:
+    Description: "Qualified adapter alias ARN."
+    Value:
+      Ref: "AdapterAlias"
+    Condition: "ValidSESIdentity"
+  SenderAddress:
+    Description: "Verified sender address."
+    Value:
+      Ref: "SenderAddress"
+  SESIdentityArn:
+    Description: "Verified SES identity ARN."
+    Value:
+      Ref: "SESIdentityArn"
+  SESIdentityValidationStatus:
+    Description: "Provide a verified SES identity in the deployment account and AWS partition."
+    Value:
+      Fn::If:
+        - "ValidSESIdentity"
+        - "VALID"
+        - "INVALID_ACCOUNT_OR_REGION"

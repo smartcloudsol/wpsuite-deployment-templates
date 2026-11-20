@@ -1,0 +1,450 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "WP Suite Commerce component for Cloud Deployment."
+Parameters:
+  PrmTagValue:
+    Type: "String"
+    Default: "pc:5d8wq5hg1d54kb933ntenntiu"
+    AllowedPattern: "^pc:[a-z0-9]+$"
+    Description: "AWS Partner Revenue Measurement tag value for WP Suite Deployment Access resources."
+  Enabled:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Deploy Commerce resources."
+  MPS3BucketName:
+    Type: "String"
+    Default: "wpsuite-artifacts-637423296378-us-east-1-an"
+    Description: "Published template bucket."
+  MPS3BucketRegion:
+    Type: "String"
+    Default: "us-east-1"
+    Description: "Published template region."
+  MPS3KeyPrefix:
+    Type: "String"
+    Default: "releases/v1.1.16/templates/templates"
+    Description: "Published nested template prefix."
+  ArtifactBucketName:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: ArtifactBucketName."
+  ArtifactRootPrefix:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: ArtifactRootPrefix."
+  TemplateVersion:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: TemplateVersion."
+  UserPoolId:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: UserPoolId."
+  AppClientIds:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: AppClientIds."
+  DeploymentId:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: DeploymentId."
+  SiteId:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: SiteId."
+  StripeAccountId:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: StripeAccountId."
+  StripeMode:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: StripeMode."
+  StripePartnerEventBusName:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: StripePartnerEventBusName."
+  StripeEventSource:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: StripeEventSource."
+  AllowedOrigin:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: AllowedOrigin."
+  StripeSecretArn:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: StripeSecretArn."
+  OAuthBaseUrl:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: OAuthBaseUrl."
+  OAuthRegion:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: OAuthRegion."
+  OAuthWorkspaceId:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: OAuthWorkspaceId."
+  OAuthInvokeArn:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: OAuthInvokeArn."
+  AdministratorGroups:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: AdministratorGroups."
+  ManagedGroupsJson:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: ManagedGroupsJson."
+  SubjectAdapterArn:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: SubjectAdapterArn."
+  NotificationAdapterArn:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: NotificationAdapterArn."
+  EmailSenderAddress:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: EmailSenderAddress."
+  EmailSESIdentityArn:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: EmailSESIdentityArn."
+  StaticSiteOrigin:
+    Type: "String"
+    Default: ""
+    Description: "Provided by Cloud Deployment: StaticSiteOrigin."
+Mappings:
+  WpSuiteMarketplace:
+    DeploymentAccess:
+      ProductCode: "5d8wq5hg1d54kb933ntenntiu"
+Rules:
+  CommerceEmailConfiguration:
+    Assertions:
+      -
+        Assert:
+          Fn::Or:
+            -
+              Fn::And:
+                -
+                  Fn::Equals:
+                    -
+                      Ref: "EmailSenderAddress"
+                    - ""
+                -
+                  Fn::Equals:
+                    -
+                      Ref: "EmailSESIdentityArn"
+                    - ""
+            -
+              Fn::And:
+                -
+                  Fn::Not:
+                    -
+                      Fn::Equals:
+                        -
+                          Ref: "EmailSenderAddress"
+                        - ""
+                -
+                  Fn::Not:
+                    -
+                      Fn::Equals:
+                        -
+                          Ref: "EmailSESIdentityArn"
+                        - ""
+                -
+                  Fn::Equals:
+                    -
+                      Ref: "NotificationAdapterArn"
+                    - ""
+        AssertDescription: "Provide both SES sender and identity, or neither. Built-in SES cannot be combined with an external notification adapter."
+Conditions:
+  CommerceEnabled:
+    Fn::Equals:
+      -
+        Ref: "Enabled"
+      - "true"
+  HasOAuth:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "OAuthBaseUrl"
+          - ""
+  HasSubjectAdapter:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "SubjectAdapterArn"
+          - ""
+  HasStaticSiteOrigin:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Ref: "StaticSiteOrigin"
+          - ""
+  BuiltinEmailEnabled:
+    Fn::And:
+      -
+        Fn::Equals:
+          -
+            Ref: "Enabled"
+          - "true"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "EmailSenderAddress"
+              - ""
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Ref: "EmailSESIdentityArn"
+              - ""
+Resources:
+  CommerceConfiguration:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name:
+        Fn::Sub: "/${AWS::StackName}/configuration"
+      Type: "String"
+      Value:
+        Fn::Join:
+          - ""
+          -
+            -
+              Fn::Sub:
+                - "{\"deploymentId\":\"${DeploymentId}\",\"siteId\":\"${SiteId}\",\"userPoolId\":\"${UserPoolId}\",\"stripeAccountId\":\"${StripeAccountId}\",\"mode\":\"${StripeMode}\",\"clientIds\":[\"${AppClientIds}\"],\"featureMappings\":[],\"offers\":{},\"allowedOrigins\":[\"${AllowedOrigin}\"${AdditionalOrigin}],\"managedGroups\":${ManagedGroupsJson},\"administratorGroups\":[\"${Admins}\"],\"stripeApiVersion\":\"2026-09-30.endive\""
+                -
+                  Admins:
+                    Fn::Join:
+                      - "\",\""
+                      -
+                        Fn::Split:
+                          - ","
+                          -
+                            Ref: "AdministratorGroups"
+                  AdditionalOrigin:
+                    Fn::If:
+                      - "HasStaticSiteOrigin"
+                      -
+                        Fn::Sub: ",\"${StaticSiteOrigin}\""
+                      - ""
+            -
+              Fn::If:
+                - "HasOAuth"
+                -
+                  Fn::Sub: ",\"oauth\":{\"baseUrl\":\"${OAuthBaseUrl}\",\"region\":\"${OAuthRegion}\",\"workspaceId\":\"${OAuthWorkspaceId}\"}"
+                - ""
+            -
+              Fn::If:
+                - "HasSubjectAdapter"
+                -
+                  Fn::Sub: ",\"adapterArn\":\"${SubjectAdapterArn}\""
+                - ""
+            - "}"
+    Condition: "CommerceEnabled"
+  CommerceEmailNestedStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        ArtifactBucketName:
+          Ref: "ArtifactBucketName"
+        ArtifactRootPrefix:
+          Ref: "ArtifactRootPrefix"
+        SiteOrigin:
+          Ref: "AllowedOrigin"
+        SenderAddress:
+          Ref: "EmailSenderAddress"
+        SESIdentityArn:
+          Ref: "EmailSESIdentityArn"
+        PrmTagValue:
+          Ref: "PrmTagValue"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      TemplateURL:
+        Fn::Sub:
+          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
+          -
+            Bucket:
+              Ref: "MPS3BucketName"
+            Region:
+              Ref: "MPS3BucketRegion"
+            Prefix:
+              Ref: "MPS3KeyPrefix"
+            TemplatePath: "wpsuite-commerce-email-adapter.yaml"
+    Condition: "BuiltinEmailEnabled"
+  WrappedNestedStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        ArtifactBucketName:
+          Ref: "ArtifactBucketName"
+        ArtifactRootPrefix:
+          Ref: "ArtifactRootPrefix"
+        TemplateVersion:
+          Ref: "TemplateVersion"
+        ConfigParameterArn:
+          Fn::Sub:
+            - "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${Name}"
+            -
+              Name:
+                Ref: "CommerceConfiguration"
+        StripeSecretArn:
+          Ref: "StripeSecretArn"
+        UserPoolId:
+          Ref: "UserPoolId"
+        AppClientIds:
+          Ref: "AppClientIds"
+        DeploymentId:
+          Ref: "DeploymentId"
+        SiteId:
+          Ref: "SiteId"
+        StripeAccountId:
+          Ref: "StripeAccountId"
+        StripeMode:
+          Ref: "StripeMode"
+        StripePartnerEventBusName:
+          Ref: "StripePartnerEventBusName"
+        StripeEventSource:
+          Ref: "StripeEventSource"
+        AllowedOrigin:
+          Ref: "AllowedOrigin"
+        SubjectAdapterArn:
+          Ref: "SubjectAdapterArn"
+        NotificationAdapterArn:
+          Fn::If:
+            - "BuiltinEmailEnabled"
+            -
+              Fn::GetAtt:
+                - "CommerceEmailNestedStack"
+                - "Outputs.EmailAdapterArn"
+            -
+              Ref: "NotificationAdapterArn"
+        OAuthBaseUrl:
+          Ref: "OAuthBaseUrl"
+        OAuthRegion:
+          Ref: "OAuthRegion"
+        OAuthWorkspaceId:
+          Ref: "OAuthWorkspaceId"
+        OAuthInvokeArn:
+          Ref: "OAuthInvokeArn"
+        AdministratorGroups:
+          Ref: "AdministratorGroups"
+        StaticSiteOrigin:
+          Ref: "StaticSiteOrigin"
+        Enabled: "true"
+        PrmTagValue:
+          Ref: "PrmTagValue"
+      Tags:
+        -
+          Key: "aws-apn-id"
+          Value:
+            Ref: "PrmTagValue"
+      TemplateURL:
+        Fn::Sub:
+          - "https://${Bucket}.s3.${Region}.${AWS::URLSuffix}/${Prefix}/${TemplatePath}"
+          -
+            Bucket:
+              Ref: "MPS3BucketName"
+            Region:
+              Ref: "MPS3BucketRegion"
+            Prefix:
+              Ref: "MPS3KeyPrefix"
+            TemplatePath: "wpsuite-commerce-backend.yaml"
+    Condition: "CommerceEnabled"
+Outputs:
+  PrmProductCode:
+    Description: "AWS Marketplace product code used for WP Suite Deployment Access PRM attribution."
+    Value:
+      Fn::FindInMap:
+        - "WpSuiteMarketplace"
+        - "DeploymentAccess"
+        - "ProductCode"
+  Enabled:
+    Description: "Commerce deployment state."
+    Value:
+      Ref: "Enabled"
+  ConfigurationParameterName:
+    Description: "Commerce seed configuration parameter."
+    Value:
+      Fn::If:
+        - "CommerceEnabled"
+        -
+          Ref: "CommerceConfiguration"
+        - ""
+  ApiUrl:
+    Description: "Commerce ApiUrl."
+    Value:
+      Fn::If:
+        - "CommerceEnabled"
+        -
+          Fn::GetAtt:
+            - "WrappedNestedStack"
+            - "Outputs.ApiUrl"
+        - ""
+  EventBusName:
+    Description: "Commerce EventBusName."
+    Value:
+      Fn::If:
+        - "CommerceEnabled"
+        -
+          Fn::GetAtt:
+            - "WrappedNestedStack"
+            - "Outputs.EventBusName"
+        - ""
+  TableName:
+    Description: "Commerce TableName."
+    Value:
+      Fn::If:
+        - "CommerceEnabled"
+        -
+          Fn::GetAtt:
+            - "WrappedNestedStack"
+            - "Outputs.TableName"
+        - ""
+  ContractVersion:
+    Description: "Commerce ContractVersion."
+    Value:
+      Fn::If:
+        - "CommerceEnabled"
+        -
+          Fn::GetAtt:
+            - "WrappedNestedStack"
+            - "Outputs.ContractVersion"
+        - ""
+  GroupClaimsMode:
+    Description: "Commerce GroupClaimsMode."
+    Value:
+      Fn::If:
+        - "CommerceEnabled"
+        -
+          Fn::GetAtt:
+            - "WrappedNestedStack"
+            - "Outputs.GroupClaimsMode"
+        - ""
+  RuntimeRoleArn:
+    Description: "Commerce RuntimeRoleArn."
+    Value:
+      Fn::If:
+        - "CommerceEnabled"
+        -
+          Fn::GetAtt:
+            - "WrappedNestedStack"
+            - "Outputs.RuntimeRoleArn"
+        - ""
