@@ -23,7 +23,7 @@ Parameters:
     Description: "Published template region."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.1.16/templates/templates"
+    Default: "releases/v1.1.17/templates/templates"
     Description: "Published nested template prefix."
   ArtifactBucketName:
     Type: "String"
@@ -121,6 +121,10 @@ Parameters:
     Type: "String"
     Default: ""
     Description: "Provided by Cloud Deployment: StaticSiteOrigin."
+  CreateStripePartnerEventBus:
+    Type: "String"
+    Default: "false"
+    Description: "Associate a pending Stripe partner event source."
 Mappings:
   WpSuiteMarketplace:
     DeploymentAccess:
@@ -346,6 +350,8 @@ Resources:
           Ref: "OAuthInvokeArn"
         AdministratorGroups:
           Ref: "AdministratorGroups"
+        CreateStripePartnerEventBus:
+          Ref: "CreateStripePartnerEventBus"
         StaticSiteOrigin:
           Ref: "StaticSiteOrigin"
         Enabled: "true"
@@ -447,4 +453,34 @@ Outputs:
           Fn::GetAtt:
             - "WrappedNestedStack"
             - "Outputs.RuntimeRoleArn"
+        - ""
+  StripePartnerEventBusName:
+    Description: "Commerce StripePartnerEventBusName."
+    Value:
+      Fn::If:
+        - "CommerceEnabled"
+        -
+          Fn::GetAtt:
+            - "WrappedNestedStack"
+            - "Outputs.StripePartnerEventBusName"
+        - ""
+  StripeEventSource:
+    Description: "Commerce StripeEventSource."
+    Value:
+      Fn::If:
+        - "CommerceEnabled"
+        -
+          Fn::GetAtt:
+            - "WrappedNestedStack"
+            - "Outputs.StripeEventSource"
+        - ""
+  StripeEventRuleArn:
+    Description: "Commerce StripeEventRuleArn."
+    Value:
+      Fn::If:
+        - "CommerceEnabled"
+        -
+          Fn::GetAtt:
+            - "WrappedNestedStack"
+            - "Outputs.StripeEventRuleArn"
         - ""

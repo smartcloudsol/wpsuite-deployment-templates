@@ -51,7 +51,7 @@ Parameters:
     Description: "Category path rollout. Use ready only after all producers reconcile and Knowledge Base ingestion completes."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.16"
+    Default: "v1.1.17"
     Description: "Immutable WP Suite deployment template version."
   RuntimeArtifactRevision:
     Type: "String"
@@ -4214,12 +4214,12 @@ Resources:
         AttributeName: "TTL"
         Enabled: true
     UpdateReplacePolicy: "Retain"
-    DeletionPolicy: "Retain"
+    DeletionPolicy: "RetainExceptOnCreate"
     Metadata:
       com.aws.cloudformation.Context:
         why: "Reusable successful ingestion baseline; per-document snapshots avoid one oversized manifest."
         must:
-          - "Retain coordinator state on replacement/deletion."
+          - "Retain established coordinator state on replacement/deletion and remove new tables on create rollback."
           - "TTL applies only to snapshot rows; coordinator rows must not carry TTL."
           - "Promote only captured snapshots after successful ingestion, never current S3 contents."
     Condition: "TemplateEnabled"

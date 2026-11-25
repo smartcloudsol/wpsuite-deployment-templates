@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.16"
+    Default: "v1.1.17"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -491,6 +491,22 @@ Mappings:
     DeploymentAccess:
       ProductCode: "5d8wq5hg1d54kb933ntenntiu"
 Rules:
+  ApiWafAllowlistRequiresAddresses:
+    RuleCondition:
+      Fn::Equals:
+        -
+          Ref: "EnableApiWAF"
+        - "ip_allowlist"
+    Assertions:
+      -
+        Assert:
+          Fn::Not:
+            -
+              Fn::EachMemberEquals:
+                -
+                  Ref: "ApiPublicAllowedIPs"
+                - ""
+        AssertDescription: "IP allowlist mode requires at least one IPv4 CIDR in ApiPublicAllowedIPs."
   IdentityEventsRequireConfirmationTrigger:
     RuleCondition:
       Fn::And:
@@ -535,22 +551,6 @@ Rules:
               Ref: "EnablePreTokenGeneration"
             - "true"
         AssertDescription: "A claims provider requires the pre-token generation trigger."
-  ApiWafAllowlistRequiresAddresses:
-    RuleCondition:
-      Fn::Equals:
-        -
-          Ref: "EnableApiWAF"
-        - "ip_allowlist"
-    Assertions:
-      -
-        Assert:
-          Fn::Not:
-            -
-              Fn::EachMemberEquals:
-                -
-                  Ref: "ApiPublicAllowedIPs"
-                - ""
-        AssertDescription: "IP allowlist mode requires at least one IPv4 CIDR in ApiPublicAllowedIPs."
 Conditions:
   TemplateEnabled:
     Fn::Equals:
@@ -814,6 +814,227 @@ Conditions:
       -
         Ref: "RequirePhoneNumberAttribute"
       - "true"
+  AutoVerifyEmail:
+    Fn::Or:
+      -
+        Fn::Or:
+          -
+            Fn::Equals:
+              -
+                Fn::Select:
+                  - 0
+                  -
+                    Fn::Split:
+                      - ","
+                      -
+                        Fn::Join:
+                          - ","
+                          -
+                            -
+                              Fn::Join:
+                                - ","
+                                -
+                                  Ref: "LoginMechanisms"
+                            - ","
+              - "email"
+          -
+            Fn::Equals:
+              -
+                Fn::Select:
+                  - 1
+                  -
+                    Fn::Split:
+                      - ","
+                      -
+                        Fn::Join:
+                          - ","
+                          -
+                            -
+                              Fn::Join:
+                                - ","
+                                -
+                                  Ref: "LoginMechanisms"
+                            - ","
+              - "email"
+          -
+            Fn::Equals:
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - ","
+                      -
+                        Fn::Join:
+                          - ","
+                          -
+                            -
+                              Fn::Join:
+                                - ","
+                                -
+                                  Ref: "LoginMechanisms"
+                            - ","
+              - "email"
+      -
+        Condition: "CondRequireEmailAttribute"
+      -
+        Fn::Equals:
+          -
+            Ref: "EnableEmailOtpSignIn"
+          - "true"
+      -
+        Fn::And:
+          -
+            Fn::Not:
+              -
+                Fn::Equals:
+                  -
+                    Ref: "MfaMode"
+                  - "no"
+          -
+            Fn::Equals:
+              -
+                Ref: "EnableEmailOtpMfa"
+              - "true"
+  AutoVerifyPhone:
+    Fn::Or:
+      -
+        Fn::Or:
+          -
+            Fn::Equals:
+              -
+                Fn::Select:
+                  - 0
+                  -
+                    Fn::Split:
+                      - ","
+                      -
+                        Fn::Join:
+                          - ","
+                          -
+                            -
+                              Fn::Join:
+                                - ","
+                                -
+                                  Ref: "LoginMechanisms"
+                            - ","
+              - "phone_number"
+          -
+            Fn::Equals:
+              -
+                Fn::Select:
+                  - 1
+                  -
+                    Fn::Split:
+                      - ","
+                      -
+                        Fn::Join:
+                          - ","
+                          -
+                            -
+                              Fn::Join:
+                                - ","
+                                -
+                                  Ref: "LoginMechanisms"
+                            - ","
+              - "phone_number"
+          -
+            Fn::Equals:
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - ","
+                      -
+                        Fn::Join:
+                          - ","
+                          -
+                            -
+                              Fn::Join:
+                                - ","
+                                -
+                                  Ref: "LoginMechanisms"
+                            - ","
+              - "phone_number"
+      -
+        Condition: "CondRequirePhoneNumberAttribute"
+      -
+        Fn::And:
+          -
+            Fn::Not:
+              -
+                Fn::Equals:
+                  -
+                    Ref: "MfaMode"
+                  - "no"
+          -
+            Fn::Equals:
+              -
+                Ref: "EnableSmsMfa"
+              - "true"
+  VerifyEmailBeforeUpdate:
+    Fn::And:
+      -
+        Fn::Equals:
+          -
+            Ref: "VerifyAttributeChanges"
+          - "true"
+      -
+        Condition: "AutoVerifyEmail"
+      -
+        Fn::Or:
+          -
+            Fn::Equals:
+              -
+                Ref: "VerifyAttributeChangesMode"
+              - "auto"
+          -
+            Fn::Equals:
+              -
+                Ref: "VerifyAttributeChangesMode"
+              - "email"
+          -
+            Fn::Equals:
+              -
+                Ref: "VerifyAttributeChangesMode"
+              - "email_and_phone"
+  VerifyPhoneBeforeUpdate:
+    Fn::And:
+      -
+        Fn::Equals:
+          -
+            Ref: "VerifyAttributeChanges"
+          - "true"
+      -
+        Condition: "AutoVerifyPhone"
+      -
+        Fn::Or:
+          -
+            Fn::Equals:
+              -
+                Ref: "VerifyAttributeChangesMode"
+              - "phone_number"
+          -
+            Fn::Equals:
+              -
+                Ref: "VerifyAttributeChangesMode"
+              - "email_and_phone"
+          -
+            Fn::And:
+              -
+                Fn::Equals:
+                  -
+                    Ref: "VerifyAttributeChangesMode"
+                  - "auto"
+              -
+                Fn::Or:
+                  -
+                    Condition: "CondRequirePhoneNumberAttribute"
+                  -
+                    Fn::Not:
+                      -
+                        Condition: "AutoVerifyEmail"
   HasProvidedKmsKeyId:
     Fn::Not:
       -
@@ -868,6 +1089,11 @@ Conditions:
           -
             Ref: "EnableApiWAF"
           - "false"
+  CondApiWafIpAllowlist:
+    Fn::Equals:
+      -
+        Ref: "EnableApiWAF"
+      - "ip_allowlist"
   CondHasApiPublicAllowedIPs:
     Fn::And:
       -
@@ -1249,11 +1475,6 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CondEnableEmailSender"
-  CondApiWafIpAllowlist:
-    Fn::Equals:
-      -
-        Ref: "EnableApiWAF"
-      - "ip_allowlist"
 Resources:
   IdentityLifecycleEventBus:
     Type: "AWS::Events::EventBus"
@@ -1385,6 +1606,41 @@ Resources:
             Block: {}
           -
             Allow: {}
+      DataProtectionConfig:
+        DataProtections:
+          -
+            Field:
+              FieldType: "SINGLE_HEADER"
+              FieldKeys:
+                - "authorization"
+                - "cookie"
+                - "x-site-key"
+                - "x-api-key"
+                - "x-amz-security-token"
+                - "x-amzn-marketplace-token"
+                - "x-wpsuite-marketplace-secret"
+                - "x-preferences-token"
+                - "x-recaptcha-token"
+                - "x-wpsuite-signature"
+                - "x-wp-suite-signature"
+                - "x-wpsuite-nonce"
+                - "x-wpsuite-key-id"
+                - "x-shopify-storefront-access-token"
+            Action: "SUBSTITUTION"
+            ExcludeRuleMatchDetails: false
+            ExcludeRateBasedDetails: false
+          -
+            Field:
+              FieldType: "QUERY_STRING"
+            Action: "SUBSTITUTION"
+            ExcludeRuleMatchDetails: false
+            ExcludeRateBasedDetails: false
+          -
+            Field:
+              FieldType: "BODY"
+            Action: "SUBSTITUTION"
+            ExcludeRuleMatchDetails: false
+            ExcludeRateBasedDetails: false
       VisibilityConfig:
         SampledRequestsEnabled: true
         CloudWatchMetricsEnabled: true
@@ -1747,41 +2003,6 @@ Resources:
           Key: "aws-apn-id"
           Value:
             Ref: "PrmTagValue"
-      DataProtectionConfig:
-        DataProtections:
-          -
-            Field:
-              FieldType: "SINGLE_HEADER"
-              FieldKeys:
-                - "authorization"
-                - "cookie"
-                - "x-site-key"
-                - "x-api-key"
-                - "x-amz-security-token"
-                - "x-amzn-marketplace-token"
-                - "x-wpsuite-marketplace-secret"
-                - "x-preferences-token"
-                - "x-recaptcha-token"
-                - "x-wpsuite-signature"
-                - "x-wp-suite-signature"
-                - "x-wpsuite-nonce"
-                - "x-wpsuite-key-id"
-                - "x-shopify-storefront-access-token"
-            Action: "SUBSTITUTION"
-            ExcludeRuleMatchDetails: false
-            ExcludeRateBasedDetails: false
-          -
-            Field:
-              FieldType: "QUERY_STRING"
-            Action: "SUBSTITUTION"
-            ExcludeRuleMatchDetails: false
-            ExcludeRateBasedDetails: false
-          -
-            Field:
-              FieldType: "BODY"
-            Action: "SUBSTITUTION"
-            ExcludeRuleMatchDetails: false
-            ExcludeRateBasedDetails: false
     Condition: "CondApiWafEnabled"
   CustomSenderKmsKey:
     Type: "AWS::KMS::Key"
@@ -1967,6 +2188,43 @@ Resources:
             Ref: "LoginMechanisms"
           -
             Ref: "AWS::NoValue"
+      AutoVerifiedAttributes:
+        Fn::If:
+          - "AutoVerifyEmail"
+          -
+            Fn::If:
+              - "AutoVerifyPhone"
+              -
+                - "email"
+                - "phone_number"
+              -
+                - "email"
+          -
+            Fn::If:
+              - "AutoVerifyPhone"
+              -
+                - "phone_number"
+              -
+                []
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate:
+          Fn::If:
+            - "VerifyEmailBeforeUpdate"
+            -
+              Fn::If:
+                - "VerifyPhoneBeforeUpdate"
+                -
+                  - "email"
+                  - "phone_number"
+                -
+                  - "email"
+            -
+              Fn::If:
+                - "VerifyPhoneBeforeUpdate"
+                -
+                  - "phone_number"
+                -
+                  []
       Policies:
         PasswordPolicy:
           MinimumLength: 12
@@ -3630,6 +3888,17 @@ Resources:
             Ref: "UserPool"
           -
             Ref: "ExistingUserPoolId"
+      ManagedUserPoolName:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Fn::If:
+              - "HasCustomUserPoolName"
+              -
+                Ref: "UserPoolName"
+              -
+                Fn::Sub: "${AppName}-user-pool"
+          - ""
       LoginMechanisms:
         Fn::Join:
           - ","

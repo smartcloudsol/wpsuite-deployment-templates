@@ -18,7 +18,7 @@ Parameters:
     Description: "Create Static Site Guardian resources in this nested stack."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.16"
+    Default: "v1.1.17"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -65,7 +65,7 @@ Parameters:
   HomepageLocaleRoutes:
     Type: "String"
     Default: "{}"
-    Description: "JSON locale routes with optional $spaPaths array of exact protected paths or additional behavior patterns."
+    Description: "JSON locale routes with optional $spaPaths and exact default-behavior $redirects."
     MaxLength: 2048
   HomepageLocaleCookieName:
     Type: "String"

@@ -93,6 +93,13 @@ Parameters:
     Default: ""
     AllowedPattern: "^$|^(?![Cc][Oo][Mm][Mm][Ee][Rr][Cc][Ee]-)[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}(,(?![Cc][Oo][Mm][Mm][Ee][Rr][Cc][Ee]-)[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}){0,19}$"
     Description: "Commerce AdministratorGroups."
+  CreateStripePartnerEventBus:
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Commerce CreateStripePartnerEventBus."
   Enabled:
     Type: "String"
     Default: "true"
@@ -337,6 +344,18 @@ Conditions:
                         - ":::::"
           -
             Ref: "AWS::AccountId"
+  CreateStripeBus:
+    Fn::And:
+      -
+        Fn::Equals:
+          -
+            Ref: "Enabled"
+          - "true"
+      -
+        Fn::Equals:
+          -
+            Ref: "CreateStripePartnerEventBus"
+          - "true"
 Resources:
   CommerceState:
     Type: "AWS::DynamoDB::Table"
@@ -369,7 +388,7 @@ Resources:
           Value:
             Ref: "PrmTagValue"
     UpdateReplacePolicy: "Retain"
-    DeletionPolicy: "Retain"
+    DeletionPolicy: "RetainExceptOnCreate"
     Condition: "CommerceEnabled"
   DeadLetterQueue:
     Type: "AWS::SQS::Queue"
@@ -658,6 +677,10 @@ Resources:
                 Ref: "StripeEventSource"
               -
                 Ref: "StripePartnerEventBusName"
+          STRIPE_EVENT_RULE_ARN:
+            Fn::GetAtt:
+              - "StripeRule"
+              - "Arn"
           STATIC_SITE_ORIGIN:
             Ref: "StaticSiteOrigin"
       Tags:
@@ -767,6 +790,10 @@ Resources:
                 Ref: "StripeEventSource"
               -
                 Ref: "StripePartnerEventBusName"
+          STRIPE_EVENT_RULE_ARN:
+            Fn::GetAtt:
+              - "StripeRule"
+              - "Arn"
           STATIC_SITE_ORIGIN:
             Ref: "StaticSiteOrigin"
       Tags:
@@ -827,11 +854,31 @@ Resources:
           - "NotificationRecoveryRule"
           - "Arn"
     Condition: "CommerceEnabled"
+  StripePartnerEventBus:
+    Type: "AWS::Events::EventBus"
+    Properties:
+      Name:
+        Ref: "StripePartnerEventBusName"
+      EventSourceName:
+        Fn::If:
+          - "HasStripeEventSource"
+          -
+            Ref: "StripeEventSource"
+          -
+            Ref: "StripePartnerEventBusName"
+    UpdateReplacePolicy: "Retain"
+    DeletionPolicy: "RetainExceptOnCreate"
+    Condition: "CreateStripeBus"
   StripeRule:
     Type: "AWS::Events::Rule"
     Properties:
       EventBusName:
-        Ref: "StripePartnerEventBusName"
+        Fn::If:
+          - "CreateStripeBus"
+          -
+            Ref: "StripePartnerEventBus"
+          -
+            Ref: "StripePartnerEventBusName"
       State: "ENABLED"
       EventPattern:
         source:
@@ -1402,6 +1449,23 @@ Resources:
       AuthorizerId:
         Ref: "Authorizer"
     Condition: "CommerceEnabled"
+  StripeEventDeliveryRoute:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: "Api"
+      RouteKey: "GET /admin/stripe/event-delivery"
+      Target:
+        Fn::Join:
+          - "/"
+          -
+            - "integrations"
+            -
+              Ref: "Integration"
+      AuthorizationType: "JWT"
+      AuthorizerId:
+        Ref: "Authorizer"
+    Condition: "CommerceEnabled"
   Stage:
     Type: "AWS::ApiGatewayV2::Stage"
     Properties:
@@ -1520,5 +1584,27 @@ Outputs:
     Value:
       Fn::GetAtt:
         - "RuntimeRole"
+        - "Arn"
+    Condition: "CommerceEnabled"
+  StripePartnerEventBusName:
+    Description: "Commerce StripePartnerEventBusName."
+    Value:
+      Ref: "StripePartnerEventBusName"
+    Condition: "CommerceEnabled"
+  StripeEventSource:
+    Description: "Commerce StripeEventSource."
+    Value:
+      Fn::If:
+        - "HasStripeEventSource"
+        -
+          Ref: "StripeEventSource"
+        -
+          Ref: "StripePartnerEventBusName"
+    Condition: "CommerceEnabled"
+  StripeEventRuleArn:
+    Description: "Commerce StripeEventRuleArn."
+    Value:
+      Fn::GetAtt:
+        - "StripeRule"
         - "Arn"
     Condition: "CommerceEnabled"
