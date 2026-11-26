@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.1.17/templates/templates"
+    Default: "releases/v1.1.19/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -47,10 +47,6 @@ Parameters:
     Type: "String"
     Default: "https://api.wpsuite.io/marketplace"
     Description: "WP Suite Marketplace backend API base URL."
-  TemplateVersion:
-    Type: "String"
-    Default: "v1.1.17"
-    Description: "Immutable WP Suite deployment template version."
   DeployCognito:
     Type: "String"
     Default: "false"
@@ -1045,6 +1041,12 @@ Parameters:
     Type: "Number"
     Default: 14
     Description: "CloudWatch Logs retention in days for orchestration and nested resources."
+  ExistingResourceNames:
+    Type: "String"
+    Default: "||||||||||||||||||"
+    AllowedPattern: "^[A-Za-z0-9-]{0,43}\\|[A-Za-z0-9-]{0,37}\\|[A-Za-z0-9-]{0,35}\\|[A-Za-z0-9-]{0,45}\\|[A-Za-z0-9-]{0,40}\\|[A-Za-z0-9-]{0,104}\\|[A-Za-z0-9-]{0,104}(\\|[A-Za-z0-9:/_.-]{0,512}){6}\\|(?:true|false|skip)?\\|[^|]{0,512}(\\|[A-Za-z0-9/_.-]{0,512}){2}\\|[A-Za-z0-9._-]{0,256}\\|(?:true|false)?$"
+    Description: "Existing resource names and dependency identifiers supplied for an in-place update."
+    MaxLength: 4096
 Mappings:
   WpSuiteMarketplace:
     DeploymentAccess:
@@ -1062,6 +1064,201 @@ Conditions:
       -
         Ref: "DeploymentContextMode"
       - "marketplace_secret"
+  HasExistingSharedRecaptchaResourcePrefix:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 6
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingCognitoAppName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 0
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingSharedApiResourcePrefix:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 5
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingUserPoolId:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 7
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingUserPoolClientId:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 8
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  KeepCommerceWrapper:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 13
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - "skip"
+  HasExistingCommerceEnabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 13
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingSharedRecaptchaSecretParameterName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 9
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingSharedRecaptchaSecretParameterArn:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 10
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingSharedRecaptchaKmsKeyArn:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 11
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingSharedApiWebACLArn:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 12
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingIntegrationEventBusName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 17
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingIntegrationEventConsumersEnabled:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 18
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingFlowAppName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 2
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingAiKitAppName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 1
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
   QwenPresentationRegionalFallback:
     Fn::And:
       -
@@ -1142,6 +1339,71 @@ Conditions:
                       -
                         Ref: "AWS::Region"
                       - "sa-east-1"
+  HasExistingCommerceKnowledgeAccessConfig:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 14
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingFlowAttachmentBucketName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 15
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingFlowAttachmentPrefix:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 16
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingStaticGuardianAppName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
+  HasExistingDrBackupAppName:
+    Fn::Not:
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Ref: "ExistingResourceNames"
+          - ""
 Resources:
   DeploymentArtifactBucket:
     Type: "AWS::S3::Bucket"
@@ -1361,6 +1623,27 @@ Resources:
               -
                 Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CommerceNestedStack-*/*"
           -
+            Effect: "Allow"
+            Action:
+              - "cloudformation:CreateChangeSet"
+              - "cloudformation:DeleteChangeSet"
+            Resource:
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CognitoNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-AiKitBackendNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-FlowBackendNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-StaticGuardianNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-DrBackupNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CommerceNestedStack-*/*"
+            Condition:
+              StringLikeIfExists:
+                cloudformation:ChangeSetName: "wpsuite-update-*"
+          -
             Effect: "Deny"
             Action: "s3:PutObject"
             Resource:
@@ -1516,8 +1799,7 @@ Resources:
         Ref: "WpSuiteDeploymentNonce"
       ExpectedAwsAccountId:
         Ref: "WpSuiteExpectedAwsAccountId"
-      TemplateVersion:
-        Ref: "TemplateVersion"
+      TemplateVersion: "v1.1.19"
       RuntimeArtifactRevision: "catalog-links-v1"
       RequireResolvedAppNames: "true"
       UseCommerceComponent: "true"
@@ -1536,9 +1818,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            -
-              Ref: "TemplateVersion"
-            - "/"
+            - "v1.1.19/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -1737,24 +2017,49 @@ Resources:
         WpSuiteDeploymentSecretArn:
           Ref: "WpSuiteDeploymentSecretArn"
         TemplateVersion:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "TemplateVersion"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "TemplateVersion"
+            - "v1.1.19"
         ArtifactBucketName:
           Ref: "DeploymentArtifactBucket"
         ArtifactRootPrefix:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ArtifactRootPrefix"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "ArtifactRootPrefix"
+            -
+              Fn::Join:
+                - ""
+                -
+                  -
+                    Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
+                  - "v1.1.19/"
         LogRetentionDays:
           Ref: "LogRetentionDays"
         Enabled:
           Ref: "DeployCognito"
         UseResolvedAppName: "true"
         ResolvedAppName:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "CognitoAppName"
+          Fn::If:
+            - "HasExistingCognitoAppName"
+            -
+              Fn::Select:
+                - 0
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "CognitoAppName"
         AppName:
           Fn::Sub: "${AWS::StackName}"
         Environment:
@@ -1840,15 +2145,37 @@ Resources:
         RecaptchaScoreThreshold:
           Ref: "RecaptchaScoreThreshold"
         SharedRecaptchaResourcePrefix:
-          Fn::Sub:
-            - "${AWS::StackName}-${Environment}"
+          Fn::If:
+            - "HasExistingSharedRecaptchaResourcePrefix"
             -
-              Environment:
-                Ref: "Environment"
+              Fn::Select:
+                - 6
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::Sub:
+                - "${AWS::StackName}-${Environment}"
+                -
+                  Environment:
+                    Ref: "Environment"
         SharedApiResourcePrefix:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "SharedApiResourcePrefix"
+          Fn::If:
+            - "HasExistingSharedApiResourcePrefix"
+            -
+              Fn::Select:
+                - 5
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "SharedApiResourcePrefix"
         DeployAiKitBackend:
           Ref: "DeployAiKitBackend"
         DeployFlowBackend:
@@ -1957,27 +2284,78 @@ Resources:
         MPS3KeyPrefix:
           Ref: "MPS3KeyPrefix"
         TemplateVersion:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "TemplateVersion"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "TemplateVersion"
+            - "v1.1.19"
         ArtifactBucketName:
           Ref: "DeploymentArtifactBucket"
         ArtifactRootPrefix:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ArtifactRootPrefix"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "ArtifactRootPrefix"
+            -
+              Fn::Join:
+                - ""
+                -
+                  -
+                    Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
+                  - "v1.1.19/"
         UserPoolId:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolId"
+          Fn::If:
+            - "HasExistingUserPoolId"
+            -
+              Fn::Select:
+                - 7
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.UserPoolId"
         AppClientIds:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolClientId"
+          Fn::If:
+            - "HasExistingUserPoolClientId"
+            -
+              Fn::Select:
+                - 8
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.UserPoolClientId"
         Enabled:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "CommerceEnabled"
+          Fn::If:
+            - "KeepCommerceWrapper"
+            -
+              Fn::If:
+                - "HasExistingCommerceEnabled"
+                -
+                  Fn::Select:
+                    - 13
+                    -
+                      Fn::Split:
+                        - "|"
+                        -
+                          Ref: "ExistingResourceNames"
+                -
+                  Fn::GetAtt:
+                    - "ArtifactStager"
+                    - "CommerceEnabled"
+            - "false"
         CreateStripePartnerEventBus:
           Fn::GetAtt:
             - "ArtifactStager"
@@ -2073,6 +2451,7 @@ Resources:
             Prefix:
               Ref: "MPS3KeyPrefix"
             TemplatePath: "wpsuite-commerce-deployment-wrapper.yaml"
+    Condition: "KeepCommerceWrapper"
   FlowBackendNestedStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
@@ -2088,25 +2467,61 @@ Resources:
         WpSuiteDeploymentSecretArn:
           Ref: "WpSuiteDeploymentSecretArn"
         TemplateVersion:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "TemplateVersion"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "TemplateVersion"
+            - "v1.1.19"
         ArtifactBucketName:
           Ref: "DeploymentArtifactBucket"
         ArtifactRootPrefix:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ArtifactRootPrefix"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "ArtifactRootPrefix"
+            -
+              Fn::Join:
+                - ""
+                -
+                  -
+                    Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
+                  - "v1.1.19/"
         LogRetentionDays:
           Ref: "FlowLogRetentionDays"
         IntegrationEventBusName:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "IntegrationEventBusName"
+          Fn::If:
+            - "HasExistingIntegrationEventBusName"
+            -
+              Fn::Select:
+                - 17
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "IntegrationEventBusName"
         IntegrationEventConsumersEnabled:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "IntegrationEventConsumersEnabled"
+          Fn::If:
+            - "HasExistingIntegrationEventConsumersEnabled"
+            -
+              Fn::Select:
+                - 18
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "IntegrationEventConsumersEnabled"
         EnableDynamoDbPointInTimeRecovery:
           Ref: "EnableDynamoDbPointInTimeRecovery"
         BackupSelectionTagValue:
@@ -2115,9 +2530,20 @@ Resources:
           Ref: "DeployFlowBackend"
         UseResolvedAppName: "true"
         ResolvedAppName:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "FlowAppName"
+          Fn::If:
+            - "HasExistingFlowAppName"
+            -
+              Fn::Select:
+                - 2
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "FlowAppName"
         AppName:
           Fn::Sub: "${AWS::StackName}"
         Environment:
@@ -2127,19 +2553,52 @@ Resources:
         AdminApiAuthMode:
           Ref: "FlowAdminApiAuthMode"
         AdminCognitoUserPoolId:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolId"
+          Fn::If:
+            - "HasExistingUserPoolId"
+            -
+              Fn::Select:
+                - 7
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.UserPoolId"
         AdminCognitoAuthScopes:
           Ref: "FlowAdminCognitoAuthScopes"
         FrontendCognitoUserPoolId:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolId"
+          Fn::If:
+            - "HasExistingUserPoolId"
+            -
+              Fn::Select:
+                - 7
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.UserPoolId"
         FrontendCognitoAppClientIds:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolClientId"
+          Fn::If:
+            - "HasExistingUserPoolClientId"
+            -
+              Fn::Select:
+                - 8
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.UserPoolClientId"
         PayloadBucketName:
           Ref: "FlowPayloadBucketName"
         TemplatesBucketName:
@@ -2159,23 +2618,67 @@ Resources:
         RecaptchaScoreThreshold:
           Ref: "RecaptchaScoreThreshold"
         SharedRecaptchaSecretParameterName:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.SharedRecaptchaSecretParameterName"
+          Fn::If:
+            - "HasExistingSharedRecaptchaSecretParameterName"
+            -
+              Fn::Select:
+                - 9
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.SharedRecaptchaSecretParameterName"
         SharedRecaptchaSecretParameterArn:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.SharedRecaptchaSecretParameterArn"
+          Fn::If:
+            - "HasExistingSharedRecaptchaSecretParameterArn"
+            -
+              Fn::Select:
+                - 10
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.SharedRecaptchaSecretParameterArn"
         SharedRecaptchaKmsKeyArn:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.SharedRecaptchaKmsKeyArn"
+          Fn::If:
+            - "HasExistingSharedRecaptchaKmsKeyArn"
+            -
+              Fn::Select:
+                - 11
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.SharedRecaptchaKmsKeyArn"
         EnableWAF:
           Ref: "EnableApiWAF"
         SharedRegionalWebACLArn:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.SharedApiWebACLArn"
+          Fn::If:
+            - "HasExistingSharedApiWebACLArn"
+            -
+              Fn::Select:
+                - 12
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.SharedApiWebACLArn"
         EnableDetailedApiLogging:
           Ref: "EnableDetailedLogging"
         EnableKmsForSecrets:
@@ -2253,25 +2756,61 @@ Resources:
         WpSuiteDeploymentSecretArn:
           Ref: "WpSuiteDeploymentSecretArn"
         TemplateVersion:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "TemplateVersion"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "TemplateVersion"
+            - "v1.1.19"
         ArtifactBucketName:
           Ref: "DeploymentArtifactBucket"
         ArtifactRootPrefix:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ArtifactRootPrefix"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "ArtifactRootPrefix"
+            -
+              Fn::Join:
+                - ""
+                -
+                  -
+                    Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
+                  - "v1.1.19/"
         LogRetentionDays:
           Ref: "LogRetentionDays"
         IntegrationEventBusName:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "IntegrationEventBusName"
+          Fn::If:
+            - "HasExistingIntegrationEventBusName"
+            -
+              Fn::Select:
+                - 17
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "IntegrationEventBusName"
         IntegrationEventConsumersEnabled:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "IntegrationEventConsumersEnabled"
+          Fn::If:
+            - "HasExistingIntegrationEventConsumersEnabled"
+            -
+              Fn::Select:
+                - 18
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "IntegrationEventConsumersEnabled"
         EnableDynamoDbPointInTimeRecovery:
           Ref: "EnableDynamoDbPointInTimeRecovery"
         BackupSelectionTagValue:
@@ -2280,9 +2819,20 @@ Resources:
           Ref: "DeployAiKitBackend"
         UseResolvedAppName: "true"
         ResolvedAppName:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "AiKitAppName"
+          Fn::If:
+            - "HasExistingAiKitAppName"
+            -
+              Fn::Select:
+                - 1
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "AiKitAppName"
         AppName:
           Fn::Sub: "${AWS::StackName}"
         Environment:
@@ -2308,37 +2858,85 @@ Resources:
         KnowledgeBaseId:
           Ref: "AiKitKnowledgeBaseId"
         EnableCommerceKnowledgeAccess:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "CommerceEnabled"
-        CommerceKnowledgeAccessConfig:
-          Fn::Sub:
-            - "{\"deploymentId\":\"${DeploymentId}\",\"siteId\":\"${SiteId}\",\"policyVersion\":\"1\",\"userPoolId\":\"${UserPoolId}\",\"clientIds\":[\"${AppClientId}\"],\"stripeAccountId\":\"${StripeAccountId}\",\"mode\":\"${Mode}\"}"
+          Fn::If:
+            - "KeepCommerceWrapper"
             -
-              DeploymentId:
-                Fn::GetAtt:
-                  - "ArtifactStager"
-                  - "CommerceDeploymentId"
-              SiteId:
-                Fn::GetAtt:
-                  - "ArtifactStager"
-                  - "CommerceSiteId"
-              UserPoolId:
-                Fn::GetAtt:
-                  - "CognitoNestedStack"
-                  - "Outputs.UserPoolId"
-              AppClientId:
-                Fn::GetAtt:
-                  - "CognitoNestedStack"
-                  - "Outputs.UserPoolClientId"
-              StripeAccountId:
-                Fn::GetAtt:
-                  - "ArtifactStager"
-                  - "CommerceStripeAccountId"
-              Mode:
-                Fn::GetAtt:
-                  - "ArtifactStager"
-                  - "CommerceStripeMode"
+              Fn::If:
+                - "HasExistingCommerceEnabled"
+                -
+                  Fn::Select:
+                    - 13
+                    -
+                      Fn::Split:
+                        - "|"
+                        -
+                          Ref: "ExistingResourceNames"
+                -
+                  Fn::GetAtt:
+                    - "ArtifactStager"
+                    - "CommerceEnabled"
+            - "false"
+        CommerceKnowledgeAccessConfig:
+          Fn::If:
+            - "HasExistingCommerceKnowledgeAccessConfig"
+            -
+              Fn::Select:
+                - 14
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::Sub:
+                - "{\"deploymentId\":\"${DeploymentId}\",\"siteId\":\"${SiteId}\",\"policyVersion\":\"1\",\"userPoolId\":\"${UserPoolId}\",\"clientIds\":[\"${AppClientId}\"],\"stripeAccountId\":\"${StripeAccountId}\",\"mode\":\"${Mode}\"}"
+                -
+                  DeploymentId:
+                    Fn::GetAtt:
+                      - "ArtifactStager"
+                      - "CommerceDeploymentId"
+                  SiteId:
+                    Fn::GetAtt:
+                      - "ArtifactStager"
+                      - "CommerceSiteId"
+                  UserPoolId:
+                    Fn::If:
+                      - "HasExistingUserPoolId"
+                      -
+                        Fn::Select:
+                          - 7
+                          -
+                            Fn::Split:
+                              - "|"
+                              -
+                                Ref: "ExistingResourceNames"
+                      -
+                        Fn::GetAtt:
+                          - "CognitoNestedStack"
+                          - "Outputs.UserPoolId"
+                  AppClientId:
+                    Fn::If:
+                      - "HasExistingUserPoolClientId"
+                      -
+                        Fn::Select:
+                          - 8
+                          -
+                            Fn::Split:
+                              - "|"
+                              -
+                                Ref: "ExistingResourceNames"
+                      -
+                        Fn::GetAtt:
+                          - "CognitoNestedStack"
+                          - "Outputs.UserPoolClientId"
+                  StripeAccountId:
+                    Fn::GetAtt:
+                      - "ArtifactStager"
+                      - "CommerceStripeAccountId"
+                  Mode:
+                    Fn::GetAtt:
+                      - "ArtifactStager"
+                      - "CommerceStripeMode"
         KnowledgeTaxonomyPathsMode:
           Ref: "AiKitKnowledgeTaxonomyPathsMode"
         MonthlyAiSpendLimitUsd:
@@ -2368,35 +2966,101 @@ Resources:
         RecaptchaScoreThreshold:
           Ref: "RecaptchaScoreThreshold"
         SharedRecaptchaSecretParameterName:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.SharedRecaptchaSecretParameterName"
+          Fn::If:
+            - "HasExistingSharedRecaptchaSecretParameterName"
+            -
+              Fn::Select:
+                - 9
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.SharedRecaptchaSecretParameterName"
         SharedRecaptchaSecretParameterArn:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.SharedRecaptchaSecretParameterArn"
+          Fn::If:
+            - "HasExistingSharedRecaptchaSecretParameterArn"
+            -
+              Fn::Select:
+                - 10
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.SharedRecaptchaSecretParameterArn"
         SharedRecaptchaKmsKeyArn:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.SharedRecaptchaKmsKeyArn"
+          Fn::If:
+            - "HasExistingSharedRecaptchaKmsKeyArn"
+            -
+              Fn::Select:
+                - 11
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.SharedRecaptchaKmsKeyArn"
         RecaptchaChatTtlSeconds:
           Ref: "RecaptchaChatTtlSeconds"
         EnableWAF:
           Ref: "EnableApiWAF"
         SharedRegionalWebACLArn:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.SharedApiWebACLArn"
+          Fn::If:
+            - "HasExistingSharedApiWebACLArn"
+            -
+              Fn::Select:
+                - 12
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.SharedApiWebACLArn"
         EnableDetailedApiLogging:
           Ref: "EnableDetailedLogging"
         FlowAttachmentBucketName:
-          Fn::GetAtt:
-            - "FlowBackendNestedStack"
-            - "Outputs.PayloadBucketOutput"
+          Fn::If:
+            - "HasExistingFlowAttachmentBucketName"
+            -
+              Fn::Select:
+                - 15
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "FlowBackendNestedStack"
+                - "Outputs.PayloadBucketOutput"
         FlowAttachmentPrefix:
-          Fn::GetAtt:
-            - "FlowBackendNestedStack"
-            - "Outputs.PayloadPrefixOutput"
+          Fn::If:
+            - "HasExistingFlowAttachmentPrefix"
+            -
+              Fn::Select:
+                - 16
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "FlowBackendNestedStack"
+                - "Outputs.PayloadPrefixOutput"
         EnableAlerts:
           Ref: "EnableAlerts"
         AlertEmailAddress1:
@@ -2468,13 +3132,35 @@ Resources:
         BlockedIPs:
           Ref: "AiKitBlockedIPs"
         AdminCognitoUserPoolId:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolId"
+          Fn::If:
+            - "HasExistingUserPoolId"
+            -
+              Fn::Select:
+                - 7
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.UserPoolId"
         FrontendCognitoUserPoolId:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolId"
+          Fn::If:
+            - "HasExistingUserPoolId"
+            -
+              Fn::Select:
+                - 7
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.UserPoolId"
       Tags:
         -
           Key: "aws-apn-id"
@@ -2507,15 +3193,29 @@ Resources:
         WpSuiteDeploymentSecretArn:
           Ref: "WpSuiteDeploymentSecretArn"
         TemplateVersion:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "TemplateVersion"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "TemplateVersion"
+            - "v1.1.19"
         ArtifactBucketName:
           Ref: "DeploymentArtifactBucket"
         ArtifactRootPrefix:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "ArtifactRootPrefix"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "ArtifactRootPrefix"
+            -
+              Fn::Join:
+                - ""
+                -
+                  -
+                    Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
+                  - "v1.1.19/"
         LogRetentionDays:
           Ref: "StaticGuardianLogRetentionDays"
         BackupSelectionTagValue:
@@ -2524,9 +3224,20 @@ Resources:
           Ref: "DeployStaticGuardian"
         UseResolvedAppName: "true"
         ResolvedAppName:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "StaticGuardianAppName"
+          Fn::If:
+            - "HasExistingStaticGuardianAppName"
+            -
+              Fn::Select:
+                - 3
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "StaticGuardianAppName"
         AppName:
           Fn::Sub: "${AWS::StackName}"
         Environment:
@@ -2536,13 +3247,35 @@ Resources:
         CertificateArn:
           Ref: "StaticGuardianCertificateArn"
         CognitoUserPoolId:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolId"
+          Fn::If:
+            - "HasExistingUserPoolId"
+            -
+              Fn::Select:
+                - 7
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.UserPoolId"
         CognitoAppClientIds:
-          Fn::GetAtt:
-            - "CognitoNestedStack"
-            - "Outputs.UserPoolClientId"
+          Fn::If:
+            - "HasExistingUserPoolClientId"
+            -
+              Fn::Select:
+                - 8
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "CognitoNestedStack"
+                - "Outputs.UserPoolClientId"
         ProtectedPaths:
           Ref: "StaticGuardianProtectedPaths"
         SigninPagePath:
@@ -2637,9 +3370,13 @@ Resources:
         WpSuiteDeploymentSecretArn:
           Ref: "WpSuiteDeploymentSecretArn"
         TemplateVersion:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "TemplateVersion"
+          Fn::If:
+            - "CondUseMarketplaceSecret"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "TemplateVersion"
+            - "v1.1.19"
         LogRetentionDays:
           Ref: "LogRetentionDays"
         BackupSelectionTagValue:
@@ -2648,9 +3385,20 @@ Resources:
           Ref: "DeployDrBackup"
         UseResolvedAppName: "true"
         ResolvedAppName:
-          Fn::GetAtt:
-            - "ArtifactStager"
-            - "DrBackupAppName"
+          Fn::If:
+            - "HasExistingDrBackupAppName"
+            -
+              Fn::Select:
+                - 4
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Ref: "ExistingResourceNames"
+            -
+              Fn::GetAtt:
+                - "ArtifactStager"
+                - "DrBackupAppName"
         AppName:
           Fn::Sub: "${AWS::StackName}"
         Environment:
@@ -2753,8 +3501,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion:
-            Ref: "TemplateVersion"
+          templateVersion: "v1.1.19"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed:
@@ -2762,13 +3509,35 @@ Resources:
           stackId:
             Ref: "CognitoNestedStack"
           userPoolId:
-            Fn::GetAtt:
-              - "CognitoNestedStack"
-              - "Outputs.UserPoolId"
+            Fn::If:
+              - "HasExistingUserPoolId"
+              -
+                Fn::Select:
+                  - 7
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "ExistingResourceNames"
+              -
+                Fn::GetAtt:
+                  - "CognitoNestedStack"
+                  - "Outputs.UserPoolId"
           userPoolClientId:
-            Fn::GetAtt:
-              - "CognitoNestedStack"
-              - "Outputs.UserPoolClientId"
+            Fn::If:
+              - "HasExistingUserPoolClientId"
+              -
+                Fn::Select:
+                  - 8
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "ExistingResourceNames"
+              -
+                Fn::GetAtt:
+                  - "CognitoNestedStack"
+                  - "Outputs.UserPoolClientId"
           agentComposerMcpOAuthClientId:
             Fn::GetAtt:
               - "CognitoNestedStack"
@@ -2913,19 +3682,46 @@ Resources:
               - "Outputs.BackupSelectionTagValue"
         commerce:
           deployed:
-            Fn::GetAtt:
-              - "CommerceNestedStack"
-              - "Outputs.Enabled"
+            Fn::If:
+              - "KeepCommerceWrapper"
+              -
+                Fn::If:
+                  - "HasExistingCommerceEnabled"
+                  -
+                    Fn::Select:
+                      - 13
+                      -
+                        Fn::Split:
+                          - "|"
+                          -
+                            Ref: "ExistingResourceNames"
+                  -
+                    Fn::GetAtt:
+                      - "ArtifactStager"
+                      - "CommerceEnabled"
+              - "false"
           stackId:
-            Ref: "CommerceNestedStack"
+            Fn::If:
+              - "KeepCommerceWrapper"
+              -
+                Ref: "CommerceNestedStack"
+              - ""
           apiUrl:
-            Fn::GetAtt:
-              - "CommerceNestedStack"
-              - "Outputs.ApiUrl"
+            Fn::If:
+              - "KeepCommerceWrapper"
+              -
+                Fn::GetAtt:
+                  - "CommerceNestedStack"
+                  - "Outputs.ApiUrl"
+              - ""
           eventBusName:
-            Fn::GetAtt:
-              - "CommerceNestedStack"
-              - "Outputs.EventBusName"
+            Fn::If:
+              - "KeepCommerceWrapper"
+              -
+                Fn::GetAtt:
+                  - "CommerceNestedStack"
+                  - "Outputs.EventBusName"
+              - ""
   ArtifactIngressPreviewReadPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
@@ -3066,39 +3862,63 @@ Outputs:
   CommerceApiUrl:
     Description: "Commerce API URL, empty when disabled."
     Value:
-      Fn::GetAtt:
-        - "CommerceNestedStack"
-        - "Outputs.ApiUrl"
+      Fn::If:
+        - "KeepCommerceWrapper"
+        -
+          Fn::GetAtt:
+            - "CommerceNestedStack"
+            - "Outputs.ApiUrl"
+        - ""
   CommerceRuntimeRoleArn:
     Description: "Commerce runtime role for Stripe App enrollment."
     Value:
-      Fn::GetAtt:
-        - "CommerceNestedStack"
-        - "Outputs.RuntimeRoleArn"
+      Fn::If:
+        - "KeepCommerceWrapper"
+        -
+          Fn::GetAtt:
+            - "CommerceNestedStack"
+            - "Outputs.RuntimeRoleArn"
+        - ""
   CommerceConfigurationParameterName:
     Description: "Commerce seed configuration parameter."
     Value:
-      Fn::GetAtt:
-        - "CommerceNestedStack"
-        - "Outputs.ConfigurationParameterName"
+      Fn::If:
+        - "KeepCommerceWrapper"
+        -
+          Fn::GetAtt:
+            - "CommerceNestedStack"
+            - "Outputs.ConfigurationParameterName"
+        - ""
   CommerceStripePartnerEventBusName:
     Description: "Commerce StripePartnerEventBusName, empty when disabled."
     Value:
-      Fn::GetAtt:
-        - "CommerceNestedStack"
-        - "Outputs.StripePartnerEventBusName"
+      Fn::If:
+        - "KeepCommerceWrapper"
+        -
+          Fn::GetAtt:
+            - "CommerceNestedStack"
+            - "Outputs.StripePartnerEventBusName"
+        - ""
   CommerceStripeEventSource:
     Description: "Commerce StripeEventSource, empty when disabled."
     Value:
-      Fn::GetAtt:
-        - "CommerceNestedStack"
-        - "Outputs.StripeEventSource"
+      Fn::If:
+        - "KeepCommerceWrapper"
+        -
+          Fn::GetAtt:
+            - "CommerceNestedStack"
+            - "Outputs.StripeEventSource"
+        - ""
   CommerceStripeEventRuleArn:
     Description: "Commerce StripeEventRuleArn, empty when disabled."
     Value:
-      Fn::GetAtt:
-        - "CommerceNestedStack"
-        - "Outputs.StripeEventRuleArn"
+      Fn::If:
+        - "KeepCommerceWrapper"
+        -
+          Fn::GetAtt:
+            - "CommerceNestedStack"
+            - "Outputs.StripeEventRuleArn"
+        - ""
   ArtifactBucketName:
     Description: "Buyer-owned bucket that contains staged WP Suite deployment artifacts."
     Value:

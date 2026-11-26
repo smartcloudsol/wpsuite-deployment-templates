@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-25T18:59:11.138715Z",
-  "templateVersion": "v1.1.17",
+  "generatedAt": "2026-11-26T09:05:02.036Z",
+  "templateVersion": "v1.1.19",
   "sourceProject": "@wpsuite/deployment-orchestration",
   "sourceGeneratedDirectory": "generated/templates",
   "templates": [
@@ -38,7 +38,7 @@
       "name": "wpsuite-commerce-deployment-wrapper.yaml",
       "kind": "wrapper",
       "path": "templates/templates/wpsuite-commerce-deployment-wrapper.yaml",
-      "description": "WP Suite commerce deployment wrapper template"
+      "description": "WP Suite Commerce component for Cloud Deployment."
     },
     {
       "name": "wpsuite-commerce-email-adapter.yaml",

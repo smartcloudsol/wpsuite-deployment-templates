@@ -23,7 +23,7 @@ Parameters:
     Description: "Published template region."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.1.17/templates/templates"
+    Default: "releases/v1.1.19/templates/templates"
     Description: "Published nested template prefix."
   ArtifactBucketName:
     Type: "String"
