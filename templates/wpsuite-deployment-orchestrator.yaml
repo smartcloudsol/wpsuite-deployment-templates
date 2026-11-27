@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.1.19/templates/templates"
+    Default: "releases/v1.1.22-dev/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -176,7 +176,7 @@ Resources:
           -
             Effect: "Allow"
             Principal:
-              AWS: "arn:aws:iam::637423296378:role/wpsuite-prod-marketplace-artifact-deployer"
+              AWS: "arn:aws:iam::637423296378:role/wpsuite-dev-eu-central-1-marketplace-artifact-deployer"
             Action: "sts:AssumeRole"
             Condition:
               StringEquals:
@@ -329,9 +329,7 @@ Resources:
                 Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CommerceNestedStack-*/*"
           -
             Effect: "Allow"
-            Action:
-              - "cloudformation:CreateChangeSet"
-              - "cloudformation:DeleteChangeSet"
+            Action: "cloudformation:CreateChangeSet"
             Resource:
               -
                 Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CognitoNestedStack-*/*"
@@ -348,6 +346,22 @@ Resources:
             Condition:
               StringLikeIfExists:
                 cloudformation:ChangeSetName: "wpsuite-update-*"
+          -
+            Effect: "Allow"
+            Action: "cloudformation:DeleteChangeSet"
+            Resource:
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CognitoNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-AiKitBackendNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-FlowBackendNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-StaticGuardianNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-DrBackupNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CommerceNestedStack-*/*"
           -
             Effect: "Deny"
             Action: "s3:PutObject"
@@ -486,14 +500,14 @@ Resources:
         Fn::GetAtt:
           - "ArtifactStagerFunction"
           - "Arn"
-      BackendStageArtifactUrl: "https://api.wpsuite.io/marketplace/deployment/stage-artifact"
+      BackendStageArtifactUrl: "https://api-dev.wpsuite.io/marketplace/deployment/stage-artifact"
       DeploymentContextMode: "marketplace_secret"
       DeploymentSecretArn:
         Ref: "WpSuiteDeploymentSecretArn"
       DeploymentId: ""
       DeploymentNonce: ""
       ExpectedAwsAccountId: ""
-      TemplateVersion: "v1.1.19"
+      TemplateVersion: "v1.1.22-dev"
       RuntimeArtifactRevision: "catalog-links-v1"
       RequireResolvedAppNames: "true"
       UseCommerceComponent: "true"
@@ -512,7 +526,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.1.19/"
+            - "v1.1.22-dev/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -1454,7 +1468,7 @@ Resources:
         Fn::GetAtt:
           - "DeploymentOutputReporterFunction"
           - "Arn"
-      BackendApiBaseUrl: "https://api.wpsuite.io/marketplace"
+      BackendApiBaseUrl: "https://api-dev.wpsuite.io/marketplace"
       DeploymentContextMode: "marketplace_secret"
       DeploymentSecretArn:
         Ref: "WpSuiteDeploymentSecretArn"
@@ -1477,7 +1491,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.1.19"
+          templateVersion: "v1.1.22-dev"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed: "false"
@@ -1846,6 +1860,18 @@ Outputs:
       Fn::GetAtt:
         - "CognitoNestedStack"
         - "Outputs.AgentComposerMcpResourceUri"
+  AgentComposerRelayOAuthClientId:
+    Description: "Optional Cognito app client ID for the WP Suite MCP relay."
+    Value:
+      Fn::GetAtt:
+        - "CognitoNestedStack"
+        - "Outputs.AgentComposerRelayOAuthClientId"
+  AgentComposerRelayResourceUri:
+    Description: "External site MCP URI for the relay app client."
+    Value:
+      Fn::GetAtt:
+        - "CognitoNestedStack"
+        - "Outputs.AgentComposerRelayResourceUri"
   IdentityEventBusArn:
     Description: "Optional identity lifecycle EventBridge bus ARN; empty when disabled."
     Value:

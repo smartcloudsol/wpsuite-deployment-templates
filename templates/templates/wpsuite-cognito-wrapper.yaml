@@ -1109,6 +1109,18 @@ Outputs:
       Fn::GetAtt:
         - "WrappedNestedStack"
         - "Outputs.AgentComposerMcpResourceUri"
+  AgentComposerRelayOAuthClientId:
+    Description: "Forwarded AgentComposerRelayOAuthClientId output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.AgentComposerRelayOAuthClientId"
+  AgentComposerRelayResourceUri:
+    Description: "Forwarded AgentComposerRelayResourceUri output from wpsuite-cognito.yaml."
+    Value:
+      Fn::GetAtt:
+        - "WrappedNestedStack"
+        - "Outputs.AgentComposerRelayResourceUri"
   IdentityPoolId:
     Description: "Forwarded IdentityPoolId output from wpsuite-cognito.yaml."
     Value:

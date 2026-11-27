@@ -15,7 +15,7 @@ Parameters:
     Description: "Create Cognito resources in this nested stack. When false, only existing identity outputs are exposed."
   TemplateVersion:
     Type: "String"
-    Default: "v1.1.19"
+    Default: "v1.1.22-dev"
     Description: "Immutable WP Suite deployment template version."
   ArtifactRootPrefix:
     Type: "String"
@@ -63,8 +63,8 @@ Parameters:
   AgentComposerMcpOAuthConfig:
     Type: "String"
     Default: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
-    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#](?:\\|(none|cognito-default))?$"
-    Description: "Packed optional Agent Composer MCP OAuth configuration in enabled|https-callback-url|https-resource-uri|managed-login-branding order. The generated public client uses authorization code with PKCE and scopes bound to the exact external MCP resource URI."
+    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#](?:\\|(none|cognito-default)(?:\\|(?:https://[^|\\s#]+\\|https://[A-Za-z0-9.-]+/[A-Za-z0-9_-]{1,96}/[A-Za-z0-9_-]{1,96}/mcp|cimd\\|https://[A-Za-z0-9.-]+/[A-Za-z0-9_-]{1,96}/[A-Za-z0-9_-]{1,96}/mcp\\|https://(?![^,|]*\\*[^,|]*\\*)[A-Za-z0-9*.\\-]+/[A-Za-z0-9_.~/*\\-]+(?:,https://(?![^,|]*\\*[^,|]*\\*)[A-Za-z0-9*.\\-]+/[A-Za-z0-9_.~/*\\-]+){0,4}))?)?$"
+    Description: "Optional Composer OAuth: enabled|callback|resource, optionally followed by |branding and a relay suffix. Use relay-callback|relay-resource for a fixed client or cimd|relay-resource|metadata-url-patterns for client metadata."
     MaxLength: 2048
   AppName:
     Type: "String"
@@ -609,6 +609,95 @@ Conditions:
                   -
                     Ref: "AgentComposerMcpOAuthConfig"
           - "true"
+  CondCreateAgentComposerRelayOAuth:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondHasUserPool"
+      -
+        Fn::Or:
+          -
+            Condition: "CondCreateAgentComposerMcpOAuth"
+          -
+            Fn::Equals:
+              -
+                Fn::Select:
+                  - 4
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Fn::Join:
+                          - "|"
+                          -
+                            -
+                              Ref: "AgentComposerMcpOAuthConfig"
+                            - "|||"
+              - "cimd"
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Select:
+                  - 5
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Fn::Join:
+                          - "|"
+                          -
+                            -
+                              Ref: "AgentComposerMcpOAuthConfig"
+                            - "|||"
+              - ""
+      -
+        Fn::Not:
+          -
+            Fn::Equals:
+              -
+                Fn::Select:
+                  - 5
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Fn::Join:
+                          - "|"
+                          -
+                            -
+                              Ref: "AgentComposerMcpOAuthConfig"
+                            - "|||"
+              -
+                Fn::Select:
+                  - 2
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Ref: "AgentComposerMcpOAuthConfig"
+  CondCreateAgentComposerRelayCimd:
+    Fn::And:
+      -
+        Condition: "CondCreateAgentComposerRelayOAuth"
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 4
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Fn::Join:
+                      - "|"
+                      -
+                        -
+                          Ref: "AgentComposerMcpOAuthConfig"
+                        - "|||"
+          - "cimd"
   CondCreateIdentityPool:
     Fn::And:
       -
@@ -653,6 +742,28 @@ Conditions:
     Fn::And:
       -
         Condition: "CondCreateAgentComposerMcpOAuth"
+      -
+        Condition: "CondCreateDomain"
+      -
+        Fn::Equals:
+          -
+            Fn::Select:
+              - 3
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Fn::Join:
+                      - "|"
+                      -
+                        -
+                          Ref: "AgentComposerMcpOAuthConfig"
+                        - "none"
+          - "cognito-default"
+  CondCreateAgentComposerRelayManagedLoginBranding:
+    Fn::And:
+      -
+        Condition: "CondCreateAgentComposerRelayOAuth"
       -
         Condition: "CondCreateDomain"
       -
@@ -1247,6 +1358,24 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CondCreateAgentComposerMcpOAuth"
+  AgentComposerRelayResourceServerTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateAgentComposerRelayOAuth"
+  AgentComposerRelayOAuthClientTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateAgentComposerRelayOAuth"
+  AgentComposerRelayCimdPolicyTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateAgentComposerRelayCimd"
   UserPoolDomainTemplateEnabledCondition:
     Fn::And:
       -
@@ -1259,6 +1388,12 @@ Conditions:
         Condition: "TemplateEnabled"
       -
         Condition: "CondCreateAgentComposerMcpManagedLoginBranding"
+  AgentComposerRelayManagedLoginBrandingTemplateEnabledCondition:
+    Fn::And:
+      -
+        Condition: "TemplateEnabled"
+      -
+        Condition: "CondCreateAgentComposerRelayManagedLoginBranding"
   IdentityPoolTemplateEnabledCondition:
     Fn::And:
       -
@@ -2702,6 +2837,273 @@ Resources:
     DependsOn:
       - "AgentComposerMcpResourceServer"
     Condition: "AgentComposerMcpOAuthClientTemplateEnabledCondition"
+  AgentComposerRelayResourceServer:
+    Type: "AWS::Cognito::UserPoolResourceServer"
+    Properties:
+      UserPoolId:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Ref: "UserPool"
+          -
+            Ref: "ExistingUserPoolId"
+      Identifier:
+        Fn::Select:
+          - 5
+          -
+            Fn::Split:
+              - "|"
+              -
+                Fn::Join:
+                  - "|"
+                  -
+                    -
+                      Ref: "AgentComposerMcpOAuthConfig"
+                    - "|||"
+      Name: "WP Suite MCP Relay"
+      Scopes:
+        -
+          ScopeName: "read"
+          ScopeDescription: "Inspect Agent Composer configuration and governed content."
+        -
+          ScopeName: "draft"
+          ScopeDescription: "Create and update Composer-owned drafts."
+        -
+          ScopeName: "propose"
+          ScopeDescription: "Create governed published-content proposals."
+        -
+          ScopeName: "publish.request"
+          ScopeDescription: "Request human approval for an eligible proposal."
+        -
+          ScopeName: "site.build"
+          ScopeDescription: "Request Site Build operations under the site's Composer policy."
+    Condition: "AgentComposerRelayResourceServerTemplateEnabledCondition"
+  AgentComposerRelayOAuthClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      UserPoolId:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Ref: "UserPool"
+          -
+            Ref: "ExistingUserPoolId"
+      ClientName:
+        Fn::Sub: "${AppName}-mcp-relay"
+      GenerateSecret: false
+      EnableTokenRevocation: true
+      AccessTokenValidity:
+        Fn::Select:
+          - 0
+          -
+            Fn::Split:
+              - ","
+              -
+                Ref: "TokenValidityConfig"
+      IdTokenValidity:
+        Fn::Select:
+          - 2
+          -
+            Fn::Split:
+              - ","
+              -
+                Ref: "TokenValidityConfig"
+      RefreshTokenValidity:
+        Fn::Select:
+          - 4
+          -
+            Fn::Split:
+              - ","
+              -
+                Ref: "TokenValidityConfig"
+      TokenValidityUnits:
+        AccessToken:
+          Fn::Select:
+            - 1
+            -
+              Fn::Split:
+                - ","
+                -
+                  Ref: "TokenValidityConfig"
+        IdToken:
+          Fn::Select:
+            - 3
+            -
+              Fn::Split:
+                - ","
+                -
+                  Ref: "TokenValidityConfig"
+        RefreshToken:
+          Fn::Select:
+            - 5
+            -
+              Fn::Split:
+                - ","
+                -
+                  Ref: "TokenValidityConfig"
+      PreventUserExistenceErrors: "ENABLED"
+      SupportedIdentityProviders:
+        - "COGNITO"
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - "code"
+      AllowedOAuthScopes:
+        - "openid"
+        -
+          Fn::Join:
+            - "/"
+            -
+              -
+                Fn::Select:
+                  - 5
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Fn::Join:
+                          - "|"
+                          -
+                            -
+                              Ref: "AgentComposerMcpOAuthConfig"
+                            - "|||"
+              - "read"
+        -
+          Fn::Join:
+            - "/"
+            -
+              -
+                Fn::Select:
+                  - 5
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Fn::Join:
+                          - "|"
+                          -
+                            -
+                              Ref: "AgentComposerMcpOAuthConfig"
+                            - "|||"
+              - "draft"
+        -
+          Fn::Join:
+            - "/"
+            -
+              -
+                Fn::Select:
+                  - 5
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Fn::Join:
+                          - "|"
+                          -
+                            -
+                              Ref: "AgentComposerMcpOAuthConfig"
+                            - "|||"
+              - "propose"
+        -
+          Fn::Join:
+            - "/"
+            -
+              -
+                Fn::Select:
+                  - 5
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Fn::Join:
+                          - "|"
+                          -
+                            -
+                              Ref: "AgentComposerMcpOAuthConfig"
+                            - "|||"
+              - "publish.request"
+        -
+          Fn::Join:
+            - "/"
+            -
+              -
+                Fn::Select:
+                  - 5
+                  -
+                    Fn::Split:
+                      - "|"
+                      -
+                        Fn::Join:
+                          - "|"
+                          -
+                            -
+                              Ref: "AgentComposerMcpOAuthConfig"
+                            - "|||"
+              - "site.build"
+      CallbackURLs:
+        -
+          Fn::If:
+            - "CondCreateAgentComposerRelayCimd"
+            -
+              Fn::Select:
+                - 5
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Fn::Join:
+                        - "|"
+                        -
+                          -
+                            Ref: "AgentComposerMcpOAuthConfig"
+                          - "|||"
+            -
+              Fn::Select:
+                - 4
+                -
+                  Fn::Split:
+                    - "|"
+                    -
+                      Fn::Join:
+                        - "|"
+                        -
+                          -
+                            Ref: "AgentComposerMcpOAuthConfig"
+                          - "|||"
+      ExplicitAuthFlows:
+        - "ALLOW_REFRESH_TOKEN_AUTH"
+    DependsOn:
+      - "AgentComposerRelayResourceServer"
+    Condition: "AgentComposerRelayOAuthClientTemplateEnabledCondition"
+  AgentComposerRelayCimdPolicy:
+    Type: "AWS::Cognito::CIMDPolicy"
+    Properties:
+      UserPoolId:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Ref: "UserPool"
+          -
+            Ref: "ExistingUserPoolId"
+      ClientId:
+        Ref: "AgentComposerRelayOAuthClient"
+      PolicyName: "wpsuite-mcp-relay"
+      URLPatterns:
+        Fn::Split:
+          - ","
+          -
+            Fn::Select:
+              - 6
+              -
+                Fn::Split:
+                  - "|"
+                  -
+                    Fn::Join:
+                      - "|"
+                      -
+                        -
+                          Ref: "AgentComposerMcpOAuthConfig"
+                        - "|||"
+    Condition: "AgentComposerRelayCimdPolicyTemplateEnabledCondition"
   UserPoolDomain:
     Type: "AWS::Cognito::UserPoolDomain"
     Properties:
@@ -2741,6 +3143,23 @@ Resources:
     DependsOn:
       - "UserPoolDomain"
     Condition: "AgentComposerMcpManagedLoginBrandingTemplateEnabledCondition"
+  AgentComposerRelayManagedLoginBranding:
+    Type: "AWS::Cognito::ManagedLoginBranding"
+    Properties:
+      UserPoolId:
+        Fn::If:
+          - "CondCreateUserPool"
+          -
+            Ref: "UserPool"
+          -
+            Ref: "ExistingUserPoolId"
+      ClientId:
+        Ref: "AgentComposerRelayOAuthClient"
+      UseCognitoProvidedValues: true
+      ReturnMergedResources: false
+    DependsOn:
+      - "UserPoolDomain"
+    Condition: "AgentComposerRelayManagedLoginBrandingTemplateEnabledCondition"
   IdentityPool:
     Type: "AWS::Cognito::IdentityPool"
     Properties:
@@ -4199,6 +4618,33 @@ Outputs:
                 - "|"
                 -
                   Ref: "AgentComposerMcpOAuthConfig"
+        - ""
+  AgentComposerRelayOAuthClientId:
+    Description: "Optional public app client ID for the WP Suite MCP relay."
+    Value:
+      Fn::If:
+        - "CondCreateAgentComposerRelayOAuth"
+        -
+          Ref: "AgentComposerRelayOAuthClient"
+        - ""
+  AgentComposerRelayResourceUri:
+    Description: "External site MCP URI for the relay app client."
+    Value:
+      Fn::If:
+        - "CondCreateAgentComposerRelayOAuth"
+        -
+          Fn::Select:
+            - 5
+            -
+              Fn::Split:
+                - "|"
+                -
+                  Fn::Join:
+                    - "|"
+                    -
+                      -
+                        Ref: "AgentComposerMcpOAuthConfig"
+                      - "|||"
         - ""
   UserPoolDomain:
     Description: "Cognito User Pool hosted UI domain."

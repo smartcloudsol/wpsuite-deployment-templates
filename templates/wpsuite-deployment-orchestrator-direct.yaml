@@ -11,7 +11,7 @@ Parameters:
     Description: "Marketplace-provided bucket region that contains the reviewed WP Suite templates."
   MPS3KeyPrefix:
     Type: "String"
-    Default: "releases/v1.1.19/templates/templates"
+    Default: "releases/v1.1.22-dev/templates/templates"
     Description: "S3 key prefix for the reviewed WP Suite nested CloudFormation templates."
   WpSuiteDeploymentSecretArn:
     Type: "String"
@@ -41,11 +41,11 @@ Parameters:
     Description: "Expected buyer AWS account ID."
   WpSuiteSellerArtifactDeployerRoleArn:
     Type: "String"
-    Default: "arn:aws:iam::637423296378:role/wpsuite-prod-marketplace-artifact-deployer"
+    Default: "arn:aws:iam::637423296378:role/wpsuite-dev-eu-central-1-marketplace-artifact-deployer"
     Description: "WP Suite seller-side IAM role ARN that is allowed to assume the buyer artifact ingress role."
   WpSuiteBackendApiBaseUrl:
     Type: "String"
-    Default: "https://api.wpsuite.io/marketplace"
+    Default: "https://api-dev.wpsuite.io/marketplace"
     Description: "WP Suite Marketplace backend API base URL."
   DeployCognito:
     Type: "String"
@@ -244,8 +244,8 @@ Parameters:
   CognitoAgentComposerMcpOAuthConfig:
     Type: "String"
     Default: "false|https://example.com/connector/oauth/callback|https://example.com/mcp"
-    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#](?:\\|(none|cognito-default))?$"
-    Description: "Packed optional Agent Composer MCP OAuth configuration in enabled|https-callback-url|https-resource-uri|managed-login-branding order."
+    AllowedPattern: "^(true|false)\\|https://[^|\\s#]+\\|https://[^|\\s?#]+[^/|\\s?#](?:\\|(none|cognito-default)(?:\\|(?:https://[^|\\s#]+\\|https://[A-Za-z0-9.-]+/[A-Za-z0-9_-]{1,96}/[A-Za-z0-9_-]{1,96}/mcp|cimd\\|https://[A-Za-z0-9.-]+/[A-Za-z0-9_-]{1,96}/[A-Za-z0-9_-]{1,96}/mcp\\|https://(?![^,|]*\\*[^,|]*\\*)[A-Za-z0-9*.\\-]+/[A-Za-z0-9_.~/*\\-]+(?:,https://(?![^,|]*\\*[^,|]*\\*)[A-Za-z0-9*.\\-]+/[A-Za-z0-9_.~/*\\-]+){0,4}))?)?$"
+    Description: "Optional Composer OAuth: enabled|callback|resource, then |branding and either |relay-callback|relay-resource or |cimd|relay-resource|metadata-url-patterns."
     MaxLength: 4096
   CognitoIdentityEventsMode:
     Type: "String"
@@ -1624,9 +1624,7 @@ Resources:
                 Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CommerceNestedStack-*/*"
           -
             Effect: "Allow"
-            Action:
-              - "cloudformation:CreateChangeSet"
-              - "cloudformation:DeleteChangeSet"
+            Action: "cloudformation:CreateChangeSet"
             Resource:
               -
                 Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CognitoNestedStack-*/*"
@@ -1643,6 +1641,22 @@ Resources:
             Condition:
               StringLikeIfExists:
                 cloudformation:ChangeSetName: "wpsuite-update-*"
+          -
+            Effect: "Allow"
+            Action: "cloudformation:DeleteChangeSet"
+            Resource:
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CognitoNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-AiKitBackendNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-FlowBackendNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-StaticGuardianNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-DrBackupNestedStack-*/*"
+              -
+                Fn::Sub: "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-CommerceNestedStack-*/*"
           -
             Effect: "Deny"
             Action: "s3:PutObject"
@@ -1799,7 +1813,7 @@ Resources:
         Ref: "WpSuiteDeploymentNonce"
       ExpectedAwsAccountId:
         Ref: "WpSuiteExpectedAwsAccountId"
-      TemplateVersion: "v1.1.19"
+      TemplateVersion: "v1.1.22-dev"
       RuntimeArtifactRevision: "catalog-links-v1"
       RequireResolvedAppNames: "true"
       UseCommerceComponent: "true"
@@ -1818,7 +1832,7 @@ Resources:
           -
             -
               Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-            - "v1.1.19/"
+            - "v1.1.22-dev/"
       StackArtifactPrefix:
         Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
       ArtifactIngressRoleArn:
@@ -2023,7 +2037,7 @@ Resources:
               Fn::GetAtt:
                 - "ArtifactStager"
                 - "TemplateVersion"
-            - "v1.1.19"
+            - "v1.1.22-dev"
         ArtifactBucketName:
           Ref: "DeploymentArtifactBucket"
         ArtifactRootPrefix:
@@ -2039,7 +2053,7 @@ Resources:
                 -
                   -
                     Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-                  - "v1.1.19/"
+                  - "v1.1.22-dev/"
         LogRetentionDays:
           Ref: "LogRetentionDays"
         Enabled:
@@ -2290,7 +2304,7 @@ Resources:
               Fn::GetAtt:
                 - "ArtifactStager"
                 - "TemplateVersion"
-            - "v1.1.19"
+            - "v1.1.22-dev"
         ArtifactBucketName:
           Ref: "DeploymentArtifactBucket"
         ArtifactRootPrefix:
@@ -2306,7 +2320,7 @@ Resources:
                 -
                   -
                     Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-                  - "v1.1.19/"
+                  - "v1.1.22-dev/"
         UserPoolId:
           Fn::If:
             - "HasExistingUserPoolId"
@@ -2473,7 +2487,7 @@ Resources:
               Fn::GetAtt:
                 - "ArtifactStager"
                 - "TemplateVersion"
-            - "v1.1.19"
+            - "v1.1.22-dev"
         ArtifactBucketName:
           Ref: "DeploymentArtifactBucket"
         ArtifactRootPrefix:
@@ -2489,7 +2503,7 @@ Resources:
                 -
                   -
                     Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-                  - "v1.1.19/"
+                  - "v1.1.22-dev/"
         LogRetentionDays:
           Ref: "FlowLogRetentionDays"
         IntegrationEventBusName:
@@ -2762,7 +2776,7 @@ Resources:
               Fn::GetAtt:
                 - "ArtifactStager"
                 - "TemplateVersion"
-            - "v1.1.19"
+            - "v1.1.22-dev"
         ArtifactBucketName:
           Ref: "DeploymentArtifactBucket"
         ArtifactRootPrefix:
@@ -2778,7 +2792,7 @@ Resources:
                 -
                   -
                     Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-                  - "v1.1.19/"
+                  - "v1.1.22-dev/"
         LogRetentionDays:
           Ref: "LogRetentionDays"
         IntegrationEventBusName:
@@ -3199,7 +3213,7 @@ Resources:
               Fn::GetAtt:
                 - "ArtifactStager"
                 - "TemplateVersion"
-            - "v1.1.19"
+            - "v1.1.22-dev"
         ArtifactBucketName:
           Ref: "DeploymentArtifactBucket"
         ArtifactRootPrefix:
@@ -3215,7 +3229,7 @@ Resources:
                 -
                   -
                     Fn::Sub: "wpsuite-artifacts/${AWS::StackId}/"
-                  - "v1.1.19/"
+                  - "v1.1.22-dev/"
         LogRetentionDays:
           Ref: "StaticGuardianLogRetentionDays"
         BackupSelectionTagValue:
@@ -3376,7 +3390,7 @@ Resources:
               Fn::GetAtt:
                 - "ArtifactStager"
                 - "TemplateVersion"
-            - "v1.1.19"
+            - "v1.1.22-dev"
         LogRetentionDays:
           Ref: "LogRetentionDays"
         BackupSelectionTagValue:
@@ -3501,7 +3515,7 @@ Resources:
             Fn::GetAtt:
               - "ArtifactIngressRole"
               - "Arn"
-          templateVersion: "v1.1.19"
+          templateVersion: "v1.1.22-dev"
           deploymentControlProtocolVersion: "2"
         cognito:
           deployed:
@@ -3956,6 +3970,18 @@ Outputs:
       Fn::GetAtt:
         - "CognitoNestedStack"
         - "Outputs.AgentComposerMcpResourceUri"
+  AgentComposerRelayOAuthClientId:
+    Description: "Optional Cognito app client ID for the WP Suite MCP relay."
+    Value:
+      Fn::GetAtt:
+        - "CognitoNestedStack"
+        - "Outputs.AgentComposerRelayOAuthClientId"
+  AgentComposerRelayResourceUri:
+    Description: "External site MCP URI for the relay app client."
+    Value:
+      Fn::GetAtt:
+        - "CognitoNestedStack"
+        - "Outputs.AgentComposerRelayResourceUri"
   IdentityEventBusArn:
     Description: "Optional identity lifecycle EventBridge bus ARN; empty when disabled."
     Value:
